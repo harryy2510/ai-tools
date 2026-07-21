@@ -33,6 +33,7 @@ Documentation hub for the package. Source of truth for architecture and module c
 | `@harryy/ai-tools/cloudflare-email` | [cloudflare-email](./modules/cloudflare-email.md) |
 | `@harryy/ai-tools/s3-storage` | [s3-storage](./modules/s3-storage.md) |
 | `@harryy/ai-tools/mime` | [mime](./modules/mime.md) |
+| `@harryy/ai-tools/web-fetch` | [web-fetch](./modules/web-fetch.md) |
 
 ## Mental model
 

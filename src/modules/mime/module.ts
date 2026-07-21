@@ -9,7 +9,7 @@ import { ToolError } from '../../core/errors'
 import { base64ToBytes, bytesToBase64, utf8ToBytes } from '../../shared/bytes'
 
 const addressSchema = z.object({
-	address: z.string().email().describe('Email address'),
+	address: z.email().describe('Email address'),
 	name: z.string().optional().describe('Display name')
 })
 
@@ -62,22 +62,22 @@ const buildAttachmentSchema = z.object({
 
 const buildInput = z
 	.object({
-		from: z.union([z.string().email(), addressSchema]).describe('Sender address or { address, name }'),
+		from: z.union([z.email(), addressSchema]).describe('Sender address or { address, name }'),
 		to: z
-			.union([z.string().email(), addressSchema, z.array(z.union([z.string().email(), addressSchema])).min(1)])
+			.union([z.email(), addressSchema, z.array(z.union([z.email(), addressSchema])).min(1)])
 			.describe('Recipient address, named address, or list'),
 		subject: z.string().min(1).describe('Subject line'),
 		text: z.string().optional().describe('Plain text body'),
 		html: z.string().optional().describe('HTML body'),
 		cc: z
-			.union([z.string().email(), addressSchema, z.array(z.union([z.string().email(), addressSchema]))])
+			.union([z.email(), addressSchema, z.array(z.union([z.email(), addressSchema]))])
 			.optional()
 			.describe('CC recipients'),
 		bcc: z
-			.union([z.string().email(), addressSchema, z.array(z.union([z.string().email(), addressSchema]))])
+			.union([z.email(), addressSchema, z.array(z.union([z.email(), addressSchema]))])
 			.optional()
 			.describe('BCC recipients'),
-		reply_to: z.union([z.string().email(), addressSchema]).optional().describe('Reply-To address'),
+		reply_to: z.union([z.email(), addressSchema]).optional().describe('Reply-To address'),
 		headers: z.record(z.string(), z.string()).optional().describe('Additional headers as a string map'),
 		attachments: z
 			.array(buildAttachmentSchema)

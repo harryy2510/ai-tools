@@ -75,6 +75,7 @@ export const tools = createAiSdkTools(mimeModule)
 | `@harryy/ai-tools/cloudflare-email` | `cloudflare-email-send` | [docs/modules/cloudflare-email.md](./docs/modules/cloudflare-email.md) |
 | `@harryy/ai-tools/s3-storage` | `s3-list-objects`, `s3-get-object`, `s3-put-object`, `s3-delete-object`, `s3-head-object`, `s3-copy-object`, `s3-create-signed-url` | [docs/modules/s3-storage.md](./docs/modules/s3-storage.md) |
 | `@harryy/ai-tools/mime` | `mime-parse`, `mime-build` | [docs/modules/mime.md](./docs/modules/mime.md) |
+| `@harryy/ai-tools/web-fetch` | `web-fetch-get` (read), `web-fetch-request` (write) | [docs/modules/web-fetch.md](./docs/modules/web-fetch.md) |
 
 ## Architecture
 

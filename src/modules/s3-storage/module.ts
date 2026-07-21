@@ -12,11 +12,7 @@ export const s3StorageAuthSchema = z.object({
 	secretAccessKey: z.string().min(1).describe('S3 secret access key'),
 	region: z.string().min(1).describe('AWS region or R2 jurisdiction region string'),
 	bucket: z.string().min(1).describe('Default bucket name'),
-	endpoint: z
-		.string()
-		.url()
-		.optional()
-		.describe('Optional custom endpoint for S3-compatible stores such as R2 or MinIO'),
+	endpoint: z.url().optional().describe('Optional custom endpoint for S3-compatible stores such as R2 or MinIO'),
 	sessionToken: z.string().min(1).optional().describe('Optional session token for temporary credentials')
 })
 
@@ -173,7 +169,7 @@ const listObjectsInput = z.object({
 	prefix: z.string().optional().describe('Key prefix filter'),
 	delimiter: z.string().optional().describe('Delimiter for common prefixes (folders), for example /'),
 	continuation_token: z.string().optional().describe('Pagination token from a prior list call'),
-	max_keys: z.number().int().min(1).max(1000).optional().describe('Maximum keys to return (1-1000)')
+	max_keys: z.int().min(1).max(1000).optional().describe('Maximum keys to return (1-1000)')
 })
 
 const listObjectsOutput = z.object({
@@ -254,7 +250,6 @@ const signedUrlInput = z.object({
 		.optional()
 		.describe('HTTP method the URL authorizes. Defaults to GET'),
 	expires_in: z
-		.number()
 		.int()
 		.min(1)
 		.max(MAX_SIGNED_URL_SECONDS)
@@ -263,9 +258,9 @@ const signedUrlInput = z.object({
 })
 
 const signedUrlOutput = z.object({
-	url: z.string().url().describe('Presigned URL'),
+	url: z.url().describe('Presigned URL'),
 	method: z.enum(['GET', 'PUT', 'HEAD', 'DELETE']),
-	expires_in: z.number().int().describe('Lifetime in seconds used when signing')
+	expires_in: z.int().describe('Lifetime in seconds used when signing')
 })
 
 const listObjectsTool = defineTool({

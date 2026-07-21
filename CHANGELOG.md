@@ -12,6 +12,7 @@ Releases are cut by semantic-release from conventional commits. See [docs/versio
 - Docs wiki under `docs/` (guides, brain packages, product modules).
 - Module scaffold writes `docs/modules/<key>.md` stub.
 - **semantic-release** on `main` (conventional commits → version, changelog, tag, npm OIDC).
+- **`web-fetch` module** — allowlisted HTTP client on **ofetch** (`web-fetch-request`): host `default_headers`, per-hop redirect allowlist, size limits, optional `require_https`.
 
 ### Changed
 

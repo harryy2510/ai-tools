@@ -56,6 +56,10 @@
 		"./s3-storage": {
 			"types": "./dist/modules/s3-storage/index.d.ts",
 			"default": "./dist/modules/s3-storage/index.js"
+		},
+		"./web-fetch": {
+			"types": "./dist/modules/web-fetch/index.d.ts",
+			"default": "./dist/modules/web-fetch/index.js"
 		}
 	},
 	"publishConfig": {
@@ -85,6 +89,7 @@
 		"aws4fetch": "1.0.20",
 		"es-toolkit": "1.49.0",
 		"mimetext": "3.0.28",
+		"ofetch": "1.5.1",
 		"postal-mime": "2.7.5",
 		"zod": "4.4.3"
 	},

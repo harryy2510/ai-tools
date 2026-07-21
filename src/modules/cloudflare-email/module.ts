@@ -10,7 +10,7 @@ import { utf8ToBytes } from '../../shared/bytes'
 
 const MAX_EMAIL_BYTES = 5 * 1024 * 1024
 
-const emailAddressSchema = z.string().email().describe('Email address')
+const emailAddressSchema = z.email().describe('Email address')
 
 const namedAddressSchema = z.union([
 	emailAddressSchema,

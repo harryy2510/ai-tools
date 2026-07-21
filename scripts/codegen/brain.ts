@@ -35,6 +35,7 @@ export const NEVER_BUNDLE = [
 	'aws4fetch',
 	'es-toolkit',
 	'mimetext',
+	'ofetch',
 	'postal-mime',
 	'zod'
 ] as const

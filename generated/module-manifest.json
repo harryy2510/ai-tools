@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-21T02:52:37.089Z",
+	"generatedAt": "2026-07-21T13:23:09.436Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -73,6 +73,14 @@
 			],
 			"moduleId": "s3-storage",
 			"moduleIdSource": "src/modules/s3-storage/module.ts"
+		},
+		{
+			"key": "web-fetch",
+			"entry": "src/modules/web-fetch/index.ts",
+			"entryKey": "modules/web-fetch/index",
+			"exportNames": ["WebFetchAuth", "webFetchAuthSchema", "webFetchGetTool", "webFetchModule", "webFetchRequestTool"],
+			"moduleId": "web-fetch",
+			"moduleIdSource": "src/modules/web-fetch/module.ts"
 		}
 	]
 }

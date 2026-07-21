@@ -12,7 +12,8 @@ export default defineConfig({
 		'mcp/index': 'src/adapters/mcp/index.ts',
 		'modules/cloudflare-email/index': 'src/modules/cloudflare-email/index.ts',
 		'modules/mime/index': 'src/modules/mime/index.ts',
-		'modules/s3-storage/index': 'src/modules/s3-storage/index.ts'
+		'modules/s3-storage/index': 'src/modules/s3-storage/index.ts',
+		'modules/web-fetch/index': 'src/modules/web-fetch/index.ts'
 	},
 	format: ['esm'],
 	// package.json is "type": "module" — emit .js / .d.ts (not .mjs / .d.mts)
@@ -28,6 +29,7 @@ export default defineConfig({
 			'aws4fetch',
 			'es-toolkit',
 			'mimetext',
+			'ofetch',
 			'postal-mime',
 			'zod'
 		]
