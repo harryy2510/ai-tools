@@ -10,13 +10,14 @@ Versioning follows [docs/versioning.md](./docs/versioning.md) (0.x policy until 
 ### Added
 
 - Docs wiki under `docs/` (guides, brain packages, product modules).
-- `CHANGELOG.md` and [docs/versioning.md](./docs/versioning.md) (0.x SemVer + local release checklist).
+- `CHANGELOG.md` and [docs/versioning.md](./docs/versioning.md) (0.x SemVer + release checklist).
 - Module scaffold writes `docs/modules/<key>.md` stub.
+- `.github/workflows/publish.yml` — npm publish via **Trusted Publisher (OIDC)**, no `NPM_TOKEN`.
 
 ### Changed
 
-- Local-only publish path: `bun run release` (`npm publish --access public`). Removed GitHub Actions publish workflow and token requirements.
-- CI: least-privilege permissions, Bun install cache, split check steps, typecheck, pack dry-run, dist smoke asserts.
+- CI check workflow: least-privilege permissions, Bun install cache, split steps, typecheck, pack dry-run, dist smoke asserts.
+- Repository URL set to `https://github.com/harryy2510/ai-tools`.
 
 ## [0.0.1] - 2026-07-21
 
@@ -42,5 +43,5 @@ Initial public package surface.
 - S3: object metadata on list, put size limit, copy, signed URLs, optional session token.
 - MIME: richer parse fields; build-time attachments and custom headers.
 
-[Unreleased]: https://github.com/harryy/ai-tools/compare/v0.0.1...HEAD
-[0.0.1]: https://github.com/harryy/ai-tools/releases/tag/v0.0.1
+[Unreleased]: https://github.com/harryy2510/ai-tools/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/harryy2510/ai-tools/releases/tag/v0.0.1

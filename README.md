@@ -106,13 +106,16 @@ bun run typecheck
 
 CI runs the same check + build + pack dry-run on every push/PR (see `.github/workflows/ci.yml`).
 
-## Publish (local)
+## Publish
 
-1. Update [CHANGELOG.md](./CHANGELOG.md) and bump `version` per [docs/versioning.md](./docs/versioning.md).
-2. Log in to npm yourself.
-3. `bun run release` → `prepublishOnly` (`check` + `build`) then `npm publish --access public`.
+**CI path (no token):** npm **Trusted Publisher** + `.github/workflows/publish.yml` (OIDC).  
+On npm, link repo `harryy2510/ai-tools` to workflow file **`publish.yml`** (not `ci.yml`).
 
-No CI token is required for publish.
+1. Bump `version` + [CHANGELOG.md](./CHANGELOG.md) per [docs/versioning.md](./docs/versioning.md).
+2. Push `main`, then create a **GitHub Release** (or run **Actions → publish** manually).
+3. Workflow runs check/build and `npm publish --provenance` with `id-token: write` — no `NPM_TOKEN`.
+
+**Local fallback:** `bun run release` (your `npm login` session).
 
 ## License
 

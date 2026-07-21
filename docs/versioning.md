@@ -37,23 +37,33 @@ Non-breaking:
 - Richer error `details` objects.
 - Docs and scaffolds.
 
-## Release checklist (local)
+## Release checklist (GitHub → npm, no token)
 
-Publishing is **local only**. CI does not publish.
+CI **check** runs on every push/PR (`.github/workflows/ci.yml`).  
+**Publish** is a separate workflow (`.github/workflows/publish.yml`) using npm **Trusted Publisher** (OIDC). No `NPM_TOKEN` secret.
 
-1. Ensure `main` is green (`bun run check` + `bun run build`).
-2. Update [CHANGELOG.md](../CHANGELOG.md): move `Unreleased` notes into a new version section with today’s date.
-3. Bump `version` in `package.json` per the table above.
-4. Commit: `chore: release vX.Y.Z` (or equivalent).
-5. Tag: `git tag vX.Y.Z && git push origin vX.Y.Z` (optional but recommended).
-6. Authenticate to npm yourself (`npm login` or GitHub Packages config).
-7. Publish: `bun run release` → runs `prepublishOnly` (`check` + `build`) then `npm publish --access public`.
+### One-time npm setup
 
-Do not commit secrets. Do not put registry tokens in the repo or CI unless you later choose to automate publish.
+1. On the npm package page → **Trusted Publisher**.
+2. Link GitHub repo `harryy2510/ai-tools`.
+3. Workflow file must be **`publish.yml`** (not `ci.yml`). Permissions: `npm publish`.
+4. Save. No granular access token required for CI publish when OIDC is linked.
 
-## Dual registry (optional)
+### Cut a release
 
-Default `publishConfig` targets the public npm registry. If you also publish to GitHub Packages, configure that in your user/org npmrc; do not hardcode tokens here.
+1. Ensure `main` is green.
+2. Update [CHANGELOG.md](../CHANGELOG.md); bump `version` in `package.json`.
+3. Commit and push to `main`.
+4. Create a GitHub Release (or tag and publish a release) for `vX.Y.Z` **or** run **Actions → publish → Run workflow**.
+5. `publish.yml` runs `prepublishOnly` then `npm publish --access public --provenance` via OIDC.
+
+### Local fallback
+
+```bash
+bun run release   # npm publish --access public (uses your logged-in npm user)
+```
+
+Do not put registry tokens in the repo. OIDC trusted publisher is the CI path.
 
 ## After 1.0
 
