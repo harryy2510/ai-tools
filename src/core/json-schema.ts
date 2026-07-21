@@ -1,3 +1,4 @@
+import { isPlainObject } from 'es-toolkit'
 import type { z } from 'zod'
 import { toJSONSchema } from 'zod'
 
@@ -10,7 +11,7 @@ export type JsonSchemaObject = Record<string, unknown>
  */
 export function zodToJsonSchema(schema: z.ZodType): JsonSchemaObject {
 	const json = toJSONSchema(schema)
-	if (typeof json !== 'object' || json === null || Array.isArray(json)) {
+	if (!isPlainObject(json)) {
 		return { type: 'object', properties: {} }
 	}
 	return json

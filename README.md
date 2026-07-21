@@ -18,18 +18,18 @@ bun add @modelcontextprotocol/sdk
 
 ## Subpaths
 
-| Import | Role |
-| --- | --- |
-| `@harryy/ai-tools/core` | `defineTool`, `defineModule`, `withAuth`, `runTool`, contracts, catalog |
-| `@harryy/ai-tools/http` | `defineHttpApi`, auth applicators, pagination helpers |
-| `@harryy/ai-tools/mastra` | `createMastraTool(s)` |
-| `@harryy/ai-tools/ai-sdk` | `createAiSdkTool(s)` |
-| `@harryy/ai-tools/tanstack` | `createTanStackTool(s)` |
-| `@harryy/ai-tools/cloudflare` | Workers AI traditional tool defs + executors |
-| `@harryy/ai-tools/mcp` | MCP list/call helpers + `registerMcpTools` |
-| `@harryy/ai-tools/cloudflare-email` | Send via Cloudflare Email Service REST |
-| `@harryy/ai-tools/s3-storage` | S3-compatible list/get/put/delete/head |
-| `@harryy/ai-tools/mime` | Parse and build MIME messages |
+| Import | Source | Role |
+| --- | --- | --- |
+| `@harryy/ai-tools/core` | `src/core` | kernel, contracts, catalog |
+| `@harryy/ai-tools/http` | `src/http` | HTTP factory, auth applicators |
+| `@harryy/ai-tools/mastra` | `src/adapters/mastra` | Mastra projector |
+| `@harryy/ai-tools/ai-sdk` | `src/adapters/ai-sdk` | AI SDK projector |
+| `@harryy/ai-tools/tanstack` | `src/adapters/tanstack` | TanStack AI projector |
+| `@harryy/ai-tools/cloudflare` | `src/adapters/cloudflare` | Workers AI tool defs |
+| `@harryy/ai-tools/mcp` | `src/adapters/mcp` | MCP list/call + register |
+| `@harryy/ai-tools/cloudflare-email` | `src/modules/cloudflare-email` | Email Service REST send |
+| `@harryy/ai-tools/s3-storage` | `src/modules/s3-storage` | S3-compatible object ops |
+| `@harryy/ai-tools/mime` | `src/modules/mime` | Parse/build MIME |
 
 ## Kernel sketch
 

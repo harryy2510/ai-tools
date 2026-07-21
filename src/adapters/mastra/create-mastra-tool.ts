@@ -1,8 +1,8 @@
 import { createTool } from '@mastra/core/tools'
 
-import { resolveTools } from '../core/resolve-tools'
-import type { BoundModule, KernelTool, ModuleDefinition, ToolDefinition } from '../core/types'
-import { runTool } from '../core/with-auth'
+import { resolveTools } from '../../core/resolve-tools'
+import type { BoundModule, KernelTool, ModuleDefinition, ToolDefinition } from '../../core/types'
+import { runTool } from '../../core/with-auth'
 
 type MastraTool = ReturnType<typeof createTool>
 

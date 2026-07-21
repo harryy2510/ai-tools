@@ -1,3 +1,5 @@
+import { isNil, isPlainObject, isString } from 'es-toolkit'
+import { castArray, has, isArray } from 'es-toolkit/compat'
 import { createMimeMessage } from 'mimetext'
 import PostalMime from 'postal-mime'
 import { z } from 'zod'
@@ -57,8 +59,8 @@ const buildOutput = z.object({
 })
 
 function contentToBase64(content: unknown): { base64?: string; size?: number } {
-	if (content === undefined || content === null) return {}
-	if (typeof content === 'string') {
+	if (isNil(content)) return {}
+	if (isString(content)) {
 		const bytes = utf8ToBytes(content)
 		return { base64: bytesToBase64(bytes), size: bytes.byteLength }
 	}
@@ -73,38 +75,33 @@ function contentToBase64(content: unknown): { base64?: string; size?: number } {
 }
 
 function mapAddr(a: unknown): { address: string; name?: string } | undefined {
-	if (typeof a !== 'object' || a === null) return undefined
-	if (!('address' in a)) return undefined
-	const address = a.address
-	if (typeof address !== 'string' || address.length === 0) return undefined
-	const name = 'name' in a && typeof a.name === 'string' ? a.name : undefined
-	return name === undefined ? { address } : { address, name }
+	if (!isPlainObject(a) || !has(a, 'address')) return undefined
+	const address = a['address']
+	if (!isString(address) || address.length === 0) return undefined
+	const name = has(a, 'name') && isString(a['name']) ? a['name'] : undefined
+	return isNil(name) || name.length === 0 ? { address } : { address, name }
 }
 
 function mapAddrList(list: unknown): Array<{ address: string; name?: string }> {
-	if (!Array.isArray(list)) return []
-	const out: Array<{ address: string; name?: string }> = []
-	for (const item of list) {
-		const mapped = mapAddr(item)
-		if (mapped !== undefined) out.push(mapped)
-	}
-	return out
+	if (!isArray(list)) return []
+	return castArray(list)
+		.map(mapAddr)
+		.filter((a): a is { address: string; name?: string } => !isNil(a))
 }
 
 function formatMailbox(value: unknown): string {
-	if (typeof value === 'string') return value
+	if (isString(value)) return value
 	const mapped = mapAddr(value)
 	if (mapped === undefined) {
 		throw new ToolError('Invalid mailbox address', { code: 'bad_input' })
 	}
-	if (mapped.name === undefined || mapped.name.length === 0) return mapped.address
+	if (isNil(mapped.name) || mapped.name.length === 0) return mapped.address
 	return `${mapped.name} <${mapped.address}>`
 }
 
 function formatMailboxList(value: unknown): string[] {
-	if (value === undefined) return []
-	const items = Array.isArray(value) ? value : [value]
-	return items.map((item) => formatMailbox(item))
+	if (isNil(value)) return []
+	return castArray(value).map((item) => formatMailbox(item))
 }
 
 const parseMimeTool = defineTool({
@@ -122,7 +119,7 @@ const parseMimeTool = defineTool({
 			const parser = new PostalMime()
 			const message = await parser.parse(bytes)
 			const from = mapAddr(message.from)
-			const html = typeof message.html === 'string' && message.html.length > 0 ? message.html : undefined
+			const html = isString(message.html) && message.html.length > 0 ? message.html : undefined
 			return parseOutput.parse({
 				...(message.subject === undefined ? {} : { subject: message.subject }),
 				...(from === undefined ? {} : { from }),

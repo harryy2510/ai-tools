@@ -1,3 +1,5 @@
+import { isNumber } from 'es-toolkit'
+
 /**
  * Shared pagination helpers for fixed HTTP modules (not agent-facing tools).
  * Host modules compose these inside action `mapResponse` / multi-page loops.
@@ -55,7 +57,7 @@ export async function collectPages<TItem>(
 			page += 1
 			continue
 		}
-		if (typeof result.nextPage === 'number' && result.nextPage > page) {
+		if (isNumber(result.nextPage) && result.nextPage > page) {
 			page = result.nextPage
 			cursor = undefined
 			continue

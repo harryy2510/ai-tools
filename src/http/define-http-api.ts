@@ -1,3 +1,4 @@
+import { isFunction } from 'es-toolkit'
 import { z } from 'zod'
 
 import { defineModule, defineTool } from '../core/define'
@@ -80,7 +81,7 @@ export function defineHttpApi<TAuth = unknown>(options: DefineHttpApiOptions<TAu
 			runtime: options.runtime ?? 'both',
 			sideEffect: action.sideEffect ?? 'read',
 			execute: async (input, ctx) => {
-				const path = typeof action.path === 'function' ? action.path(input) : action.path
+				const path = isFunction(action.path) ? action.path(input) : action.path
 				const auth = resolveAuth(options.auth, ctx)
 				const authHeaders = applyAuth(auth, ctx)
 

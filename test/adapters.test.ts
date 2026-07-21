@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 
-import { createAiSdkTools } from '../src/ai-sdk'
-import { createCloudflareAiTools } from '../src/cloudflare'
+import { createAiSdkTools } from '../src/adapters/ai-sdk'
+import { createCloudflareAiTools } from '../src/adapters/cloudflare'
+import { createMastraTools } from '../src/adapters/mastra'
+import { createMcpTools, registerMcpTools } from '../src/adapters/mcp'
+import { createTanStackTools } from '../src/adapters/tanstack'
 import { runTool } from '../src/core'
-import { createMcpTools, registerMcpTools } from '../src/mcp'
-import { createMastraTools } from '../src/mastra'
-import { createTanStackTools } from '../src/tanstack'
 import { echoModule, echoTool } from './fixtures/echo-module'
 
 describe('adapters', () => {

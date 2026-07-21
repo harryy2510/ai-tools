@@ -1,3 +1,5 @@
+import { isPlainObject, isString } from 'es-toolkit'
+
 import { zodToJsonSchema } from './json-schema'
 import type { ModuleDefinition, ToolDefinition } from './types'
 
@@ -47,13 +49,12 @@ function checkModelCopy(path: string, text: string, issues: ContractIssue[]): vo
 function fieldDescribes(schema: ToolDefinition['inputSchema'], path: string, issues: ContractIssue[]): void {
 	const json = zodToJsonSchema(schema)
 	const properties = json['properties']
-	if (typeof properties !== 'object' || properties === null || Array.isArray(properties)) {
-		return
-	}
+	if (!isPlainObject(properties)) return
+
 	for (const [key, value] of Object.entries(properties)) {
-		if (typeof value !== 'object' || value === null || Array.isArray(value)) continue
+		if (!isPlainObject(value)) continue
 		const description = value['description']
-		if (typeof description !== 'string' || description.trim().length === 0) {
+		if (!isString(description) || description.trim().length === 0) {
 			issues.push(
 				issue(
 					`${path}.input.${key}`,

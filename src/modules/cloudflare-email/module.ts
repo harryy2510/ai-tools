@@ -1,3 +1,5 @@
+import { isNil, isPlainObject, isString } from 'es-toolkit'
+import { castArray, isArray } from 'es-toolkit/compat'
 import { z } from 'zod'
 
 import { defineModule, defineTool } from '../../core/define'
@@ -65,24 +67,23 @@ const sendEmailOutputSchema = z.object({
 	permanent_bounces: z.array(z.string()).describe('Addresses that permanently bounced')
 })
 
-function normalizeAddressList(
-	value: z.infer<typeof namedAddressSchema> | Array<z.infer<typeof namedAddressSchema>> | undefined
-): Array<string | { email: string; name?: string }> | undefined {
-	if (value === undefined) return undefined
-	const list = Array.isArray(value) ? value : [value]
-	return list.map((item) => {
-		if (typeof item === 'string') return item
-		if (item.name === undefined) return { email: item.email }
-		return { email: item.email, name: item.name }
-	})
+type NamedAddress = z.infer<typeof namedAddressSchema>
+
+function normalizeAddress(item: NamedAddress): string | { email: string; name?: string } {
+	if (isString(item)) return item
+	return item.name === undefined ? { email: item.email } : { email: item.email, name: item.name }
 }
 
-function countRecipients(input: z.infer<typeof sendEmailInputSchema>): number {
-	const size = (v: unknown): number => {
-		if (v === undefined) return 0
-		return Array.isArray(v) ? v.length : 1
-	}
-	return size(input.to) + size(input.cc) + size(input.bcc)
+function normalizeAddressList(
+	value: NamedAddress | NamedAddress[] | undefined
+): Array<string | { email: string; name?: string }> | undefined {
+	if (isNil(value)) return undefined
+	return castArray(value).map(normalizeAddress)
+}
+
+function recipientCount(value: NamedAddress | NamedAddress[] | undefined): number {
+	if (isNil(value)) return 0
+	return castArray(value).length
 }
 
 function readAuth(ctx: ToolContext): CloudflareEmailAuth {
@@ -95,12 +96,12 @@ function readAuth(ctx: ToolContext): CloudflareEmailAuth {
 	return parsed.data
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null
+function stringArray(value: unknown): string[] {
+	return isArray(value) ? value.filter(isString) : []
 }
 
 function parseSendResult(data: unknown): z.infer<typeof sendEmailOutputSchema> {
-	if (!isRecord(data)) {
+	if (!isPlainObject(data)) {
 		throw new ToolError('Cloudflare Email returned an unexpected payload', { code: 'upstream' })
 	}
 	if (data['success'] === false) {
@@ -110,14 +111,14 @@ function parseSendResult(data: unknown): z.infer<typeof sendEmailOutputSchema> {
 		})
 	}
 	const result = data['result']
-	if (!isRecord(result)) {
+	if (!isPlainObject(result)) {
 		throw new ToolError('Cloudflare Email returned no result object', { code: 'upstream' })
 	}
 	return sendEmailOutputSchema.parse({
 		success: data['success'] === true,
-		delivered: Array.isArray(result['delivered']) ? result['delivered'] : [],
-		queued: Array.isArray(result['queued']) ? result['queued'] : [],
-		permanent_bounces: Array.isArray(result['permanent_bounces']) ? result['permanent_bounces'] : []
+		delivered: stringArray(result['delivered']),
+		queued: stringArray(result['queued']),
+		permanent_bounces: stringArray(result['permanent_bounces'])
 	})
 }
 
@@ -131,7 +132,7 @@ const sendEmailTool = defineTool({
 	sideEffect: 'send',
 	runtime: 'both',
 	execute: async (input, ctx) => {
-		if (countRecipients(input) > 50) {
+		if (recipientCount(input.to) + recipientCount(input.cc) + recipientCount(input.bcc) > 50) {
 			throw new ToolError('Combined to/cc/bcc recipients cannot exceed 50', {
 				code: 'bad_input'
 			})
@@ -140,10 +141,7 @@ const sendEmailTool = defineTool({
 		const auth = readAuth(ctx)
 		const payload: Record<string, unknown> = {
 			to: normalizeAddressList(input.to),
-			from:
-				typeof input.from === 'string'
-					? input.from
-					: { email: input.from.email, ...(input.from.name === undefined ? {} : { name: input.from.name }) },
+			from: normalizeAddress(input.from),
 			subject: input.subject
 		}
 		if (input.html !== undefined) payload['html'] = input.html
@@ -153,13 +151,7 @@ const sendEmailTool = defineTool({
 		if (cc !== undefined) payload['cc'] = cc
 		if (bcc !== undefined) payload['bcc'] = bcc
 		if (input.reply_to !== undefined) {
-			payload['reply_to'] =
-				typeof input.reply_to === 'string'
-					? input.reply_to
-					: {
-							email: input.reply_to.email,
-							...(input.reply_to.name === undefined ? {} : { name: input.reply_to.name })
-						}
+			payload['reply_to'] = normalizeAddress(input.reply_to)
 		}
 		if (input.headers !== undefined) payload['headers'] = input.headers
 		if (input.attachments !== undefined) payload['attachments'] = input.attachments

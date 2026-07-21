@@ -1,5 +1,7 @@
-import { zodToJsonSchema } from '../core/json-schema'
-import { resolveTools } from '../core/resolve-tools'
+import { isFunction, isPlainObject, isString } from 'es-toolkit'
+
+import { zodToJsonSchema } from '../../core/json-schema'
+import { resolveTools } from '../../core/resolve-tools'
 import type {
 	BoundModule,
 	KernelTool,
@@ -7,8 +9,8 @@ import type {
 	ToolContext,
 	ToolDefinition,
 	ToolSideEffect
-} from '../core/types'
-import { runTool } from '../core/with-auth'
+} from '../../core/types'
+import { runTool } from '../../core/with-auth'
 
 /**
  * MCP tools/list item shape (JSON Schema input).
@@ -84,12 +86,8 @@ export function createMcpToolListItem(tool: ToolDefinition): McpToolListItem {
 	}
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
 function toCallResult(value: unknown): McpCallToolResult {
-	const text = typeof value === 'string' ? value : JSON.stringify(value)
+	const text = isString(value) ? value : JSON.stringify(value)
 	const result: McpCallToolResult = {
 		content: [{ type: 'text', text }]
 	}
@@ -177,7 +175,7 @@ export function registerMcpTools(
 				annotations: annotationsForSideEffect(tool.meta.sideEffect)
 			},
 			async (args, extra) => {
-				const base = typeof options.context === 'function' ? await options.context() : (options.context ?? {})
+				const base = isFunction(options.context) ? await options.context() : (options.context ?? {})
 				const ctx: ToolContext = {
 					...base,
 					...(extra.signal === undefined ? {} : { signal: extra.signal })

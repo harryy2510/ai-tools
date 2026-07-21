@@ -1,8 +1,8 @@
 import { toolDefinition } from '@tanstack/ai'
 
-import { resolveTools } from '../core/resolve-tools'
-import type { BoundModule, KernelTool, ModuleDefinition, ToolDefinition } from '../core/types'
-import { runTool } from '../core/with-auth'
+import { resolveTools } from '../../core/resolve-tools'
+import type { BoundModule, KernelTool, ModuleDefinition, ToolDefinition } from '../../core/types'
+import { runTool } from '../../core/with-auth'
 
 type TanStackServerTool = ReturnType<ReturnType<typeof toolDefinition>['server']>
 

@@ -1,7 +1,7 @@
-import { zodToJsonSchema } from '../core/json-schema'
-import { resolveTools } from '../core/resolve-tools'
-import type { BoundModule, KernelTool, ModuleDefinition, ToolContext, ToolDefinition } from '../core/types'
-import { runTool } from '../core/with-auth'
+import { zodToJsonSchema } from '../../core/json-schema'
+import { resolveTools } from '../../core/resolve-tools'
+import type { BoundModule, KernelTool, ModuleDefinition, ToolContext, ToolDefinition } from '../../core/types'
+import { runTool } from '../../core/with-auth'
 
 /**
  * Traditional Workers AI / OpenAI-style tool definition (parameters JSON Schema).

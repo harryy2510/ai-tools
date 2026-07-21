@@ -9,14 +9,22 @@ export type BrainPackage = {
 	source: string
 }
 
+/**
+ * Public subpaths stay flat (`@harryy/ai-tools/mastra`).
+ * Source lives under `src/adapters/*` for adapters; `core`/`http` stay top-level.
+ */
 export const BRAIN_PACKAGES: readonly BrainPackage[] = [
 	{ exportKey: 'core', entryKey: 'core/index', source: 'src/core/index.ts' },
 	{ exportKey: 'http', entryKey: 'http/index', source: 'src/http/index.ts' },
-	{ exportKey: 'mastra', entryKey: 'mastra/index', source: 'src/mastra/index.ts' },
-	{ exportKey: 'ai-sdk', entryKey: 'ai-sdk/index', source: 'src/ai-sdk/index.ts' },
-	{ exportKey: 'tanstack', entryKey: 'tanstack/index', source: 'src/tanstack/index.ts' },
-	{ exportKey: 'cloudflare', entryKey: 'cloudflare/index', source: 'src/cloudflare/index.ts' },
-	{ exportKey: 'mcp', entryKey: 'mcp/index', source: 'src/mcp/index.ts' }
+	{ exportKey: 'mastra', entryKey: 'mastra/index', source: 'src/adapters/mastra/index.ts' },
+	{ exportKey: 'ai-sdk', entryKey: 'ai-sdk/index', source: 'src/adapters/ai-sdk/index.ts' },
+	{ exportKey: 'tanstack', entryKey: 'tanstack/index', source: 'src/adapters/tanstack/index.ts' },
+	{
+		exportKey: 'cloudflare',
+		entryKey: 'cloudflare/index',
+		source: 'src/adapters/cloudflare/index.ts'
+	},
+	{ exportKey: 'mcp', entryKey: 'mcp/index', source: 'src/adapters/mcp/index.ts' }
 ]
 
 export const NEVER_BUNDLE = [
@@ -25,6 +33,7 @@ export const NEVER_BUNDLE = [
 	'@tanstack/ai',
 	'ai',
 	'aws4fetch',
+	'es-toolkit',
 	'mimetext',
 	'postal-mime',
 	'zod'

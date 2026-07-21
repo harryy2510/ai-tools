@@ -1,9 +1,11 @@
+import { isArray } from 'es-toolkit/compat'
+
 import type { BoundModule, KernelTool, ModuleDefinition, ToolDefinition } from './types'
 
 export function isToolArray(
 	source: ModuleDefinition | BoundModule | readonly KernelTool[]
 ): source is readonly KernelTool[] {
-	return Array.isArray(source)
+	return isArray(source)
 }
 
 /** Normalize a module, bound module, or tool list into a flat tool list. */

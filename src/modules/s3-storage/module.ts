@@ -1,4 +1,5 @@
 import { AwsClient } from 'aws4fetch'
+import { isNil, isString } from 'es-toolkit'
 import { z } from 'zod'
 
 import { defineModule, defineTool } from '../../core/define'
@@ -202,8 +203,8 @@ const getObjectTool = defineTool({
 			})
 		}
 		const lengthHeader = response.headers.get('content-length')
-		const contentLength = lengthHeader === null ? undefined : Number.parseInt(lengthHeader, 10)
-		if (contentLength !== undefined && Number.isFinite(contentLength) && contentLength > MAX_GET_BYTES) {
+		const contentLength = isString(lengthHeader) ? Number.parseInt(lengthHeader, 10) : undefined
+		if (!isNil(contentLength) && Number.isFinite(contentLength) && contentLength > MAX_GET_BYTES) {
 			throw new ToolError('Object exceeds 5 MiB download limit', { code: 'too_large' })
 		}
 		const bytes = new Uint8Array(await response.arrayBuffer())
@@ -217,8 +218,8 @@ const getObjectTool = defineTool({
 			key: input.key,
 			body,
 			encoding,
-			...(contentType === null ? {} : { content_type: contentType }),
-			...(contentLength === undefined || !Number.isFinite(contentLength)
+			...(isString(contentType) ? { content_type: contentType } : {}),
+			...(isNil(contentLength) || !Number.isFinite(contentLength)
 				? { content_length: bytes.byteLength }
 				: { content_length: contentLength })
 		})
@@ -262,7 +263,7 @@ const putObjectTool = defineTool({
 		const etag = response.headers.get('etag')
 		return putObjectOutput.parse({
 			key: input.key,
-			...(etag === null ? {} : { etag: etag.replaceAll('"', '') })
+			...(isString(etag) ? { etag: etag.replaceAll('"', '') } : {})
 		})
 	}
 })
@@ -313,13 +314,13 @@ const headObjectTool = defineTool({
 		const contentType = response.headers.get('content-type')
 		const lengthHeader = response.headers.get('content-length')
 		const etag = response.headers.get('etag')
-		const contentLength = lengthHeader === null ? undefined : Number.parseInt(lengthHeader, 10)
+		const contentLength = isString(lengthHeader) ? Number.parseInt(lengthHeader, 10) : undefined
 		return headObjectOutput.parse({
 			key: input.key,
 			exists: true,
-			...(contentType === null ? {} : { content_type: contentType }),
-			...(contentLength === undefined || !Number.isFinite(contentLength) ? {} : { content_length: contentLength }),
-			...(etag === null ? {} : { etag: etag.replaceAll('"', '') })
+			...(isString(contentType) ? { content_type: contentType } : {}),
+			...(!isNil(contentLength) && Number.isFinite(contentLength) ? { content_length: contentLength } : {}),
+			...(isString(etag) ? { etag: etag.replaceAll('"', '') } : {})
 		})
 	}
 })

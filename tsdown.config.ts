@@ -5,11 +5,11 @@ export default defineConfig({
 	entry: {
 		'core/index': 'src/core/index.ts',
 		'http/index': 'src/http/index.ts',
-		'mastra/index': 'src/mastra/index.ts',
-		'ai-sdk/index': 'src/ai-sdk/index.ts',
-		'tanstack/index': 'src/tanstack/index.ts',
-		'cloudflare/index': 'src/cloudflare/index.ts',
-		'mcp/index': 'src/mcp/index.ts',
+		'mastra/index': 'src/adapters/mastra/index.ts',
+		'ai-sdk/index': 'src/adapters/ai-sdk/index.ts',
+		'tanstack/index': 'src/adapters/tanstack/index.ts',
+		'cloudflare/index': 'src/adapters/cloudflare/index.ts',
+		'mcp/index': 'src/adapters/mcp/index.ts',
 		'modules/cloudflare-email/index': 'src/modules/cloudflare-email/index.ts',
 		'modules/mime/index': 'src/modules/mime/index.ts',
 		'modules/s3-storage/index': 'src/modules/s3-storage/index.ts'
@@ -26,6 +26,7 @@ export default defineConfig({
 			'@tanstack/ai',
 			'ai',
 			'aws4fetch',
+			'es-toolkit',
 			'mimetext',
 			'postal-mime',
 			'zod'
