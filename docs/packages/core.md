@@ -1,0 +1,99 @@
+# `@harryy/ai-tools/core`
+
+Kernel: define tools/modules, validate contracts, bind auth, run tools, catalog, JSON Schema.
+
+## Install surface
+
+```ts
+import {
+  defineTool,
+  defineModule,
+  withAuth,
+  withAuthTool,
+  runTool,
+  listTools,
+  validateModule,
+  validateTool,
+  assertContracts,
+  toModuleCatalogEntry,
+  toToolCatalogEntry,
+  resolveTools,
+  filterToolsByRuntime,
+  zodToJsonSchema,
+  ToolError,
+  isToolError,
+} from '@harryy/ai-tools/core'
+```
+
+## `defineTool`
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `id` | yes | Stable kebab-case (`weather-get`) |
+| `name` | yes | Friendly name |
+| `description` | yes | Model-facing capability copy |
+| `inputSchema` | yes | Zod schema (Zod 4) |
+| `outputSchema` | yes | Zod schema |
+| `execute` | yes | `(input, ctx) => Promise<output>` after input parse |
+| `sideEffect` | optional | defaults via meta; set explicitly in modules |
+| `runtime` | optional | `both` \| `edge` \| `node` |
+| `tags` | optional | free-form tags |
+
+`defineTool` wraps execute so input is validated before your function runs.
+
+## `defineModule`
+
+| Field | Notes |
+| --- | --- |
+| `id` | Stable module id |
+| `title` | Display title |
+| `description` | Module summary |
+| `runtime` | Module-level runtime claim |
+| `auth` | `{ type: 'none' }` or `{ type: 'custom', schema }` (and other auth kinds) |
+| `tools` | `readonly ToolDefinition[]` |
+
+## Auth helpers
+
+- `withAuth(module, credentials)` → bound module
+- `withAuthTool(tool, credentials)` → bound tool
+- `listTools(moduleOrTools)` → flat tool list
+
+## Execution
+
+```ts
+await runTool(tool, input, ctx?)
+```
+
+Validates input, calls execute, validates output against `outputSchema`.
+
+## Contracts
+
+```ts
+validateTool(tool)   // { ok, issues }
+validateModule(mod)
+assertContracts(mod) // throws if invalid
+```
+
+Enforces model-facing description quality, schema presence, id shape, and related rules used in tests.
+
+## Catalog
+
+```ts
+toToolCatalogEntry(tool)
+toModuleCatalogEntry(module)
+```
+
+Host UIs / registries can list tools without executing them.
+
+## JSON Schema
+
+`zodToJsonSchema(schema)` projects Zod types for MCP / framework adapters that need JSON Schema.
+
+## Errors
+
+See [Errors guide](../guides/errors.md).
+
+## Related
+
+- [Getting started](../guides/getting-started.md)
+- [Auth and binding](../guides/auth-and-binding.md)

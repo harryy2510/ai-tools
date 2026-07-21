@@ -10,6 +10,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   check:
     name: check
@@ -22,16 +25,45 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version-file: package.json
+
+      - name: Cache Bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
       - name: Install
         run: bun install --frozen-lockfile
 
-      - name: Check
-        run: bun run check
+      - name: Format check
+        run: bun run format:check
+
+      - name: Lint (type-aware)
+        run: bun run lint
+
+      - name: Codegen drift check
+        run: bun run codegen:check
+
+      - name: Test
+        run: bun run test
+
+      - name: Typecheck
+        run: bun run typecheck
 
       - name: Build
         run: bun run build
 
       - name: Pack dry-run
         run: bun pm pack --dry-run
+
+      - name: Assert package files
+        run: |
+          set -euo pipefail
+          test -f dist/core/index.js
+          test -f dist/core/index.d.ts
+          test -f dist/modules/mime/index.js
+          test -f dist/modules/s3-storage/index.js
+          test -f dist/modules/cloudflare-email/index.js

@@ -50,5 +50,7 @@ describe('new-module script source', () => {
 		expect(source).toContain('--auth')
 		expect(source).toContain('runCodegen')
 		expect(source).toContain('src/modules')
+		expect(source).toContain('docs/modules')
+		expect(source).toContain('renderDocsMd')
 	})
 })

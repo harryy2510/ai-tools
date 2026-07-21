@@ -264,6 +264,46 @@ describe('${options.key}', () => {
 `
 }
 
+function renderDocsMd(options: CliOptions): string {
+	const toolId = `${options.key}-ping`
+	const authLine =
+		options.auth === 'custom'
+			? 'Custom — host supplies credentials via `withAuth` (see auth schema in `module.ts`).'
+			: '**none** — project the module without `withAuth`.'
+
+	return `# ${options.title}
+
+| | |
+| --- | --- |
+| **Import** | \`@harryy/ai-tools/${options.key}\` |
+| **Module id** | \`${options.key}\` |
+| **Runtime** | \`both\` |
+| **Auth** | ${authLine} |
+
+${options.description}
+
+## Tools
+
+### \`${toolId}\` (\`ping\`)
+
+Connectivity check scaffold. Replace with real tools and update this page.
+
+## Host usage
+
+\`\`\`ts
+import { ${camelFromKey(options.key)}Module } from '@harryy/ai-tools/${options.key}'
+// withAuth if auth is custom; then project via an adapter or runTool
+\`\`\`
+
+## Related
+
+- [Authoring modules](../guides/authoring-modules.md)
+- [Wiki home](../README.md)
+
+> After scaffolding: flesh out tools, then update this page and the module table in \`docs/README.md\`.
+`
+}
+
 async function main(): Promise<void> {
 	const parsed = parseArgs(process.argv.slice(2))
 	if ('help' in parsed) {
@@ -281,14 +321,21 @@ async function main(): Promise<void> {
 		throw new Error(`Test already exists: test/modules/${parsed.key}.test.ts`)
 	}
 
+	const docsPath = path.join(repoRoot, 'docs/modules', `${parsed.key}.md`)
+	if (await pathExists(docsPath)) {
+		throw new Error(`Docs already exist: docs/modules/${parsed.key}.md`)
+	}
+
 	await mkdir(dir, { recursive: true })
 	await mkdir(path.dirname(testPath), { recursive: true })
+	await mkdir(path.dirname(docsPath), { recursive: true })
 
 	const modulePath = path.join(dir, 'module.ts')
 	const indexPath = path.join(dir, 'index.ts')
 	await writeFile(modulePath, renderModuleTs(parsed), 'utf8')
 	await writeFile(indexPath, renderIndexTs(parsed), 'utf8')
 	await writeFile(testPath, renderTestTs(parsed), 'utf8')
+	await writeFile(docsPath, renderDocsMd(parsed), 'utf8')
 
 	const formatTargets = [
 		path.relative(repoRoot, modulePath),
@@ -312,6 +359,8 @@ async function main(): Promise<void> {
 	console.log(`  src/modules/${parsed.key}/index.ts`)
 	console.log(`  src/modules/${parsed.key}/module.ts`)
 	console.log(`  test/modules/${parsed.key}.test.ts`)
+	console.log(`  docs/modules/${parsed.key}.md`)
+	console.log(`  Remember to add a row in docs/README.md product modules table.`)
 }
 
 main().catch((error: unknown) => {

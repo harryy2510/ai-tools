@@ -1,103 +1,119 @@
 # @harryy/ai-tools
 
-Reusable AI tools with **strict schemas** and **model-facing contracts**. Define once in the kernel; project to Mastra, Vercel AI SDK, TanStack AI, Cloudflare Workers AI, MCP, or direct Node/edge calls.
+Reusable **AI tools** with strict Zod schemas and model-facing contracts. Define once in the kernel; project to **Mastra**, **Vercel AI SDK**, **TanStack AI**, **Cloudflare Workers AI**, **MCP**, or call directly.
 
-Includes the **brain** (kernel, HTTP factory, adapters, contracts), **module codegen**, and product modules: **Cloudflare Email**, **S3 storage**, and **MIME**.
+[![ci](https://github.com/harryy/ai-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/harryy/ai-tools/actions/workflows/ci.yml)
+
+**Docs wiki:** [docs/README.md](./docs/README.md) · **Changelog:** [CHANGELOG.md](./CHANGELOG.md) · **SemVer:** [docs/versioning.md](./docs/versioning.md)
+
+## Why
+
+- **One authoring path** — `defineTool` / `defineModule` only; adapters never re-implement business logic.
+- **Host-owned secrets** — auth schemas + `withAuth`; model inputs never carry API keys.
+- **Subpath imports** — tree-shake friendly; no root mega-barrel.
+- **Honest runtimes** — `node` | `edge` | `both`.
+- **Stable tool ids** — kebab-case ids safe for agents and MCP names.
+- **Product modules included** — Cloudflare Email, S3-compatible storage, MIME parse/build.
 
 ## Install
 
 ```bash
 bun add @harryy/ai-tools
-# optional adapters:
+
+# optional peers for adapters you use:
 bun add @mastra/core
 bun add ai
 bun add @tanstack/ai
-# optional for registerMcpTools hosts:
-bun add @modelcontextprotocol/sdk
+bun add @modelcontextprotocol/sdk   # registerMcpTools only
+```
+
+Requires **Bun ≥ 1.3.14** or **Node ≥ 24**.
+
+## Quick start
+
+```ts
+import { withAuth } from '@harryy/ai-tools/core'
+import { cloudflareEmailModule } from '@harryy/ai-tools/cloudflare-email'
+import { createMastraTools } from '@harryy/ai-tools/mastra'
+
+const bound = withAuth(cloudflareEmailModule, {
+  accountId: process.env.CF_ACCOUNT_ID!,
+  apiToken: process.env.CF_API_TOKEN!,
+})
+
+export const tools = createMastraTools(bound)
+```
+
+No-auth module (MIME):
+
+```ts
+import { mimeModule } from '@harryy/ai-tools/mime'
+import { createAiSdkTools } from '@harryy/ai-tools/ai-sdk'
+
+export const tools = createAiSdkTools(mimeModule)
 ```
 
 ## Subpaths
 
-| Import | Source | Role |
+### Brain
+
+| Import | Role | Docs |
 | --- | --- | --- |
-| `@harryy/ai-tools/core` | `src/core` | kernel, contracts, catalog |
-| `@harryy/ai-tools/http` | `src/http` | HTTP factory, auth applicators |
-| `@harryy/ai-tools/mastra` | `src/adapters/mastra` | Mastra projector |
-| `@harryy/ai-tools/ai-sdk` | `src/adapters/ai-sdk` | AI SDK projector |
-| `@harryy/ai-tools/tanstack` | `src/adapters/tanstack` | TanStack AI projector |
-| `@harryy/ai-tools/cloudflare` | `src/adapters/cloudflare` | Workers AI tool defs |
-| `@harryy/ai-tools/mcp` | `src/adapters/mcp` | MCP list/call + register |
-| `@harryy/ai-tools/cloudflare-email` | `src/modules/cloudflare-email` | Email Service REST send |
-| `@harryy/ai-tools/s3-storage` | `src/modules/s3-storage` | S3-compatible object ops + signed URLs |
-| `@harryy/ai-tools/mime` | `src/modules/mime` | Parse/build MIME |
+| `@harryy/ai-tools/core` | Kernel, contracts, `withAuth`, `runTool` | [docs/packages/core.md](./docs/packages/core.md) |
+| `@harryy/ai-tools/http` | Fixed-origin HTTP factory | [docs/packages/http.md](./docs/packages/http.md) |
+| `@harryy/ai-tools/mastra` | Mastra projector | [docs/packages/mastra.md](./docs/packages/mastra.md) |
+| `@harryy/ai-tools/ai-sdk` | Vercel AI SDK projector | [docs/packages/ai-sdk.md](./docs/packages/ai-sdk.md) |
+| `@harryy/ai-tools/tanstack` | TanStack AI projector | [docs/packages/tanstack.md](./docs/packages/tanstack.md) |
+| `@harryy/ai-tools/cloudflare` | Workers AI tool defs | [docs/packages/cloudflare.md](./docs/packages/cloudflare.md) |
+| `@harryy/ai-tools/mcp` | MCP list/call + register | [docs/packages/mcp.md](./docs/packages/mcp.md) |
 
-## Kernel sketch
+### Product modules
 
-```ts
-import { z } from 'zod'
-import { defineModule, defineTool, withAuth } from '@harryy/ai-tools/core'
-import { createMastraTools } from '@harryy/ai-tools/mastra'
-import { createAiSdkTools } from '@harryy/ai-tools/ai-sdk'
-import { createTanStackTools } from '@harryy/ai-tools/tanstack'
-import { createCloudflareAiTools } from '@harryy/ai-tools/cloudflare'
-import { createMcpTools, registerMcpTools } from '@harryy/ai-tools/mcp'
+| Import | Tools (ids) | Docs |
+| --- | --- | --- |
+| `@harryy/ai-tools/cloudflare-email` | `cloudflare-email-send` | [docs/modules/cloudflare-email.md](./docs/modules/cloudflare-email.md) |
+| `@harryy/ai-tools/s3-storage` | `s3-list-objects`, `s3-get-object`, `s3-put-object`, `s3-delete-object`, `s3-head-object`, `s3-copy-object`, `s3-create-signed-url` | [docs/modules/s3-storage.md](./docs/modules/s3-storage.md) |
+| `@harryy/ai-tools/mime` | `mime-parse`, `mime-build` | [docs/modules/mime.md](./docs/modules/mime.md) |
 
-const module = defineModule({
-  id: 'demo',
-  title: 'Demo',
-  description: 'Demo module.',
-  tools: [
-    defineTool({
-      id: 'demo-ping',
-      name: 'ping',
-      description: 'Return ok. Use as a connectivity check.',
-      inputSchema: z.object({}),
-      outputSchema: z.object({ ok: z.literal(true) }),
-      execute: async () => ({ ok: true as const }),
-    }),
-  ],
-})
+## Architecture
 
-// no auth → project directly; with auth → withAuth(module, secrets) first
-createMastraTools(module)
-createAiSdkTools(module)
-createTanStackTools(module)
-createCloudflareAiTools(module)
-createMcpTools(module)
-// registerMcpTools(mcpServer, module) // host-owned McpServer from the MCP SDK
+```text
+defineTool / defineModule     ← author once (kernel)
+        │
+   withAuth(module, secrets)  ← host closes credentials
+        │
+   ┌────┴────────────────────────────┐
+   │  adapters (projectors only)     │
+   │  Mastra · AI SDK · TanStack ·   │
+   │  Cloudflare AI · MCP · runTool  │
+   └─────────────────────────────────┘
 ```
 
-## Tooling
+Full guides: [Getting started](./docs/guides/getting-started.md) · [Auth](./docs/guides/auth-and-binding.md) · [Adapters](./docs/guides/adapters.md) · [Authoring](./docs/guides/authoring-modules.md) · [Errors](./docs/guides/errors.md)
+
+## Develop
 
 ```bash
 bun install
 bun run hooks:install
 oxfmt --write <touched-paths>
-bun run check          # format + lint + codegen:check + tests
+bun run check          # format:check + lint + codegen:check + test
 bun run codegen        # discover src/modules/* → exports / tsdown / manifest
 bun run new-module <kebab-key> [--title …] [--description …] [--auth none|custom]
-bun run build          # codegen + tsdown
+bun run build
 bun run typecheck
 ```
 
-### Scaffold a product module
+CI runs the same check + build + pack dry-run on every push/PR (see `.github/workflows/ci.yml`).
 
-```bash
-bun run new-module weather --title "Weather" --description "Forecast tools."
-# creates:
-#   src/modules/weather/{index,module}.ts
-#   test/modules/weather.test.ts
-# then runs codegen so @harryy/ai-tools/weather is exported
-```
+## Publish (local)
 
-### Publish
+1. Update [CHANGELOG.md](./CHANGELOG.md) and bump `version` per [docs/versioning.md](./docs/versioning.md).
+2. Log in to npm yourself.
+3. `bun run release` → `prepublishOnly` (`check` + `build`) then `npm publish --access public`.
 
-CI runs `check` + `build` on every push/PR (`.github/workflows/ci.yml`). Publishing is local only: connect npm (and GitHub Packages if you want) yourself, bump the version, then:
+No CI token is required for publish.
 
-```bash
-bun run release   # npm publish --access public
-```
+## License
 
-`prepublishOnly` runs `check` + `build` before the pack goes up. No CI token or publish workflow required.
-
-See `AGENTS.md` for agent rules (behavior, quality, gates).
+[MIT](./LICENSE) © harryy
