@@ -14,7 +14,8 @@ Repository rules constrain agent behavior. They do not teach package usage (see 
 
 - **Single package, subpath imports only.** No root mega-barrel that pulls every module.
 - **Kernel is the source of truth.** Authors write `defineModule` / `defineTool` / `defineHttpApi` only. Do not hand-write Mastra, AI SDK, or other framework tool shapes inside modules.
-- **Adapters are generic projectors** (`createMastraTool` / `createMastraTools`). Never per-module adapter factories.
+- **Adapters are generic projectors only.** `createMastraTool(s)`, `createAiSdkTool(s)`, `createTanStackTool(s)`, `createCloudflareAiTools`, `createMcpTools` / `registerMcpTools`. Never per-module adapter factories.
+- **No product modules in brain phase** until explicitly requested. Fixtures live under `test/` only.
 - **Auth is optional and host-bound.** Schema + `withAuth` only. Never store credentials. Never put auth fields on model-facing input schemas.
 - **HTTP integrations are fixed-origin capability modules.** Prefer `defineHttpApi`. Do not add free-form “call any URL” agent tools unless the user explicitly requests that product.
 - **Tool ids are stable kebab-case** (`weather-get`). Changing a published id is a breaking change.
@@ -86,7 +87,7 @@ bun run typecheck
 | `bun run format:check` | oxfmt clean |
 | `bun run test` | unit tests |
 | `bun run typecheck` | `tsc --noEmit` |
-| `bun run build` | tsdown ESM + declarations |
+| `bun run build` | tsdown ESM + declarations for core/http/adapters |
 | `bun run hooks:install` | lefthook hooks after clone |
 
 **Do not claim done if `bun run check` failed.** Fix session-caused failures; do not weaken configs to silence them. Do not bypass hooks with `--no-verify`.

@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { defineModule, defineTool } from '../core/define'
 import type { AuthDefinition, ModuleDefinition, ToolContext, ToolRuntime } from '../core/types'
+import { applyBearerAuth } from './auth-applicators'
 import { httpRequest } from './client'
 import type { HttpMethod } from './client'
 
@@ -58,14 +59,6 @@ export type DefineHttpApiOptions<TAuth = unknown> = {
 	timeoutMs?: number
 }
 
-function bearerApplyAuth(auth: unknown): { headers?: Record<string, string> } {
-	if (typeof auth !== 'object' || auth === null) return {}
-	if (!('token' in auth)) return {}
-	const token = auth.token
-	if (typeof token !== 'string' || token.length === 0) return {}
-	return { headers: { Authorization: `Bearer ${token}` } }
-}
-
 function resolveAuth<TAuth>(authDef: AuthDefinition<TAuth> | undefined, ctx: ToolContext): TAuth | undefined {
 	if (!authDef || authDef.type === 'none') return undefined
 	if (ctx.auth === undefined) return undefined
@@ -75,7 +68,7 @@ function resolveAuth<TAuth>(authDef: AuthDefinition<TAuth> | undefined, ctx: Too
 export function defineHttpApi<TAuth = unknown>(options: DefineHttpApiOptions<TAuth>): ModuleDefinition<TAuth> {
 	const applyAuth: HttpAuthApplicator<TAuth> =
 		options.applyAuth ??
-		(options.auth?.type === 'bearer' ? (auth, _ctx) => bearerApplyAuth(auth) : (_auth, _ctx) => ({}))
+		(options.auth?.type === 'bearer' ? (auth, ctx) => applyBearerAuth(auth, ctx) : (_auth, _ctx) => ({}))
 
 	const tools = options.actions.map((action) =>
 		defineTool({

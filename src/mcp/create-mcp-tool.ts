@@ -1,0 +1,190 @@
+import { zodToJsonSchema } from '../core/json-schema'
+import { resolveTools } from '../core/resolve-tools'
+import type {
+	BoundModule,
+	KernelTool,
+	ModuleDefinition,
+	ToolContext,
+	ToolDefinition,
+	ToolSideEffect
+} from '../core/types'
+import { runTool } from '../core/with-auth'
+
+/**
+ * MCP tools/list item shape (JSON Schema input).
+ * @see https://modelcontextprotocol.io/specification/2025-03-26/server/tools
+ */
+export type McpToolListItem = {
+	annotations?: McpToolAnnotations
+	description: string
+	inputSchema: Record<string, unknown>
+	name: string
+}
+
+export type McpToolAnnotations = {
+	destructiveHint?: boolean
+	idempotentHint?: boolean
+	openWorldHint?: boolean
+	readOnlyHint?: boolean
+	title?: string
+}
+
+/** Subset of MCP CallToolResult used by this projector. */
+export type McpCallToolResult = {
+	content: Array<{ text: string; type: 'text' }>
+	isError?: boolean
+	structuredContent?: Record<string, unknown>
+}
+
+/**
+ * Minimal surface of `@modelcontextprotocol/sdk` `McpServer.registerTool`
+ * so hosts can register without this package hard-depending on the SDK types.
+ */
+export type McpServerLike = {
+	registerTool: (
+		name: string,
+		config: {
+			annotations?: McpToolAnnotations
+			description?: string
+			inputSchema?: unknown
+			outputSchema?: unknown
+			title?: string
+		},
+		// MCP passes parsed args + request extras (includes AbortSignal as `signal` in recent SDKs).
+		cb: (args: unknown, extra: { signal?: AbortSignal }) => Promise<unknown>
+	) => unknown
+}
+
+export type McpToolset = {
+	/** tools/list payload items */
+	list: McpToolListItem[]
+	/** tools/call by name */
+	call: (name: string, args: unknown, ctx?: ToolContext) => Promise<McpCallToolResult>
+	/** raw executors (pre-MCP result wrapping) */
+	executors: Record<string, (args: unknown, ctx?: ToolContext) => Promise<unknown>>
+}
+
+function annotationsForSideEffect(sideEffect: ToolSideEffect): McpToolAnnotations {
+	const readOnly = sideEffect === 'read' || sideEffect === 'none'
+	return {
+		readOnlyHint: readOnly,
+		destructiveHint: sideEffect === 'delete',
+		idempotentHint: readOnly,
+		// Most integrations touch external systems; hosts can override via register options later.
+		openWorldHint: true
+	}
+}
+
+export function createMcpToolListItem(tool: ToolDefinition): McpToolListItem {
+	return {
+		name: tool.id,
+		description: tool.description,
+		inputSchema: zodToJsonSchema(tool.inputSchema),
+		annotations: annotationsForSideEffect(tool.meta.sideEffect)
+	}
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function toCallResult(value: unknown): McpCallToolResult {
+	const text = typeof value === 'string' ? value : JSON.stringify(value)
+	const result: McpCallToolResult = {
+		content: [{ type: 'text', text }]
+	}
+	if (isPlainObject(value)) {
+		result.structuredContent = value
+	}
+	return result
+}
+
+/**
+ * Project kernel tools into MCP list + call helpers (no SDK required).
+ * Hosts implement transport / McpServer themselves.
+ */
+export function createMcpTools(source: ModuleDefinition | BoundModule | readonly KernelTool[]): McpToolset {
+	const tools = resolveTools(source)
+	const list: McpToolListItem[] = []
+	const executors: Record<string, (args: unknown, ctx?: ToolContext) => Promise<unknown>> = {}
+
+	for (const tool of tools) {
+		if (executors[tool.id]) {
+			throw new Error(`Duplicate tool id when building MCP tools: ${tool.id}`)
+		}
+		list.push(createMcpToolListItem(tool))
+		executors[tool.id] = async (args, ctx = {}) => runTool(tool, args, ctx)
+	}
+
+	return {
+		list,
+		executors,
+		call: async (name, args, ctx = {}) => {
+			const run = executors[name]
+			if (!run) {
+				return {
+					isError: true,
+					content: [{ type: 'text', text: `Unknown tool: ${name}` }]
+				}
+			}
+			try {
+				const value = await run(args, ctx)
+				return toCallResult(value)
+			} catch (error) {
+				const message = error instanceof Error ? error.message : 'Tool execution failed'
+				return {
+					isError: true,
+					content: [{ type: 'text', text: message }]
+				}
+			}
+		}
+	}
+}
+
+export type RegisterMcpToolsOptions = {
+	/**
+	 * Static context or factory per call (e.g. inject bound auth extras).
+	 * Prefer `withAuth` before projection when credentials are fixed for the server.
+	 */
+	context?: ToolContext | (() => ToolContext | Promise<ToolContext>)
+}
+
+/**
+ * Register kernel tools on an MCP `McpServer` (or compatible) via `registerTool`.
+ * Requires the host to construct the server from `@modelcontextprotocol/sdk`.
+ */
+export function registerMcpTools(
+	server: McpServerLike,
+	source: ModuleDefinition | BoundModule | readonly KernelTool[],
+	options: RegisterMcpToolsOptions = {}
+): void {
+	const tools = resolveTools(source)
+	const seen = new Set<string>()
+
+	for (const tool of tools) {
+		if (seen.has(tool.id)) {
+			throw new Error(`Duplicate tool id when registering MCP tools: ${tool.id}`)
+		}
+		seen.add(tool.id)
+
+		server.registerTool(
+			tool.id,
+			{
+				title: tool.name,
+				description: tool.description,
+				inputSchema: tool.inputSchema,
+				outputSchema: tool.outputSchema,
+				annotations: annotationsForSideEffect(tool.meta.sideEffect)
+			},
+			async (args, extra) => {
+				const base = typeof options.context === 'function' ? await options.context() : (options.context ?? {})
+				const ctx: ToolContext = {
+					...base,
+					...(extra.signal === undefined ? {} : { signal: extra.signal })
+				}
+				const value = await runTool(tool, args, ctx)
+				return toCallResult(value)
+			}
+		)
+	}
+}
