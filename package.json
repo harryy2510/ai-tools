@@ -78,7 +78,8 @@
 		"hooks:validate": "lefthook validate",
 		"prepare": "lefthook install || true",
 		"prepublishOnly": "bun run check && bun run build",
-		"release": "npm publish --access public"
+		"release": "semantic-release",
+		"release:dry": "semantic-release --dry-run"
 	},
 	"dependencies": {
 		"aws4fetch": "1.0.20",
@@ -90,14 +91,22 @@
 	"devDependencies": {
 		"@mastra/core": "1.51.0",
 		"@modelcontextprotocol/sdk": "1.29.0",
+		"@semantic-release/changelog": "6.0.3",
+		"@semantic-release/commit-analyzer": "13.0.1",
+		"@semantic-release/git": "10.0.1",
+		"@semantic-release/github": "12.0.9",
+		"@semantic-release/npm": "13.1.5",
+		"@semantic-release/release-notes-generator": "14.1.1",
 		"@tanstack/ai": "0.42.0",
 		"@types/bun": "1.3.14",
 		"ai": "5.0.217",
+		"conventional-changelog-conventionalcommits": "10.2.1",
 		"lefthook": "2.1.10",
 		"oxc-parser": "0.140.0",
 		"oxfmt": "0.59.0",
 		"oxlint": "1.74.0",
 		"oxlint-tsgolint": "0.25.0",
+		"semantic-release": "25.0.8",
 		"tsdown": "0.22.12",
 		"typescript": "7.0.2"
 	},

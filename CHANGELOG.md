@@ -3,21 +3,20 @@
 All notable changes to `@harryy/ai-tools` are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-Versioning follows [docs/versioning.md](./docs/versioning.md) (0.x policy until 1.0).
+Releases are cut by semantic-release from conventional commits. See [docs/versioning.md](./docs/versioning.md).
 
 ## [Unreleased]
 
 ### Added
 
 - Docs wiki under `docs/` (guides, brain packages, product modules).
-- `CHANGELOG.md` and [docs/versioning.md](./docs/versioning.md) (0.x SemVer + release checklist).
 - Module scaffold writes `docs/modules/<key>.md` stub.
-- `.github/workflows/publish.yml` — npm publish via **Trusted Publisher (OIDC)**, no `NPM_TOKEN`.
+- **semantic-release** on `main` (conventional commits → version, changelog, tag, npm OIDC).
 
 ### Changed
 
-- CI check workflow: least-privilege permissions, Bun install cache, split steps, typecheck, pack dry-run, dist smoke asserts.
-- Repository URL set to `https://github.com/harryy2510/ai-tools`.
+- CI check workflow polish; repository URL `harryy2510/ai-tools`.
+- Replaced hand-rolled / token publish paths with `release.yml` + Trusted Publisher (`release.yml`).
 
 ## [0.0.1] - 2026-07-21
 

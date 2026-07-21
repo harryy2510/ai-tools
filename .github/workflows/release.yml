@@ -1,0 +1,65 @@
+# semantic-release on main: conventional commits → version, changelog, tag, npm.
+# npm Trusted Publisher must point at this workflow file: release.yml (not ci.yml).
+# No NPM_TOKEN — OIDC only (id-token: write).
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    name: semantic-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Avoid re-entry on the bot's chore(release) commit
+    if: >-
+      ${{ !contains(github.event.head_commit.message || '', 'chore(release)')
+      && !contains(github.event.head_commit.message || '', '[skip ci]') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Setup Node (npm + OIDC registry)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Cache Bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Do not set NPM_TOKEN — Trusted Publisher uses OIDC.
+          HUSKY: '0'
+        # prepublishOnly runs check + build before npm publish
+        run: bunx semantic-release

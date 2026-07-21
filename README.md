@@ -2,9 +2,10 @@
 
 Reusable **AI tools** with strict Zod schemas and model-facing contracts. Define once in the kernel; project to **Mastra**, **Vercel AI SDK**, **TanStack AI**, **Cloudflare Workers AI**, **MCP**, or call directly.
 
-[![ci](https://github.com/harryy/ai-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/harryy/ai-tools/actions/workflows/ci.yml)
+[![ci](https://github.com/harryy2510/ai-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/harryy2510/ai-tools/actions/workflows/ci.yml)
+[![release](https://github.com/harryy2510/ai-tools/actions/workflows/release.yml/badge.svg)](https://github.com/harryy2510/ai-tools/actions/workflows/release.yml)
 
-**Docs wiki:** [docs/README.md](./docs/README.md) · **Changelog:** [CHANGELOG.md](./CHANGELOG.md) · **SemVer:** [docs/versioning.md](./docs/versioning.md)
+**Docs wiki:** [docs/README.md](./docs/README.md) · **Changelog:** [CHANGELOG.md](./CHANGELOG.md) · **Release:** [docs/versioning.md](./docs/versioning.md)
 
 ## Why
 
@@ -98,24 +99,27 @@ bun install
 bun run hooks:install
 oxfmt --write <touched-paths>
 bun run check          # format:check + lint + codegen:check + test
-bun run codegen        # discover src/modules/* → exports / tsdown / manifest
+bun run codegen
 bun run new-module <kebab-key> [--title …] [--description …] [--auth none|custom]
 bun run build
 bun run typecheck
 ```
 
-CI runs the same check + build + pack dry-run on every push/PR (see `.github/workflows/ci.yml`).
+## Release
 
-## Publish
+**[semantic-release](https://semantic-release.gitbook.io/)** on `main` from **conventional commits**. No manual version bump.
 
-**CI path (no token):** npm **Trusted Publisher** + `.github/workflows/publish.yml` (OIDC).  
-On npm, link repo `harryy2510/ai-tools` to workflow file **`publish.yml`** (not `ci.yml`).
+| Commit | Version |
+| --- | --- |
+| `feat:` | minor |
+| `fix:` / `perf:` | patch |
+| `BREAKING CHANGE` / `type!:` | major |
 
-1. Bump `version` + [CHANGELOG.md](./CHANGELOG.md) per [docs/versioning.md](./docs/versioning.md).
-2. Push `main`, then create a **GitHub Release** (or run **Actions → publish** manually).
-3. Workflow runs check/build and `npm publish --provenance` with `id-token: write` — no `NPM_TOKEN`.
+Merge to `main` → `release.yml` runs check/build → tags → npm via **OIDC Trusted Publisher** (workflow file must be **`release.yml`**). Details: [docs/versioning.md](./docs/versioning.md).
 
-**Local fallback:** `bun run release` (your `npm login` session).
+```bash
+bun run release:dry   # local dry-run only
+```
 
 ## License
 

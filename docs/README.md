@@ -11,7 +11,7 @@ Documentation hub for the package. Source of truth for architecture and module c
 | [Adapters](./guides/adapters.md) | Project kernel tools into frameworks |
 | [Authoring modules](./guides/authoring-modules.md) | `defineModule` / scaffold / codegen |
 | [Errors](./guides/errors.md) | `ToolError` codes and retry signals |
-| [Versioning](./versioning.md) | SemVer 0.x policy and release checklist |
+| [Versioning](./versioning.md) | semantic-release + conventional commits |
 | [Changelog](../CHANGELOG.md) | Released notes |
 
 ## Brain packages

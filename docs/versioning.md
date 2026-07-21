@@ -1,73 +1,83 @@
-# Versioning and release policy
+# Versioning and release
 
 Package: `@harryy/ai-tools`  
-Current line: **0.x** (pre-1.0).
+Tool: **[semantic-release](https://semantic-release.gitbook.io/)** on `main`.
 
-## SemVer (0.x)
+## How it works
 
-Until `1.0.0`, versions are `0.MINOR.PATCH`:
+**Conventional commits** are the only automatic signal for the next version.
 
-| Bump | When |
+| Commit | Release |
 | --- | --- |
-| **PATCH** (`0.0.x` → `0.0.x+1`) | Bug fixes, docs, tests, CI, internal refactors that do not change public TypeScript types or runtime contracts. |
-| **MINOR** (`0.x` → `0.x+1.0`) | New modules, tools, adapters, options **or** intentional breaking changes while still on 0.x. |
-| **MAJOR** (`1.0.0`) | First stability commitment. After 1.0, breaking changes require a major bump. |
+| `feat:` / `feat(scope):` | **minor** |
+| `fix:` / `perf:` / `revert:` | **patch** |
+| `BREAKING CHANGE:` in body or `type!:` | **major** |
+| `chore:` `docs:` `test:` `ci:` `style:` `refactor:` `build:` | no release |
 
-On 0.x, **breaking changes are allowed in minor bumps**, but they must be called out under `### Breaking` in [CHANGELOG.md](../CHANGELOG.md). Prefer additive APIs when possible.
-
-## What counts as public API
-
-Breaking if you change any of these without a documented migration:
-
-1. **Import paths** — e.g. `@harryy/ai-tools/core`, `@harryy/ai-tools/s3-storage`.
-2. **Named exports** removed or type-incompatible.
-3. **Tool `id` strings** (kebab-case ids used by agents/adapters) — renames are always breaking.
-4. **Module `id` strings**.
-5. **Auth schema field names** for host binding (`withAuth`).
-6. **Model-facing input/output field names** on tools (Zod shapes agents fill).
-7. **`ToolError.code` enum values** removed or repurposed.
-8. **Runtime claims** that become false (tool marked `both` but requiring Node-only APIs).
-
-Non-breaking:
-
-- New optional input fields with defaults.
-- New tools inside an existing module (additive; still note in CHANGELOG).
-- New modules / new subpath exports.
-- Stricter validation that only rejects previously invalid inputs.
-- Richer error `details` objects.
-- Docs and scaffolds.
-
-## Release checklist (GitHub → npm, no token)
-
-CI **check** runs on every push/PR (`.github/workflows/ci.yml`).  
-**Publish** is a separate workflow (`.github/workflows/publish.yml`) using npm **Trusted Publisher** (OIDC). No `NPM_TOKEN` secret.
-
-### One-time npm setup
-
-1. On the npm package page → **Trusted Publisher**.
-2. Link GitHub repo `harryy2510/ai-tools`.
-3. Workflow file must be **`publish.yml`** (not `ci.yml`). Permissions: `npm publish`.
-4. Save. No granular access token required for CI publish when OIDC is linked.
-
-### Cut a release
-
-1. Ensure `main` is green.
-2. Update [CHANGELOG.md](../CHANGELOG.md); bump `version` in `package.json`.
-3. Commit and push to `main`.
-4. Create a GitHub Release (or tag and publish a release) for `vX.Y.Z` **or** run **Actions → publish → Run workflow**.
-5. `publish.yml` runs `prepublishOnly` then `npm publish --access public --provenance` via OIDC.
-
-### Local fallback
-
-```bash
-bun run release   # npm publish --access public (uses your logged-in npm user)
+```text
+push to main
+  → ci.yml           (check / build quality gate)
+  → release.yml      (check + build + semantic-release)
+       → analyze commits since last git tag
+       → bump package.json, update CHANGELOG.md
+       → git tag + GitHub Release
+       → npm publish via OIDC Trusted Publisher (no NPM_TOKEN)
 ```
 
-Do not put registry tokens in the repo. OIDC trusted publisher is the CI path.
+If nothing releasable has landed since the last tag, semantic-release exits 0 and does nothing.
 
-## After 1.0
+## One-time setup
 
-- Breaking changes require **major**.
-- New features require **minor**.
-- Fixes require **patch**.
-- Tool id renames remain breaking majors.
+### npm Trusted Publisher
+
+1. npm package → **Trusted Publisher**
+2. GitHub repo: `harryy2510/ai-tools`
+3. Workflow file: **`release.yml`** (not `ci.yml`, not `publish.yml`)
+4. Permission: `npm publish`
+
+### Git tag for the version already on npm
+
+`0.0.1` was published before semantic-release. Create a matching tag on the commit that matches that release so the next run does not re-publish `0.0.1`:
+
+```bash
+git tag v0.0.1 <commit-sha>   # if missing
+git push origin v0.0.1
+```
+
+## Local
+
+```bash
+bun run release:dry    # dry-run (needs full git history + network for npm registry read)
+bun run release        # real run — prefer CI; local needs npm auth
+```
+
+Prefer shipping via **merge to `main`** and let CI release.
+
+## Commit style
+
+```text
+feat: add s3 copy object
+fix: handle empty mime body
+feat!: rename tool id weather-get
+
+fix: correct list pagination
+
+BREAKING CHANGE: listObjects no longer returns bare keys only.
+```
+
+Release commits from the bot look like:
+
+```text
+chore(release): 0.0.2 [skip ci]
+```
+
+Those do not trigger another release.
+
+## Config
+
+- `release.config.mjs` — plugins and rules  
+- `.github/workflows/release.yml` — CI job  
+
+## Public API (breaking = major)
+
+Import paths, named exports, tool/module ids, auth field names, model-facing I/O fields, `ToolError.code`, false `runtime` claims.

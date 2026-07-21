@@ -56,7 +56,7 @@ Repository rules constrain agent behavior. They do not teach package usage (see 
 
 - **Brain packages** (`core`, `http`, adapters): edit source under `src/<name>/` and `scripts/codegen/brain.ts`, then `bun run codegen`.
 - **Product modules**: prefer `bun run new-module <kebab-key>` (writes index/module/test/docs stub + codegen), or add `src/modules/<key>/index.ts` by hand then `bun run codegen`. Do not hand-wire package exports/tsdown/manifest.
-- **Public docs wiki** lives under `docs/`. Update module/package pages and `CHANGELOG.md` when public contracts change. SemVer rules: `docs/versioning.md`.
+- **Public docs wiki** lives under `docs/`. Update module/package pages when public contracts change. Versions/changelogs are produced by **semantic-release** from conventional commits (`docs/versioning.md`). Do not hand-bump `package.json` version for releases.
 
 ## Dependencies and tooling
 
