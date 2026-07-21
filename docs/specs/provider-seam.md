@@ -1,13 +1,14 @@
 # Spec: Provider seam for capability modules
 
 Status: **locked**  
-Package: `@harryy/ai-tools`
+Package: `@harryy/ai-tools`  
+Scope: **Lane A only** (`src/modules/*`). Vendors and channels: [package-surface-architecture.md](./package-surface-architecture.md).
 
 ## Goals
 
 - Tools are **capability-generic** (email, storage, extract, convert).
 - Hosts pick a **provider** at bind time via auth `{ provider, … }`.
-- Vendor code is isolated behind a **type class** (`*Ops`) per module.
+- Provider implementations are isolated behind a **type class** (`*Ops`) per module.
 - Auth never appears on model-facing tool schemas.
 - Batch tools, list pagination, and rate-limit errors are first-class.
 

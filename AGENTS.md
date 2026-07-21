@@ -13,25 +13,31 @@ Repository rules constrain agent behavior. They do not teach package usage (see 
 ## Architecture locks
 
 - **Single package, subpath imports only.** No root mega-barrel that pulls every module.
-- **Source layout:**
+- **Three surface lanes** (see `docs/specs/package-surface-architecture.md`):
+  - `src/modules/*` — **platform capabilities** (generic tools + multi-provider seam)
+  - `src/vendors/*` — **vendor packs** (full first-party API surfaces; vendor-named ok)
+  - `src/channels/*` — **product messaging** (tools + webhook verify/parse; host owns durable turns)
+- **Source layout (also):**
   - `src/core` — kernel (`defineTool`, `defineModule`, `defineProvider`, `withAuth`)
   - `src/http` — HTTP factory
   - `src/adapters/*` — framework projectors (Mastra, AI SDK, TanStack, Cloudflare AI, MCP)
-  - `src/modules/*` — **capability** modules (codegen-discovered), not vendor names
-  - `src/shared` — cross-cutting pure helpers
-- **Public import paths stay flat** (`@harryy/ai-tools/mastra`), even when source lives under `adapters/`.
-- **Capability modules + provider seam.** Product modules are generic (`email`, `storage`, `document-extract`, `file-convert`). Vendor logic lives in `providers/*.ts` implementing one ops type class. Host selects provider via auth discriminated union `{ provider: '…', … }`. See `docs/specs/provider-seam.md`.
-- **Never name a module or tool id after a single vendor** (`cloudflare-email`, `s3-get-object` are forbidden patterns).
-- **Kernel is the source of truth.** Authors write `defineModule` / `defineTool` / `defineProvider` / `defineHttpApi` only. Do not hand-write framework tool shapes inside modules.
+  - `src/shared` — cross-cutting pure helpers (ofetch services, artifacts, batch)
+- **Public import paths stay flat** (`@harryy/ai-tools/mastra`, `@harryy/ai-tools/email`, `@harryy/ai-tools/telegram`), even when source lives under `adapters/`, `modules/`, `vendors/`, or `channels/`.
+- **Platform modules (Lane A):** capability-named tools (`email-send`); providers under `providers/*.ts`; host selects via auth `{ provider: '…', … }`. See `docs/specs/provider-seam.md`. Do **not** name a platform module after one cloud vendor (`cloudflare-email` forbidden).
+- **Vendor packs (Lane B):** vendor-named modules and tool ids are allowed (`woocommerce-list-orders`). Map real APIs incrementally; do not force fat APIs into tiny generic commerce facades.
+- **Channels (Lane C):** own API client, outbound tools, and webhook verify/parse helpers. Host owns routes, secrets storage, tenant mapping, outbox, authZ, audit.
+- **Composio/Nango stay host SaaS OAuth catalog + PHI routing.** This package does not replace them.
+- **Kernel is the source of truth.** Authors write `defineModule` / `defineTool` / `defineProvider` / `defineHttpApi` only. Do not hand-write framework tool shapes inside modules/vendors/channels.
 - **Adapters are generic projectors only.** Never per-module adapter factories.
 - **Prefer `es-toolkit` / `es-toolkit/compat`** for list/object/string helpers over hand-rolled typeof/array boilerplate.
 - **Auth is host-bound only.** `withAuth` + `ctx.auth`. Never put credentials on model-facing tool inputs/outputs/descriptions. Nested credentials (e.g. convert → storage) stay in the host auth bag.
-- **Batch, pagination, rate limits** are first-class in seamed modules (single + batch tools; cursor list pages; `rate_limited` / `retryable` errors).
-- **HTTP integrations are fixed-origin capability modules.** Prefer `defineHttpApi`. Do not add free-form “call any URL” agent tools unless the user explicitly requests that product.
-- **Tool ids are stable kebab-case** (`email-send`). Changing a published id is a breaking change.
+- **Batch, pagination, rate limits** are first-class where the domain allows.
+- **HTTP:** ofetch service clients for JSON HTTP; aws4fetch only for SigV4. Prefer REST/S3 over Workers-only bindings as primary providers. See `docs/reference/ofetch-services.md`.
+- **Do not add free-form “call any URL” agent tools** unless the product module is explicitly allowlisted (`web-fetch`).
+- **Tool ids are stable kebab-case.** Changing a published id is a breaking change.
 - **Runtime claims are honest.** `node` | `edge` | `both` must match actual imports and APIs. Node-only code must not claim edge.
 - **`dist/` is build output only.** Never hand-edit. Emit via package build script only.
-- **Module surface is codegen-owned.** Add modules under `src/modules/<kebab-key>/` with `index.ts`. Run `bun run codegen` (also via `build`). Do not hand-edit module entries in `package.json` `exports`, `tsdown.config.ts`, `generated/module-manifest.json`, or `src/generated/module-keys.ts`.
+- **Surface is codegen-owned.** Add entries under `src/modules|vendors|channels/<kebab-key>/` with `index.ts`. Run `bun run codegen` (also via `build`). Do not hand-edit `package.json` `exports`, `tsdown.config.ts`, `generated/module-manifest.json`, or `src/generated/module-keys.ts` (codegen must discover all three lanes when vendors/channels exist).
 
 ## Quality bars
 
