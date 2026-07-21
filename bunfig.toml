@@ -1,0 +1,6 @@
+[install]
+exact = true
+
+[test]
+# Keep unit tests default; add pathIgnorePatterns for future integration suites.
+pathIgnorePatterns = ["**/*.integration.test.ts"]

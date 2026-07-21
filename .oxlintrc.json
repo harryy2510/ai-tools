@@ -1,0 +1,66 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["typescript", "unicorn", "import"],
+	"ignorePatterns": ["**/dist/**", "**/node_modules/**"],
+	"options": {
+		"typeAware": true,
+		"typeCheck": true
+	},
+	"env": {
+		"builtin": true,
+		"es2024": true
+	},
+	"overrides": [
+		{
+			"files": ["**/*.d.ts"],
+			"rules": {
+				"typescript/consistent-type-definitions": "off",
+				"typescript/no-duplicate-type-constituents": "off",
+				"typescript/no-redundant-type-constituents": "off"
+			}
+		},
+		{
+			"files": ["src/**/*.{ts,mts,cts}"],
+			"excludeFiles": ["**/dist/**", "**/node_modules/**"],
+			"rules": {
+				"typescript/ban-ts-comment": [
+					"error",
+					{
+						"ts-check": false,
+						"ts-expect-error": true,
+						"ts-ignore": true,
+						"ts-nocheck": true
+					}
+				],
+				"typescript/consistent-type-assertions": ["error", { "assertionStyle": "never" }],
+				"typescript/no-explicit-any": "error",
+				"typescript/no-non-null-assertion": "error"
+			}
+		}
+	],
+	"rules": {
+		"eqeqeq": ["error", "always"],
+		"no-shadow": "off",
+		"no-var": "error",
+		"prefer-const": "error",
+		"typescript/consistent-type-definitions": ["error", "type"],
+		"typescript/consistent-type-exports": [
+			"error",
+			{
+				"fixMixedExportsWithInlineTypeSpecifier": true
+			}
+		],
+		"typescript/consistent-type-imports": [
+			"error",
+			{
+				"fixStyle": "inline-type-imports",
+				"prefer": "type-imports"
+			}
+		],
+		"typescript/no-floating-promises": "error",
+		"import/consistent-type-specifier-style": ["error", "prefer-top-level"],
+		"import/first": "error",
+		"import/no-commonjs": "error",
+		"import/no-duplicates": "error"
+	}
+}

@@ -1,0 +1,36 @@
+pre-push:
+  jobs:
+    - name: check
+      # Full gate before every push: format:check + type-aware lint + tests.
+      # Do not bypass with --no-verify.
+      run: bun run check
+
+pre-commit:
+  # Validation only. Pre-commit jobs must not modify the working tree or Git index.
+  jobs:
+    - name: oxfmt
+      run: bun run oxfmt --no-error-on-unmatched-pattern --check {staged_files}
+      glob:
+        - '*.cjs'
+        - '*.css'
+        - '*.cts'
+        - '*.js'
+        - '*.json'
+        - '*.jsonc'
+        - '*.jsx'
+        - '*.mjs'
+        - '*.mts'
+        - '*.ts'
+        - '*.tsx'
+
+    - name: oxlint
+      run: bun run oxlint --no-error-on-unmatched-pattern --type-aware {staged_files}
+      glob:
+        - '*.cjs'
+        - '*.cts'
+        - '*.js'
+        - '*.jsx'
+        - '*.mjs'
+        - '*.mts'
+        - '*.ts'
+        - '*.tsx'
