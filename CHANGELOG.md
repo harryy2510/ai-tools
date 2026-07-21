@@ -20,7 +20,10 @@ Releases are cut by semantic-release from conventional commits. See [docs/versio
 - Docs wiki under `docs/` (guides, brain packages, product modules).
 - Module scaffold writes `docs/modules/<key>.md` stub.
 - **semantic-release** on `main` (conventional commits → version, changelog, tag, npm OIDC).
-- **`web-fetch` module** — allowlisted HTTP client on **ofetch** (`web-fetch-request`): host `default_headers`, per-hop redirect allowlist, size limits, optional `require_https`.
+- **`web-fetch` module** — allowlisted HTTP client on **ofetch** (`web-fetch-get` / `web-fetch-request`).
+- **`document-extract`** — Textract text extract from S3 `ArtifactRef` with internal poll; `document-extract-status` for `job_id`.
+- **`file-convert`** — Transmute-backed convert for S3 artifacts.
+- Spec: `docs/specs/artifacts-extract-convert.md`.
 
 ### Changed
 

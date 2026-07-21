@@ -45,17 +45,29 @@
 			"types": "./dist/mcp/index.d.ts",
 			"default": "./dist/mcp/index.js"
 		},
-		"./cloudflare-email": {
-			"types": "./dist/modules/cloudflare-email/index.d.ts",
-			"default": "./dist/modules/cloudflare-email/index.js"
+		"./document-extract": {
+			"types": "./dist/modules/document-extract/index.d.ts",
+			"default": "./dist/modules/document-extract/index.js"
+		},
+		"./email": {
+			"types": "./dist/modules/email/index.d.ts",
+			"default": "./dist/modules/email/index.js"
+		},
+		"./file-convert": {
+			"types": "./dist/modules/file-convert/index.d.ts",
+			"default": "./dist/modules/file-convert/index.js"
+		},
+		"./media-type": {
+			"types": "./dist/modules/media-type/index.d.ts",
+			"default": "./dist/modules/media-type/index.js"
 		},
 		"./mime": {
 			"types": "./dist/modules/mime/index.d.ts",
 			"default": "./dist/modules/mime/index.js"
 		},
-		"./s3-storage": {
-			"types": "./dist/modules/s3-storage/index.d.ts",
-			"default": "./dist/modules/s3-storage/index.js"
+		"./storage": {
+			"types": "./dist/modules/storage/index.d.ts",
+			"default": "./dist/modules/storage/index.js"
 		},
 		"./web-fetch": {
 			"types": "./dist/modules/web-fetch/index.d.ts",
@@ -88,6 +100,7 @@
 	"dependencies": {
 		"aws4fetch": "1.0.20",
 		"es-toolkit": "1.49.0",
+		"mime": "4",
 		"mimetext": "3.0.28",
 		"ofetch": "1.5.1",
 		"postal-mime": "2.7.5",

@@ -11,16 +11,19 @@
 
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
-import { s3StorageModule } from '@harryy/ai-tools/s3-storage'
+import { storageModule } from '@harryy/ai-tools/storage'
 
-const bound = withAuth(s3StorageModule, {
+const bound = withAuth(storageModule, {
+  provider: 's3',
   accessKeyId: '…',
   secretAccessKey: '…',
   region: 'auto',
   bucket: 'my-bucket',
-  endpoint: 'https://….r2.cloudflarestorage.com', // optional
+  endpoint: 'https://….r2.cloudflarestorage.com', // optional S3-compatible
 })
 ```
+
+Capability modules use a **provider** discriminator on auth. Tool inputs never include credentials.
 
 - Validates credentials against the module’s auth Zod schema.
 - Returns a **bound module** whose tools close over auth in `ToolContext`.

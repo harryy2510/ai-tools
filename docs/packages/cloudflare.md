@@ -21,5 +21,5 @@ Schemas are projected to JSON Schema for Workers AI tool calling shapes.
 
 ## Related
 
-- Product modules: [cloudflare-email](../modules/cloudflare-email.md), [s3-storage](../modules/s3-storage.md) (R2)
+- Product modules: [email](../modules/email.md) (cloudflare provider), [storage](../modules/storage.md) (s3 / native r2)
 - [Adapters guide](../guides/adapters.md)

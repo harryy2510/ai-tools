@@ -14,7 +14,8 @@ Reusable **AI tools** with strict Zod schemas and model-facing contracts. Define
 - **Subpath imports** — tree-shake friendly; no root mega-barrel.
 - **Honest runtimes** — `node` | `edge` | `both`.
 - **Stable tool ids** — kebab-case ids safe for agents and MCP names.
-- **Product modules included** — Cloudflare Email, S3-compatible storage, MIME parse/build.
+- **Capability modules + provider seam** — generic tools (`email`, `storage`, …); host picks provider via auth union.
+- **Product modules included** — email, storage, document extract, file convert, MIME, media-type, web-fetch.
 
 ## Install
 
@@ -34,12 +35,12 @@ Requires **Bun ≥ 1.3.14** or **Node ≥ 24**.
 
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
-import { cloudflareEmailModule } from '@harryy/ai-tools/cloudflare-email'
+import { emailModule } from '@harryy/ai-tools/email'
 import { createMastraTools } from '@harryy/ai-tools/mastra'
 
-const bound = withAuth(cloudflareEmailModule, {
-  accountId: process.env.CF_ACCOUNT_ID!,
-  apiToken: process.env.CF_API_TOKEN!,
+const bound = withAuth(emailModule, {
+  provider: 'resend',
+  apiKey: process.env.RESEND_API_KEY!,
 })
 
 export const tools = createMastraTools(bound)
@@ -72,24 +73,27 @@ export const tools = createAiSdkTools(mimeModule)
 
 | Import | Tools (ids) | Docs |
 | --- | --- | --- |
-| `@harryy/ai-tools/cloudflare-email` | `cloudflare-email-send` | [docs/modules/cloudflare-email.md](./docs/modules/cloudflare-email.md) |
-| `@harryy/ai-tools/s3-storage` | `s3-list-objects`, `s3-get-object`, `s3-put-object`, `s3-delete-object`, `s3-head-object`, `s3-copy-object`, `s3-create-signed-url` | [docs/modules/s3-storage.md](./docs/modules/s3-storage.md) |
-| `@harryy/ai-tools/mime` | `mime-parse`, `mime-build` | [docs/modules/mime.md](./docs/modules/mime.md) |
+| `@harryy/ai-tools/email` | `email-send`, `email-send-batch` (providers: cloudflare, resend) | [docs/modules/email.md](./docs/modules/email.md) |
+| `@harryy/ai-tools/storage` | `storage-*` list/get/put/delete/head/copy/signed-url + batch (s3, r2, supabase) | [docs/modules/storage.md](./docs/modules/storage.md) |
+| `@harryy/ai-tools/mime` | `mime-parse`, `mime-build` (email messages) | [docs/modules/mime.md](./docs/modules/mime.md) |
+| `@harryy/ai-tools/media-type` | `media-type-get`, `media-type-extension`, `media-type-extensions` | [docs/modules/media-type.md](./docs/modules/media-type.md) |
 | `@harryy/ai-tools/web-fetch` | `web-fetch-get` (read), `web-fetch-request` (write) | [docs/modules/web-fetch.md](./docs/modules/web-fetch.md) |
+| `@harryy/ai-tools/document-extract` | `document-extract-text`, `document-extract-status`, `document-extract-text-batch` | [docs/modules/document-extract.md](./docs/modules/document-extract.md) |
+| `@harryy/ai-tools/file-convert` | `file-convert`, `file-convert-batch` | [docs/modules/file-convert.md](./docs/modules/file-convert.md) |
 
 ## Architecture
 
 ```text
-defineTool / defineModule     ← author once (kernel)
+defineTool / defineModule / defineProvider
         │
-   withAuth(module, secrets)  ← host closes credentials
+   withAuth(module, { provider, … })  ← host closes credentials
         │
-   ┌────┴────────────────────────────┐
-   │  adapters (projectors only)     │
-   │  Mastra · AI SDK · TanStack ·   │
-   │  Cloudflare AI · MCP · runTool  │
-   └─────────────────────────────────┘
+   resolveProvider → ops (type class)
+        │
+   adapters (Mastra · AI SDK · TanStack · CF · MCP · runTool)
 ```
+
+Provider seam: [docs/specs/provider-seam.md](./docs/specs/provider-seam.md).
 
 Full guides: [Getting started](./docs/guides/getting-started.md) · [Auth](./docs/guides/auth-and-binding.md) · [Adapters](./docs/guides/adapters.md) · [Authoring](./docs/guides/authoring-modules.md) · [Errors](./docs/guides/errors.md)
 
@@ -105,6 +109,12 @@ bun run new-module <kebab-key> [--title …] [--description …] [--auth none|cu
 bun run build
 bun run typecheck
 ```
+
+## Document extract & convert (self-host)
+
+- **Artifacts** are S3 keys (`ArtifactRef`), not base64 in the model. Spec: [docs/specs/artifacts-extract-convert.md](./docs/specs/artifacts-extract-convert.md).
+- **Extract:** Amazon Textract (sync poll inside the tool; `pending` + `job_id` if wait budget expires, then `document-extract-status`). Object must live in **AWS S3** (Textract `S3Object`).
+- **Convert:** Self-host **[Transmute](https://github.com/transmute-app/transmute)** (private, offline relative to SaaS converters, REST API). `file-convert` uploads → converts → writes result back to S3.
 
 ## Release
 

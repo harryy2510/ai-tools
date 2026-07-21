@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-21T13:23:09.436Z",
+	"generatedAt": "2026-07-21T19:48:46.374Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -40,12 +40,78 @@
 	],
 	"modules": [
 		{
-			"key": "cloudflare-email",
-			"entry": "src/modules/cloudflare-email/index.ts",
-			"entryKey": "modules/cloudflare-email/index",
-			"exportNames": ["CloudflareEmailAuth", "cloudflareEmailAuthSchema", "cloudflareEmailModule", "sendEmailTool"],
-			"moduleId": "cloudflare-email",
-			"moduleIdSource": "src/modules/cloudflare-email/module.ts"
+			"key": "document-extract",
+			"entry": "src/modules/document-extract/index.ts",
+			"entryKey": "modules/document-extract/index",
+			"exportNames": [
+				"DocumentExtractAuth",
+				"DocumentExtractOps",
+				"ExtractResult",
+				"TextractExtractAuth",
+				"documentExtractAuthSchema",
+				"documentExtractModule",
+				"documentExtractProviders",
+				"documentExtractStatusTool",
+				"documentExtractTextBatchTool",
+				"documentExtractTextTool",
+				"textractExtractAuthSchema",
+				"textractExtractProvider"
+			],
+			"moduleId": "document-extract",
+			"moduleIdSource": "src/modules/document-extract/module.ts"
+		},
+		{
+			"key": "email",
+			"entry": "src/modules/email/index.ts",
+			"entryKey": "modules/email/index",
+			"exportNames": [
+				"CloudflareEmailAuth",
+				"EmailAuth",
+				"EmailOps",
+				"ResendEmailAuth",
+				"SendEmailInput",
+				"SendEmailOutput",
+				"cloudflareEmailAuthSchema",
+				"cloudflareEmailProvider",
+				"emailAuthSchema",
+				"emailModule",
+				"emailProviders",
+				"resendEmailAuthSchema",
+				"resendEmailProvider",
+				"sendEmailBatchTool",
+				"sendEmailTool"
+			],
+			"moduleId": "email",
+			"moduleIdSource": "src/modules/email/module.ts"
+		},
+		{
+			"key": "file-convert",
+			"entry": "src/modules/file-convert/index.ts",
+			"entryKey": "modules/file-convert/index",
+			"exportNames": [
+				"ConvertInput",
+				"ConvertOutput",
+				"FileConvertAuth",
+				"FileConvertOps",
+				"TransmuteConvertAuth",
+				"fileConvertAuthSchema",
+				"fileConvertBatchTool",
+				"fileConvertModule",
+				"fileConvertProviders",
+				"fileConvertTool",
+				"transmuteConvertAuthSchema",
+				"transmuteConvertProvider"
+			],
+			"moduleId": "file-convert",
+			"moduleIdSource": "src/modules/file-convert/module.ts"
+		},
+		{
+			"key": "media-type",
+			"entry": "src/modules/media-type/index.ts",
+			"entryKey": "modules/media-type/index",
+			"exportNames": ["mediaTypeExtensionTool", "mediaTypeExtensionsTool", "mediaTypeGetTool", "mediaTypeModule"],
+			"moduleId": "media-type",
+			"moduleIdSource": "src/modules/media-type/module.ts"
 		},
 		{
 			"key": "mime",
@@ -56,23 +122,37 @@
 			"moduleIdSource": "src/modules/mime/module.ts"
 		},
 		{
-			"key": "s3-storage",
-			"entry": "src/modules/s3-storage/index.ts",
-			"entryKey": "modules/s3-storage/index",
+			"key": "storage",
+			"entry": "src/modules/storage/index.ts",
+			"entryKey": "modules/storage/index",
 			"exportNames": [
+				"R2StorageAuth",
 				"S3StorageAuth",
+				"StorageAuth",
+				"StorageOps",
+				"SupabaseStorageAuth",
 				"copyObjectTool",
 				"createSignedUrlTool",
 				"deleteObjectTool",
+				"deleteObjectsTool",
 				"getObjectTool",
+				"getObjectsTool",
 				"headObjectTool",
 				"listObjectsTool",
 				"putObjectTool",
+				"putObjectsTool",
+				"r2StorageAuthSchema",
+				"r2StorageProvider",
 				"s3StorageAuthSchema",
-				"s3StorageModule"
+				"s3StorageProvider",
+				"storageAuthSchema",
+				"storageModule",
+				"storageProviders",
+				"supabaseStorageAuthSchema",
+				"supabaseStorageProvider"
 			],
-			"moduleId": "s3-storage",
-			"moduleIdSource": "src/modules/s3-storage/module.ts"
+			"moduleId": "storage",
+			"moduleIdSource": "src/modules/storage/module.ts"
 		},
 		{
 			"key": "web-fetch",

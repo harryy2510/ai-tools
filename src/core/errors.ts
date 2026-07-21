@@ -7,6 +7,7 @@ export type ToolErrorCode =
 	| 'upstream'
 	| 'timeout'
 	| 'too_large'
+	| 'unsupported'
 	| 'unsupported_runtime'
 	| 'internal'
 

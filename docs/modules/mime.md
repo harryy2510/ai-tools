@@ -8,7 +8,9 @@
 | **Auth** | **none** |
 | **Libraries** | `postal-mime` (parse), `mimetext` (build) |
 
-Parse and build RFC 822 / MIME messages **without sending**. Pair with [cloudflare-email](./cloudflare-email.md) or SMTP in the host when you need delivery.
+Parse and build RFC 822 / MIME **email messages** **without sending**. Pair with [email](./email.md) or SMTP in the host when you need delivery.
+
+For **content-type ↔ extension** lookup (`mime.getType` / `mime.getExtension`), use [media-type](./media-type.md) (`@harryy/ai-tools/media-type`), which wraps the npm `mime` package.
 
 ## Install / import
 
@@ -98,5 +100,5 @@ const parsed = await runTool(parseMimeTool, { raw })
 
 ## Related
 
-- [cloudflare-email](./cloudflare-email.md) for send
+- [email](./email.md) for send
 - [core](../packages/core.md) `runTool`

@@ -30,10 +30,14 @@ Documentation hub for the package. Source of truth for architecture and module c
 
 | Import | Doc |
 | --- | --- |
-| `@harryy/ai-tools/cloudflare-email` | [cloudflare-email](./modules/cloudflare-email.md) |
-| `@harryy/ai-tools/s3-storage` | [s3-storage](./modules/s3-storage.md) |
-| `@harryy/ai-tools/mime` | [mime](./modules/mime.md) |
+| `@harryy/ai-tools/email` | [email](./modules/email.md) |
+| `@harryy/ai-tools/storage` | [storage](./modules/storage.md) |
+| `@harryy/ai-tools/mime` | [mime](./modules/mime.md) (email parse/build) |
+| `@harryy/ai-tools/media-type` | [media-type](./modules/media-type.md) (MIME type ↔ extension) |
 | `@harryy/ai-tools/web-fetch` | [web-fetch](./modules/web-fetch.md) |
+| `@harryy/ai-tools/document-extract` | [document-extract](./modules/document-extract.md) |
+| `@harryy/ai-tools/file-convert` | [file-convert](./modules/file-convert.md) |
+| Spec: provider seam | [provider-seam](./specs/provider-seam.md) |
 
 ## Mental model
 

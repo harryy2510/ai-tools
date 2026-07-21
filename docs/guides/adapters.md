@@ -6,14 +6,14 @@ Adapters **project** kernel tools into framework shapes. They do not implement p
 
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
-import { s3StorageModule } from '@harryy/ai-tools/s3-storage'
+import { storageModule } from '@harryy/ai-tools/storage'
 import { createMastraTools } from '@harryy/ai-tools/mastra'
 import { createAiSdkTools } from '@harryy/ai-tools/ai-sdk'
 import { createTanStackTools } from '@harryy/ai-tools/tanstack'
 import { createCloudflareAiTools } from '@harryy/ai-tools/cloudflare'
 import { createMcpTools, registerMcpTools } from '@harryy/ai-tools/mcp'
 
-const bound = withAuth(s3StorageModule, { /* … */ })
+const bound = withAuth(storageModule, { provider: 's3', /* … */ })
 
 createMastraTools(bound)
 createAiSdkTools(bound)

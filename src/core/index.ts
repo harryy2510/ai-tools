@@ -8,6 +8,8 @@ export { isToolError, ToolError } from './errors'
 export type { ToolErrorCode, ToolErrorOptions } from './errors'
 export { zodToJsonSchema } from './json-schema'
 export type { JsonSchemaObject } from './json-schema'
+export { defineProvider, requireAuth, resolveProvider } from './provider'
+export type { ProviderAuthBase, ProviderDefinition } from './provider'
 export { filterToolsByRuntime, isToolArray, resolveTools } from './resolve-tools'
 export type {
 	AnyToolDefinition,

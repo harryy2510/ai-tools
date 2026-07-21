@@ -23,11 +23,12 @@ Uses AI SDK **dynamic tools** where needed so Zod 4 schemas project cleanly unde
 
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
-import { cloudflareEmailModule } from '@harryy/ai-tools/cloudflare-email'
+import { emailModule } from '@harryy/ai-tools/email'
 import { createAiSdkTools } from '@harryy/ai-tools/ai-sdk'
 
 const tools = createAiSdkTools(
-  withAuth(cloudflareEmailModule, {
+  withAuth(emailModule, {
+  provider: 'cloudflare',
     accountId: '…',
     apiToken: '…',
   }),

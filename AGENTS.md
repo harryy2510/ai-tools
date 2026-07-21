@@ -14,18 +14,21 @@ Repository rules constrain agent behavior. They do not teach package usage (see 
 
 - **Single package, subpath imports only.** No root mega-barrel that pulls every module.
 - **Source layout:**
-  - `src/core` — kernel
+  - `src/core` — kernel (`defineTool`, `defineModule`, `defineProvider`, `withAuth`)
   - `src/http` — HTTP factory
   - `src/adapters/*` — framework projectors (Mastra, AI SDK, TanStack, Cloudflare AI, MCP)
-  - `src/modules/*` — product tools (codegen-discovered)
+  - `src/modules/*` — **capability** modules (codegen-discovered), not vendor names
   - `src/shared` — cross-cutting pure helpers
 - **Public import paths stay flat** (`@harryy/ai-tools/mastra`), even when source lives under `adapters/`.
-- **Kernel is the source of truth.** Authors write `defineModule` / `defineTool` / `defineHttpApi` only. Do not hand-write framework tool shapes inside modules.
+- **Capability modules + provider seam.** Product modules are generic (`email`, `storage`, `document-extract`, `file-convert`). Vendor logic lives in `providers/*.ts` implementing one ops type class. Host selects provider via auth discriminated union `{ provider: '…', … }`. See `docs/specs/provider-seam.md`.
+- **Never name a module or tool id after a single vendor** (`cloudflare-email`, `s3-get-object` are forbidden patterns).
+- **Kernel is the source of truth.** Authors write `defineModule` / `defineTool` / `defineProvider` / `defineHttpApi` only. Do not hand-write framework tool shapes inside modules.
 - **Adapters are generic projectors only.** Never per-module adapter factories.
 - **Prefer `es-toolkit` / `es-toolkit/compat`** for list/object/string helpers over hand-rolled typeof/array boilerplate.
-- **Auth is optional and host-bound.** Schema + `withAuth` only. Never store credentials. Never put auth fields on model-facing input schemas.
+- **Auth is host-bound only.** `withAuth` + `ctx.auth`. Never put credentials on model-facing tool inputs/outputs/descriptions. Nested credentials (e.g. convert → storage) stay in the host auth bag.
+- **Batch, pagination, rate limits** are first-class in seamed modules (single + batch tools; cursor list pages; `rate_limited` / `retryable` errors).
 - **HTTP integrations are fixed-origin capability modules.** Prefer `defineHttpApi`. Do not add free-form “call any URL” agent tools unless the user explicitly requests that product.
-- **Tool ids are stable kebab-case** (`weather-get`). Changing a published id is a breaking change.
+- **Tool ids are stable kebab-case** (`email-send`). Changing a published id is a breaking change.
 - **Runtime claims are honest.** `node` | `edge` | `both` must match actual imports and APIs. Node-only code must not claim edge.
 - **`dist/` is build output only.** Never hand-edit. Emit via package build script only.
 - **Module surface is codegen-owned.** Add modules under `src/modules/<kebab-key>/` with `index.ts`. Run `bun run codegen` (also via `build`). Do not hand-edit module entries in `package.json` `exports`, `tsdown.config.ts`, `generated/module-manifest.json`, or `src/generated/module-keys.ts`.

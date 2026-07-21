@@ -30,9 +30,10 @@ There is **no root barrel**. Import by subpath:
 | `@harryy/ai-tools/tanstack` | TanStack AI projector |
 | `@harryy/ai-tools/cloudflare` | Workers AI tool definitions |
 | `@harryy/ai-tools/mcp` | MCP list/call + register |
-| `@harryy/ai-tools/cloudflare-email` | Product module |
-| `@harryy/ai-tools/s3-storage` | Product module |
-| `@harryy/ai-tools/mime` | Product module |
+| `@harryy/ai-tools/email` | Product module (providers: cloudflare, resend) |
+| `@harryy/ai-tools/storage` | Product module (providers: s3, r2, supabase) |
+| `@harryy/ai-tools/mime` | Product module (email MIME) |
+| `@harryy/ai-tools/media-type` | Product module (type ↔ extension via `mime`) |
 
 ## Minimal kernel tool
 
@@ -66,10 +67,11 @@ Product modules with credentials use `withAuth` **before** adapters:
 
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
-import { cloudflareEmailModule } from '@harryy/ai-tools/cloudflare-email'
+import { emailModule } from '@harryy/ai-tools/email'
 import { createMastraTools } from '@harryy/ai-tools/mastra'
 
-const bound = withAuth(cloudflareEmailModule, {
+const bound = withAuth(emailModule, {
+  provider: 'cloudflare',
   accountId: process.env.CF_ACCOUNT_ID!,
   apiToken: process.env.CF_API_TOKEN!,
 })
@@ -84,9 +86,13 @@ MIME has `auth: { type: 'none' }` — project the module directly without `withA
 
 ```ts
 import { runTool, withAuth } from '@harryy/ai-tools/core'
-import { sendEmailTool, cloudflareEmailModule } from '@harryy/ai-tools/cloudflare-email'
+import { sendEmailTool, emailModule } from '@harryy/ai-tools/email'
 
-const bound = withAuth(cloudflareEmailModule, { accountId: '…', apiToken: '…' })
+const bound = withAuth(emailModule, {
+  provider: 'cloudflare',
+  accountId: '…',
+  apiToken: '…',
+})
 const tool = bound.tools.find((t) => t.id === sendEmailTool.id)!
 
 await runTool(

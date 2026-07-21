@@ -25,11 +25,11 @@ createMastraTools(moduleOrTools) // record / list for agent registration
 
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
-import { s3StorageModule } from '@harryy/ai-tools/s3-storage'
+import { storageModule } from '@harryy/ai-tools/storage'
 import { createMastraTools } from '@harryy/ai-tools/mastra'
 
 const tools = createMastraTools(
-  withAuth(s3StorageModule, {
+  withAuth(storageModule, {
     accessKeyId: '…',
     secretAccessKey: '…',
     region: 'auto',

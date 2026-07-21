@@ -65,5 +65,5 @@ Factory for fixed-origin API modules (shared base URL + auth applicator + action
 
 ## Related
 
-- [cloudflare-email](../modules/cloudflare-email.md) uses `httpRequest`
+- [email](../modules/email.md) Cloudflare provider uses `httpRequest`
 - [Errors](../guides/errors.md)

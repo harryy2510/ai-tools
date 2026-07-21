@@ -34,6 +34,7 @@ export const NEVER_BUNDLE = [
 	'ai',
 	'aws4fetch',
 	'es-toolkit',
+	'mime',
 	'mimetext',
 	'ofetch',
 	'postal-mime',
