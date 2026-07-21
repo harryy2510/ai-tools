@@ -2,7 +2,7 @@
 
 Reusable AI tools with **strict schemas** and **model-facing contracts**. Define once in the kernel; project to Mastra, Vercel AI SDK, TanStack AI, Cloudflare Workers AI, MCP, or direct Node/edge calls.
 
-Product tools are not included yet — this release is the **brain** (kernel, HTTP factory, adapters, contracts).
+Product tools are not included yet — this release is the **brain** (kernel, HTTP factory, adapters, contracts) plus **module codegen** (oxc-parser discovery → package exports / tsdown entry).
 
 ## Install
 
@@ -70,9 +70,16 @@ createMcpTools(module)
 bun install
 bun run hooks:install
 oxfmt --write <touched-paths>
-bun run check          # format:check + type-aware lint + tests
-bun run build          # tsdown
+bun run check          # format + lint + codegen:check + tests
+bun run codegen        # discover src/modules/* → exports / tsdown / manifest
+bun run build          # codegen + tsdown
 bun run typecheck
 ```
+
+### Adding a product module later
+
+1. Create `src/modules/<kebab-key>/index.ts` (and implementation).
+2. Run `bun run codegen` (or `bun run build`).
+3. Subpath `@harryy/ai-tools/<kebab-key>` is generated automatically.
 
 See `AGENTS.md` for agent rules (behavior, quality, gates).

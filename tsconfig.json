@@ -17,5 +17,5 @@
 		"noEmit": true,
 		"types": ["bun"]
 	},
-	"include": ["src", "test", "tsdown.config.ts"]
+	"include": ["src", "test", "scripts", "tsdown.config.ts"]
 }

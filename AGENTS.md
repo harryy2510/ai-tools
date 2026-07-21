@@ -21,6 +21,7 @@ Repository rules constrain agent behavior. They do not teach package usage (see 
 - **Tool ids are stable kebab-case** (`weather-get`). Changing a published id is a breaking change.
 - **Runtime claims are honest.** `node` | `edge` | `both` must match actual imports and APIs. Node-only code must not claim edge.
 - **`dist/` is build output only.** Never hand-edit. Emit via package build script only.
+- **Module surface is codegen-owned.** Add modules under `src/modules/<kebab-key>/` with `index.ts`. Run `bun run codegen` (also via `build`). Do not hand-edit module entries in `package.json` `exports`, `tsdown.config.ts`, `generated/module-manifest.json`, or `src/generated/module-keys.ts`.
 
 ## Quality bars
 
@@ -46,17 +47,14 @@ Repository rules constrain agent behavior. They do not teach package usage (see 
 
 ### Public surface
 
-A slice that adds or renames a public tool or subpath must update in the **same change**:
-
-1. module source + tests  
-2. `package.json` `exports`  
-3. `tsdown.config.ts` `entry`  
+- **Brain packages** (`core`, `http`, adapters): edit source under `src/<name>/` and `scripts/codegen/brain.ts`, then `bun run codegen`.
+- **Product modules**: add `src/modules/<key>/index.ts` (+ tests); run `bun run codegen` so exports/tsdown/manifest update. Do not hand-wire those files.
 
 ## Dependencies and tooling
 
 - Package manager is **Bun**; versions are **exact** (`bunfig` + lockfile).
 - Do not add, remove, upgrade, or downgrade dependencies, lockfile entries, or package scripts without explicit approval for that change.
-- Formatter: **oxfmt**. Linter: **oxlint** type-aware (**oxlint-tsgolint**). Build: **tsdown**. Hooks: **lefthook**.
+- Formatter: **oxfmt**. Linter: **oxlint** type-aware (**oxlint-tsgolint**). Parser for codegen: **oxc-parser** (Rust). Build: **tsdown**. Hooks: **lefthook**.
 - Do not introduce Prettier, ESLint, or Husky.
 
 ## Verification (package scripts)
@@ -71,7 +69,7 @@ Session work:
 bun run check
 ```
 
-That is `format:check` + type-aware `lint` + `test` (same as pre-push).
+That is `format:check` + type-aware `lint` + `codegen:check` + `test` (same as pre-push).
 
 3. If the public surface, build config, or emit shape changed, also run:
 
@@ -82,12 +80,14 @@ bun run typecheck
 
 | Script | Proves |
 | --- | --- |
-| `bun run check` | format + type-aware lint + tests (required finish gate) |
-| `bun run lint` | oxlint type-aware on `src` + `test` |
+| `bun run check` | format + type-aware lint + codegen drift check + tests |
+| `bun run codegen` | discover modules (oxc-parser) + write exports/tsdown/manifest |
+| `bun run codegen:check` | generated surface is up to date |
+| `bun run lint` | oxlint type-aware on `src` + `test` + `scripts` |
 | `bun run format:check` | oxfmt clean |
 | `bun run test` | unit tests |
 | `bun run typecheck` | `tsc --noEmit` |
-| `bun run build` | tsdown ESM + declarations for core/http/adapters |
+| `bun run build` | codegen + tsdown ESM/declarations |
 | `bun run hooks:install` | lefthook hooks after clone |
 
 **Do not claim done if `bun run check` failed.** Fix session-caused failures; do not weaken configs to silence them. Do not bypass hooks with `--no-verify`.
