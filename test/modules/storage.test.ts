@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { isPlainObject, isString } from 'es-toolkit'
+import { isPlainObject } from 'es-toolkit'
 
 import { runTool, validateModule, withAuth } from '../../src/core'
 import { storageModule } from '../../src/modules/storage'
@@ -15,9 +15,10 @@ describe('storage', () => {
 		expect(storageModule.id).toBe('storage')
 		expect(storageModule.tools.some((t) => t.id === 'storage-list-objects')).toBe(true)
 		expect(storageModule.tools.some((t) => t.id === 'storage-get-objects')).toBe(true)
+		expect(storageModule.auth.type).toBe('custom')
 	})
 
-	test('s3 provider lists and gets objects', async () => {
+	test('s3 provider lists and gets objects (S3-compatible / R2 S3 endpoint)', async () => {
 		const bound = withAuth(storageModule, {
 			provider: 's3',
 			accessKeyId: 'AKIAtest',
@@ -66,69 +67,45 @@ describe('storage', () => {
 		}
 	})
 
-	test('r2 provider uses ctx.extras.r2Buckets', async () => {
-		const objects = new Map<string, { bytes: Uint8Array; contentType?: string }>()
-		objects.set('x.txt', { bytes: new TextEncoder().encode('hello'), contentType: 'text/plain' })
+	test('r2 REST provider lists objects via api.cloudflare.com', async () => {
+		const bound = withAuth(storageModule, {
+			provider: 'r2',
+			accountId: 'acc123',
+			apiToken: 'cf_token',
+			bucket: 'media'
+		})
+		const listTool = bound.tools.find((t) => t.id === 'storage-list-objects')
+		if (!listTool) throw new Error('missing tool')
 
-		const fakeBucket = {
-			async get(key: string) {
-				const hit = objects.get(key)
-				if (hit === undefined) return null
-				return {
-					key,
-					size: hit.bytes.byteLength,
-					etag: 'e1',
-					httpMetadata: hit.contentType === undefined ? undefined : { contentType: hit.contentType },
-					arrayBuffer: async () => {
-						const copy = new ArrayBuffer(hit.bytes.byteLength)
-						new Uint8Array(copy).set(hit.bytes)
-						return copy
-					}
-				}
-			},
-			async put(key: string, value: ArrayBuffer | string, options?: { httpMetadata?: { contentType?: string } }) {
-				const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : new Uint8Array(value)
-				objects.set(key, {
-					bytes,
-					...(options?.httpMetadata?.contentType === undefined ? {} : { contentType: options.httpMetadata.contentType })
-				})
-				return { key, size: bytes.byteLength, etag: 'e2', arrayBuffer: async () => value }
-			},
-			async delete(key: string | string[]) {
-				for (const k of Array.isArray(key) ? key : [key]) objects.delete(k)
-			},
-			async head(key: string) {
-				const hit = objects.get(key)
-				if (hit === undefined) return null
-				return {
-					key,
-					size: hit.bytes.byteLength,
-					etag: 'e1',
-					httpMetadata: hit.contentType === undefined ? undefined : { contentType: hit.contentType },
-					arrayBuffer: async () => new ArrayBuffer(0)
-				}
-			},
-			async list() {
-				return {
-					objects: [...objects.entries()].map(([key, v]) => ({
-						key,
-						size: v.bytes.byteLength,
-						etag: 'e1',
-						arrayBuffer: async () => new ArrayBuffer(0)
-					})),
-					truncated: false
-				}
-			}
+		const original = globalThis.fetch
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+			const method = init?.method ?? (input instanceof Request ? input.method : 'GET')
+			expect(url).toContain('api.cloudflare.com/client/v4/accounts/acc123/r2/buckets/media/objects')
+			expect(method).toBe('GET')
+			return new Response(
+				JSON.stringify({
+					success: true,
+					result: [
+						{
+							key: 'docs/a.md',
+							size: 3,
+							etag: 'abc',
+							last_modified: '2020-01-01T00:00:00.000Z'
+						}
+					],
+					result_info: { is_truncated: false, per_page: 20 }
+				}),
+				{ status: 200, headers: { 'content-type': 'application/json' } }
+			)
+		}) as typeof globalThis.fetch
+
+		try {
+			const listed = asRecord(await runTool(listTool, { prefix: 'docs/' }))
+			expect(listed['truncated']).toBe(false)
+			expect(listed['keys']).toEqual(['docs/a.md'])
+		} finally {
+			globalThis.fetch = original
 		}
-
-		const bound = withAuth(storageModule, { provider: 'r2', bucket: 'assets' })
-		const getTool = bound.tools.find((t) => t.id === 'storage-get-object')
-		if (!getTool) throw new Error('missing tool')
-
-		const got = asRecord(
-			await runTool(getTool, { key: 'x.txt', encoding: 'utf8' }, { extras: { r2Buckets: { assets: fakeBucket } } })
-		)
-		expect(got['body']).toBe('hello')
-		expect(isString(got['body'])).toBe(true)
 	})
 })

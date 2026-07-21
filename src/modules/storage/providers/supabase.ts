@@ -1,4 +1,3 @@
-import { createFetch, FetchError } from 'ofetch'
 import { isPlainObject, isString } from 'es-toolkit'
 import { z } from 'zod'
 
@@ -6,6 +5,7 @@ import { defineProvider } from '../../../core/provider'
 import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
 import { base64ToBytes, bytesToBase64, bytesToUtf8, utf8ToBytes } from '../../../shared/bytes'
+import { createServiceFetch, mapOfetchError } from '../../../shared/ofetch-client'
 import { throwHttpStatus, retryAfterMsFromHeader } from '../../../shared/rate-limit'
 import { MAX_OBJECT_BYTES } from '../contracts'
 import type {
@@ -35,32 +35,21 @@ function readAuth(ctx: ToolContext): SupabaseStorageAuth {
 	return parsed.data
 }
 
-function client(auth: SupabaseStorageAuth, ctx: ToolContext) {
-	return createFetch({
-		defaults: {
+function supabaseClient(auth: SupabaseStorageAuth, ctx: ToolContext) {
+	return createServiceFetch(
+		{
 			baseURL: `${auth.url.replace(/\/+$/, '')}/storage/v1`,
 			headers: {
 				Authorization: `Bearer ${auth.serviceRoleKey}`,
 				apikey: auth.serviceRoleKey
-			},
-			retry: false,
-			ignoreResponseError: true,
-			...(ctx.signal === undefined ? {} : { signal: ctx.signal }),
-			...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch })
-		}
-	})
+			}
+		},
+		ctx
+	)
 }
 
 function mapFetchError(error: unknown): never {
-	if (error instanceof ToolError) throw error
-	if (error instanceof FetchError) {
-		throw new ToolError(error.message || 'Supabase storage request failed', {
-			code: 'upstream',
-			retryable: true,
-			cause: error
-		})
-	}
-	throw new ToolError('Supabase storage request failed', { code: 'upstream', retryable: true, cause: error })
+	mapOfetchError(error, 'Supabase storage')
 }
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
@@ -72,7 +61,7 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 const ops: StorageOps = {
 	list: async (input: ListObjectsInput, ctx) => {
 		const auth = readAuth(ctx)
-		const $fetch = client(auth, ctx)
+		const $fetch = supabaseClient(auth, ctx)
 		const prefix = input.prefix ?? ''
 		const limit = input.limit ?? 100
 		const offset = input.cursor !== undefined ? Number.parseInt(input.cursor, 10) : 0
@@ -137,7 +126,7 @@ const ops: StorageOps = {
 
 	get: async (input: GetObjectInput, ctx) => {
 		const auth = readAuth(ctx)
-		const $fetch = client(auth, ctx)
+		const $fetch = supabaseClient(auth, ctx)
 		try {
 			const res = await $fetch.raw(
 				`/object/${encodeURIComponent(auth.bucket)}/${input.key.split('/').map(encodeURIComponent).join('/')}`,
@@ -176,7 +165,7 @@ const ops: StorageOps = {
 
 	put: async (input: PutObjectInput, ctx) => {
 		const auth = readAuth(ctx)
-		const $fetch = client(auth, ctx)
+		const $fetch = supabaseClient(auth, ctx)
 		const encoding = input.body_encoding ?? 'utf8'
 		let bodyBytes: Uint8Array
 		try {
@@ -211,7 +200,7 @@ const ops: StorageOps = {
 
 	delete: async (input: DeleteObjectInput, ctx) => {
 		const auth = readAuth(ctx)
-		const $fetch = client(auth, ctx)
+		const $fetch = supabaseClient(auth, ctx)
 		try {
 			const res = await $fetch.raw(`/object/${encodeURIComponent(auth.bucket)}`, {
 				method: 'DELETE',
@@ -228,7 +217,7 @@ const ops: StorageOps = {
 
 	head: async (input: HeadObjectInput, ctx) => {
 		const auth = readAuth(ctx)
-		const $fetch = client(auth, ctx)
+		const $fetch = supabaseClient(auth, ctx)
 		try {
 			const res = await $fetch.raw(
 				`/object/info/${encodeURIComponent(auth.bucket)}/${input.key.split('/').map(encodeURIComponent).join('/')}`,
@@ -257,7 +246,7 @@ const ops: StorageOps = {
 
 	copy: async (input: CopyObjectInput, ctx) => {
 		const auth = readAuth(ctx)
-		const $fetch = client(auth, ctx)
+		const $fetch = supabaseClient(auth, ctx)
 		try {
 			const res = await $fetch.raw(`/object/copy`, {
 				method: 'POST',
@@ -280,7 +269,7 @@ const ops: StorageOps = {
 
 	getBytes: async (key, ctx) => {
 		const auth = readAuth(ctx)
-		const $fetch = client(auth, ctx)
+		const $fetch = supabaseClient(auth, ctx)
 		try {
 			const res = await $fetch.raw(
 				`/object/${encodeURIComponent(auth.bucket)}/${key.split('/').map(encodeURIComponent).join('/')}`,
@@ -299,7 +288,7 @@ const ops: StorageOps = {
 
 	putBytes: async (key, bytes, contentType, ctx) => {
 		const auth = readAuth(ctx)
-		const $fetch = client(auth, ctx)
+		const $fetch = supabaseClient(auth, ctx)
 		try {
 			const res = await $fetch.raw(
 				`/object/${encodeURIComponent(auth.bucket)}/${key.split('/').map(encodeURIComponent).join('/')}`,

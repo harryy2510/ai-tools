@@ -19,13 +19,23 @@ import type {
 	StorageOps
 } from '../contracts'
 
+/**
+ * S3-compatible object stores via **aws4fetch** (SigV4):
+ * AWS S3, Cloudflare R2 S3 endpoint, MinIO, Supabase S3-compatible mode, etc.
+ *
+ * For Cloudflare R2 **REST API** (api.cloudflare.com + API token), use provider `r2` instead.
+ * For Supabase Storage REST, use provider `supabase`.
+ */
 export const s3StorageAuthSchema = z.object({
 	provider: z.literal('s3'),
 	accessKeyId: z.string().min(1).describe('S3 access key id'),
 	secretAccessKey: z.string().min(1).describe('S3 secret access key'),
-	region: z.string().min(1).describe('AWS region or R2 jurisdiction region string'),
+	region: z.string().min(1).describe('AWS region, or auto / us-east-1 for R2 S3 endpoint'),
 	bucket: z.string().min(1).describe('Default bucket name'),
-	endpoint: z.url().optional().describe('Optional custom endpoint for S3-compatible stores (R2 S3 API, MinIO)'),
+	endpoint: z
+		.url()
+		.optional()
+		.describe('S3-compatible endpoint when not AWS (R2: https://<account_id>.r2.cloudflarestorage.com, MinIO, …)'),
 	sessionToken: z.string().min(1).optional().describe('Optional session token for temporary credentials')
 })
 
@@ -363,7 +373,7 @@ const ops: StorageOps = {
 
 export const s3StorageProvider = defineProvider({
 	id: 's3',
-	title: 'S3 / S3-compatible',
+	title: 'S3 / S3-compatible (AWS, R2, MinIO)',
 	authSchema: s3StorageAuthSchema,
 	ops
 })

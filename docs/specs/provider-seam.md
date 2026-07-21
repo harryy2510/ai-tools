@@ -50,7 +50,7 @@ src/modules/<capability>/
 | Module | Providers |
 | --- | --- |
 | `email` | `cloudflare`, `resend` |
-| `storage` | `s3`, `r2` (Workers binding), `supabase` |
+| `storage` | `s3` (aws4fetch S3-compatible), `r2` (Cloudflare REST ofetch), `supabase` (Storage REST ofetch) |
 | `document-extract` | `textract` |
 | `file-convert` | `transmute` (+ nested `storage`) |
 

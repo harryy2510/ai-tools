@@ -1,4 +1,3 @@
-import { createFetch, FetchError } from 'ofetch'
 import { isPlainObject, isString, trimStart } from 'es-toolkit'
 import { z } from 'zod'
 
@@ -8,6 +7,7 @@ import type { ToolContext } from '../../../core/types'
 import { runBatchItems } from '../../../shared/batch'
 import { artifactRefSchema } from '../../../shared/artifact'
 import { deriveOutputKey, mediaTypeFromPath, resolveFileExtension } from '../../../shared/media-type'
+import { createServiceFetch, mapOfetchError } from '../../../shared/ofetch-client'
 import { s3StorageAuthSchema, s3StorageProvider } from '../../storage/providers/s3'
 import type { ConvertInput, ConvertOutput, FileConvertOps } from '../contracts'
 import { convertOutputSchema } from '../contracts'
@@ -32,30 +32,20 @@ function readAuth(ctx: ToolContext): TransmuteConvertAuth {
 	return parsed.data
 }
 
-function client(auth: TransmuteConvertAuth, ctx: ToolContext) {
-	return createFetch({
-		defaults: {
-			baseURL: auth.transmute_base_url.replace(/\/+$/, ''),
+function transmuteClient(auth: TransmuteConvertAuth, ctx: ToolContext) {
+	return createServiceFetch(
+		{
+			baseURL: auth.transmute_base_url,
 			headers: {
 				Authorization: `Bearer ${auth.transmute_token}`
-			},
-			retry: false,
-			ignoreResponseError: true,
-			...(ctx.signal === undefined ? {} : { signal: ctx.signal })
-		}
-	})
+			}
+		},
+		ctx
+	)
 }
 
 function mapFetchError(error: unknown): never {
-	if (error instanceof ToolError) throw error
-	if (error instanceof FetchError) {
-		throw new ToolError(error.message || 'Convert request failed', {
-			code: 'upstream',
-			retryable: true,
-			cause: error
-		})
-	}
-	throw new ToolError('Convert request failed', { code: 'upstream', retryable: true, cause: error })
+	mapOfetchError(error, 'Transmute')
 }
 
 async function getBytes(auth: z.infer<typeof storageAuthSchema>, key: string, ctx: ToolContext): Promise<Uint8Array> {
@@ -93,7 +83,7 @@ async function convertOne(input: ConvertInput, ctx: ToolContext): Promise<Conver
 		mediaTypeFromPath(ext) ??
 		'application/octet-stream'
 
-	const $fetch = client(auth, ctx)
+	const $fetch = transmuteClient(auth, ctx)
 	const form = new FormData()
 	const uploadBuffer = new ArrayBuffer(bytes.byteLength)
 	new Uint8Array(uploadBuffer).set(bytes)

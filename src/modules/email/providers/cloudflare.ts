@@ -5,9 +5,10 @@ import { z } from 'zod'
 import { defineProvider } from '../../../core/provider'
 import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
-import { httpRequest } from '../../../http/client'
 import { utf8ToBytes } from '../../../shared/bytes'
 import { runBatchItems } from '../../../shared/batch'
+import { createServiceFetch, mapOfetchError } from '../../../shared/ofetch-client'
+import { throwHttpStatus, retryAfterMsFromHeader } from '../../../shared/rate-limit'
 import { MAX_EMAIL_BYTES } from '../contracts'
 import type { EmailOps, NamedAddress, SendEmailInput, SendEmailOutput } from '../contracts'
 
@@ -42,6 +43,19 @@ function readAuth(ctx: ToolContext): CloudflareEmailAuth {
 		throw new ToolError('Cloudflare Email credentials are missing or invalid', { code: 'bad_auth' })
 	}
 	return parsed.data
+}
+
+function cloudflareClient(auth: CloudflareEmailAuth, ctx: ToolContext) {
+	return createServiceFetch(
+		{
+			baseURL: 'https://api.cloudflare.com/client/v4',
+			headers: {
+				Authorization: `Bearer ${auth.apiToken}`,
+				'Content-Type': 'application/json'
+			}
+		},
+		ctx
+	)
 }
 
 function stringArray(value: unknown): string[] {
@@ -144,22 +158,19 @@ async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEma
 
 	assertPayloadSize(payload)
 
-	const { data } = await httpRequest(
-		{
-			baseUrl: 'https://api.cloudflare.com/client/v4',
+	const $fetch = cloudflareClient(auth, ctx)
+	try {
+		const res = await $fetch.raw(`/accounts/${encodeURIComponent(auth.accountId)}/email/sending/send`, {
 			method: 'POST',
-			path: `/accounts/${encodeURIComponent(auth.accountId)}/email/sending/send`,
-			headers: {
-				Authorization: `Bearer ${auth.apiToken}`
-			},
-			body: payload,
-			...(ctx.signal === undefined ? {} : { signal: ctx.signal }),
-			...(ctx.fetch === undefined ? {} : { fetchImpl: ctx.fetch })
-		},
-		ctx
-	)
-
-	return parseSendResult(data)
+			body: payload
+		})
+		if (!res.ok) {
+			throwHttpStatus('Cloudflare Email send', res.status, retryAfterMsFromHeader(res.headers.get('retry-after')))
+		}
+		return parseSendResult(res._data)
+	} catch (error) {
+		mapOfetchError(error, 'Cloudflare Email')
+	}
 }
 
 const ops: EmailOps = {

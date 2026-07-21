@@ -1,4 +1,3 @@
-import { createFetch, FetchError } from 'ofetch'
 import { isNil, isPlainObject, isString } from 'es-toolkit'
 import { castArray } from 'es-toolkit/compat'
 import { z } from 'zod'
@@ -8,6 +7,7 @@ import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
 import { utf8ToBytes } from '../../../shared/bytes'
 import { runBatchItems } from '../../../shared/batch'
+import { createServiceFetch, mapOfetchError } from '../../../shared/ofetch-client'
 import { retryAfterMsFromHeader, throwHttpStatus } from '../../../shared/rate-limit'
 import { MAX_EMAIL_BYTES } from '../contracts'
 import type { EmailOps, NamedAddress, SendEmailInput, SendEmailOutput } from '../contracts'
@@ -42,32 +42,17 @@ function recipientCount(value: NamedAddress | NamedAddress[] | undefined): numbe
 	return castArray(value).length
 }
 
-function client(auth: ResendEmailAuth, ctx: ToolContext) {
-	return createFetch({
-		defaults: {
+function resendClient(auth: ResendEmailAuth, ctx: ToolContext) {
+	return createServiceFetch(
+		{
 			baseURL: 'https://api.resend.com',
 			headers: {
 				Authorization: `Bearer ${auth.apiKey}`,
 				'Content-Type': 'application/json'
-			},
-			retry: false,
-			ignoreResponseError: true,
-			...(ctx.signal === undefined ? {} : { signal: ctx.signal }),
-			...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch })
-		}
-	})
-}
-
-function mapFetchError(error: unknown): never {
-	if (error instanceof ToolError) throw error
-	if (error instanceof FetchError) {
-		throw new ToolError(error.message || 'Resend request failed', {
-			code: 'upstream',
-			retryable: true,
-			cause: error
-		})
-	}
-	throw new ToolError('Resend request failed', { code: 'upstream', retryable: true, cause: error })
+			}
+		},
+		ctx
+	)
 }
 
 async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEmailOutput> {
@@ -107,7 +92,7 @@ async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEma
 		})
 	}
 
-	const $fetch = client(auth, ctx)
+	const $fetch = resendClient(auth, ctx)
 	try {
 		const res = await $fetch.raw('/emails', { method: 'POST', body: payload })
 		if (!res.ok) {
@@ -122,7 +107,7 @@ async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEma
 			...(accepted.length > 0 ? { accepted } : {})
 		}
 	} catch (error) {
-		mapFetchError(error)
+		mapOfetchError(error, 'Resend')
 	}
 }
 

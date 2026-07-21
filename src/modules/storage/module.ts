@@ -188,7 +188,7 @@ export const storageModule = defineModule({
 	id: 'storage',
 	title: 'Object Storage',
 	description:
-		'Object storage with provider seam (S3/S3-compatible, native R2 binding, Supabase Storage). List, get, put, delete, head, copy, signed URLs, and batch variants.',
+		'Object storage with provider seam: s3 (S3-compatible via aws4fetch), r2 (Cloudflare REST API via ofetch), supabase (Storage REST via ofetch). List, get, put, delete, head, copy, signed URLs when supported, and batch variants.',
 	runtime: 'both',
 	auth: { type: 'custom', schema: storageAuthSchema },
 	tools: [

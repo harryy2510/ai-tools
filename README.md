@@ -74,7 +74,7 @@ export const tools = createAiSdkTools(mimeModule)
 | Import | Tools (ids) | Docs |
 | --- | --- | --- |
 | `@harryy/ai-tools/email` | `email-send`, `email-send-batch` (providers: cloudflare, resend) | [docs/modules/email.md](./docs/modules/email.md) |
-| `@harryy/ai-tools/storage` | `storage-*` list/get/put/delete/head/copy/signed-url + batch (s3, r2, supabase) | [docs/modules/storage.md](./docs/modules/storage.md) |
+| `@harryy/ai-tools/storage` | `storage-*` + batch — providers: `s3`, `r2` (CF REST), `supabase` | [docs/modules/storage.md](./docs/modules/storage.md) |
 | `@harryy/ai-tools/mime` | `mime-parse`, `mime-build` (email messages) | [docs/modules/mime.md](./docs/modules/mime.md) |
 | `@harryy/ai-tools/media-type` | `media-type-get`, `media-type-extension`, `media-type-extensions` | [docs/modules/media-type.md](./docs/modules/media-type.md) |
 | `@harryy/ai-tools/web-fetch` | `web-fetch-get` (read), `web-fetch-request` (write) | [docs/modules/web-fetch.md](./docs/modules/web-fetch.md) |
