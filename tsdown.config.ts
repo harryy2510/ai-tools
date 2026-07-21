@@ -11,6 +11,7 @@ export default defineConfig({
 		'cloudflare/index': 'src/adapters/cloudflare/index.ts',
 		'mcp/index': 'src/adapters/mcp/index.ts',
 		'modules/document-extract/index': 'src/modules/document-extract/index.ts',
+		'modules/document-render/index': 'src/modules/document-render/index.ts',
 		'modules/email/index': 'src/modules/email/index.ts',
 		'modules/file-convert/index': 'src/modules/file-convert/index.ts',
 		'modules/media-type/index': 'src/modules/media-type/index.ts',

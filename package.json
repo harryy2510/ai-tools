@@ -49,6 +49,10 @@
 			"types": "./dist/modules/document-extract/index.d.ts",
 			"default": "./dist/modules/document-extract/index.js"
 		},
+		"./document-render": {
+			"types": "./dist/modules/document-render/index.d.ts",
+			"default": "./dist/modules/document-render/index.js"
+		},
 		"./email": {
 			"types": "./dist/modules/email/index.d.ts",
 			"default": "./dist/modules/email/index.js"

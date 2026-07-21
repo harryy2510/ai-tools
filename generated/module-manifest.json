@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-21T20:16:10.938Z",
+	"generatedAt": "2026-07-21T23:25:11.048Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -41,6 +41,7 @@
 	"modules": [
 		{
 			"key": "document-extract",
+			"lane": "modules",
 			"entry": "src/modules/document-extract/index.ts",
 			"entryKey": "modules/document-extract/index",
 			"exportNames": [
@@ -61,7 +62,36 @@
 			"moduleIdSource": "src/modules/document-extract/module.ts"
 		},
 		{
+			"key": "document-render",
+			"lane": "modules",
+			"entry": "src/modules/document-render/index.ts",
+			"entryKey": "modules/document-render/index",
+			"exportNames": [
+				"CloudflareBrowserRenderAuth",
+				"DocumentRenderAuth",
+				"DocumentRenderOps",
+				"GotenbergRenderAuth",
+				"RenderOutput",
+				"RenderPdfInput",
+				"RenderScreenshotInput",
+				"cloudflareBrowserRenderAuthSchema",
+				"cloudflareBrowserRenderProvider",
+				"documentRenderAuthSchema",
+				"documentRenderModule",
+				"documentRenderPdfBatchTool",
+				"documentRenderPdfTool",
+				"documentRenderProviders",
+				"documentRenderScreenshotBatchTool",
+				"documentRenderScreenshotTool",
+				"gotenbergRenderAuthSchema",
+				"gotenbergRenderProvider"
+			],
+			"moduleId": "document-render",
+			"moduleIdSource": "src/modules/document-render/module.ts"
+		},
+		{
 			"key": "email",
+			"lane": "modules",
 			"entry": "src/modules/email/index.ts",
 			"entryKey": "modules/email/index",
 			"exportNames": [
@@ -86,6 +116,7 @@
 		},
 		{
 			"key": "file-convert",
+			"lane": "modules",
 			"entry": "src/modules/file-convert/index.ts",
 			"entryKey": "modules/file-convert/index",
 			"exportNames": [
@@ -107,6 +138,7 @@
 		},
 		{
 			"key": "media-type",
+			"lane": "modules",
 			"entry": "src/modules/media-type/index.ts",
 			"entryKey": "modules/media-type/index",
 			"exportNames": ["mediaTypeExtensionTool", "mediaTypeExtensionsTool", "mediaTypeGetTool", "mediaTypeModule"],
@@ -115,6 +147,7 @@
 		},
 		{
 			"key": "mime",
+			"lane": "modules",
 			"entry": "src/modules/mime/index.ts",
 			"entryKey": "modules/mime/index",
 			"exportNames": ["buildMimeTool", "mimeModule", "parseMimeTool"],
@@ -123,6 +156,7 @@
 		},
 		{
 			"key": "storage",
+			"lane": "modules",
 			"entry": "src/modules/storage/index.ts",
 			"entryKey": "modules/storage/index",
 			"exportNames": [
@@ -156,6 +190,7 @@
 		},
 		{
 			"key": "web-fetch",
+			"lane": "modules",
 			"entry": "src/modules/web-fetch/index.ts",
 			"entryKey": "modules/web-fetch/index",
 			"exportNames": ["WebFetchAuth", "webFetchAuthSchema", "webFetchGetTool", "webFetchModule", "webFetchRequestTool"],

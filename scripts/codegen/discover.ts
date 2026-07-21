@@ -5,14 +5,18 @@ import { isNil, isPlainObject, isString } from 'es-toolkit'
 import { isArray } from 'es-toolkit/compat'
 import { parseSync } from 'oxc-parser'
 
+export type SurfaceLane = 'modules' | 'vendors' | 'channels'
+
 export type DiscoveredModule = {
-	/** Folder name under src/modules; package export key */
+	/** Package export key (folder name); unique across all lanes */
 	key: string
+	/** Lane folder under src/ */
+	lane: SurfaceLane
 	/** Absolute path to public entry (index.ts) */
 	entryPath: string
 	/** Relative from repo root */
 	entryRelative: string
-	/** Relative source for tsdown: modules/<key>/index */
+	/** Relative source for tsdown: modules|vendors|channels/<key>/index */
 	entryKey: string
 	/** Named export bindings found on index.ts */
 	exportNames: string[]
@@ -26,6 +30,8 @@ export type DiscoveredModule = {
 }
 
 const DEFINE_CALLEES = new Set(['defineModule', 'defineHttpApi'])
+
+const SURFACE_LANES: readonly SurfaceLane[] = ['modules', 'vendors', 'channels']
 
 type UnknownRecord = Record<string, unknown>
 
@@ -160,14 +166,11 @@ function parseTs(filePath: string, source: string): { body: unknown[]; errors: u
 
 const KEBAB = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 
-/**
- * Discover product modules under src/modules/<key>/index.ts using oxc-parser (Rust).
- */
-export async function discoverModules(repoRoot: string): Promise<DiscoveredModule[]> {
-	const modulesRoot = path.join(repoRoot, 'src/modules')
+async function discoverLane(repoRoot: string, lane: SurfaceLane): Promise<DiscoveredModule[]> {
+	const laneRoot = path.join(repoRoot, 'src', lane)
 	let entries: string[]
 	try {
-		entries = await readdir(modulesRoot)
+		entries = await readdir(laneRoot)
 	} catch {
 		return []
 	}
@@ -176,12 +179,12 @@ export async function discoverModules(repoRoot: string): Promise<DiscoveredModul
 
 	for (const key of entries.sort()) {
 		if (key.startsWith('.')) continue
-		const dir = path.join(modulesRoot, key)
+		const dir = path.join(laneRoot, key)
 		const st = await stat(dir)
 		if (!st.isDirectory()) continue
 
 		if (!KEBAB.test(key)) {
-			throw new Error(`Module folder must be kebab-case: src/modules/${key}`)
+			throw new Error(`Surface folder must be kebab-case: src/${lane}/${key}`)
 		}
 
 		const entryPath = path.join(dir, 'index.ts')
@@ -189,7 +192,7 @@ export async function discoverModules(repoRoot: string): Promise<DiscoveredModul
 		try {
 			entrySource = await readFile(entryPath, 'utf8')
 		} catch {
-			throw new Error(`Module src/modules/${key} must have index.ts`)
+			throw new Error(`Surface src/${lane}/${key} must have index.ts`)
 		}
 
 		const parsed = parseTs(entryPath, entrySource)
@@ -200,12 +203,12 @@ export async function discoverModules(repoRoot: string): Promise<DiscoveredModul
 					return String(e)
 				})
 				.join('; ')
-			throw new Error(`oxc-parser failed on src/modules/${key}/index.ts: ${msg}`)
+			throw new Error(`oxc-parser failed on src/${lane}/${key}/index.ts: ${msg}`)
 		}
 
 		const exportNames = collectExportNames(parsed.body)
 		if (exportNames.length === 0) {
-			throw new Error(`src/modules/${key}/index.ts must export at least one binding`)
+			throw new Error(`src/${lane}/${key}/index.ts must export at least one binding`)
 		}
 
 		let moduleId = findDefineModuleId(parsed.body)
@@ -227,9 +230,10 @@ export async function discoverModules(repoRoot: string): Promise<DiscoveredModul
 
 		discovered.push({
 			key,
+			lane,
 			entryPath,
 			entryRelative: path.relative(repoRoot, entryPath).split(path.sep).join('/'),
-			entryKey: `modules/${key}/index`,
+			entryKey: `${lane}/${key}/index`,
 			exportNames,
 			...(isNil(moduleId) ? {} : { moduleId }),
 			...(isNil(moduleIdSource)
@@ -239,4 +243,29 @@ export async function discoverModules(repoRoot: string): Promise<DiscoveredModul
 	}
 
 	return discovered
+}
+
+/**
+ * Discover product surfaces under src/{modules,vendors,channels}/<key>/index.ts.
+ * Export keys must be unique across all lanes (flat public imports).
+ */
+export async function discoverModules(repoRoot: string): Promise<DiscoveredModule[]> {
+	const discovered: DiscoveredModule[] = []
+	const seen = new Map<string, SurfaceLane>()
+
+	for (const lane of SURFACE_LANES) {
+		const laneModules = await discoverLane(repoRoot, lane)
+		for (const mod of laneModules) {
+			const prior = seen.get(mod.key)
+			if (prior !== undefined) {
+				throw new Error(
+					`Duplicate surface export key "${mod.key}" in src/${prior}/${mod.key} and src/${lane}/${mod.key}`
+				)
+			}
+			seen.set(mod.key, lane)
+			discovered.push(mod)
+		}
+	}
+
+	return discovered.sort((a, b) => a.key.localeCompare(b.key))
 }

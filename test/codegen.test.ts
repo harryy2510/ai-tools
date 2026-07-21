@@ -66,6 +66,7 @@ export const demoEchoModule = defineModule({
 		const exports = renderPackageExports([
 			{
 				key: 'demo-echo',
+				lane: 'modules',
 				entryPath: '/x',
 				entryRelative: 'src/modules/demo-echo/index.ts',
 				entryKey: 'modules/demo-echo/index',
@@ -82,6 +83,7 @@ export const demoEchoModule = defineModule({
 		const tsdown = renderTsdownConfig([
 			{
 				key: 'demo-echo',
+				lane: 'modules',
 				entryPath: '/x',
 				entryRelative: 'src/modules/demo-echo/index.ts',
 				entryKey: 'modules/demo-echo/index',
