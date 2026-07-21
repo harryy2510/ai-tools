@@ -2,7 +2,7 @@
 
 Reusable AI tools with **strict schemas** and **model-facing contracts**. Define once in the kernel; project to Mastra, Vercel AI SDK, TanStack AI, Cloudflare Workers AI, MCP, or direct Node/edge calls.
 
-Product tools are not included yet — this release is the **brain** (kernel, HTTP factory, adapters, contracts) plus **module codegen** (oxc-parser discovery → package exports / tsdown entry).
+Includes the **brain** (kernel, HTTP factory, adapters, contracts), **module codegen**, and product modules: **Cloudflare Email**, **S3 storage**, and **MIME**.
 
 ## Install
 
@@ -27,6 +27,9 @@ bun add @modelcontextprotocol/sdk
 | `@harryy/ai-tools/tanstack` | `createTanStackTool(s)` |
 | `@harryy/ai-tools/cloudflare` | Workers AI traditional tool defs + executors |
 | `@harryy/ai-tools/mcp` | MCP list/call helpers + `registerMcpTools` |
+| `@harryy/ai-tools/cloudflare-email` | Send via Cloudflare Email Service REST |
+| `@harryy/ai-tools/s3-storage` | S3-compatible list/get/put/delete/head |
+| `@harryy/ai-tools/mime` | Parse and build MIME messages |
 
 ## Kernel sketch
 

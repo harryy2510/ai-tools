@@ -41,6 +41,18 @@
 		"./mcp": {
 			"types": "./dist/mcp/index.d.ts",
 			"default": "./dist/mcp/index.js"
+		},
+		"./cloudflare-email": {
+			"types": "./dist/modules/cloudflare-email/index.d.ts",
+			"default": "./dist/modules/cloudflare-email/index.js"
+		},
+		"./mime": {
+			"types": "./dist/modules/mime/index.d.ts",
+			"default": "./dist/modules/mime/index.js"
+		},
+		"./s3-storage": {
+			"types": "./dist/modules/s3-storage/index.d.ts",
+			"default": "./dist/modules/s3-storage/index.js"
 		}
 	},
 	"scripts": {
@@ -60,6 +72,9 @@
 		"prepublishOnly": "bun run check && bun run build"
 	},
 	"dependencies": {
+		"aws4fetch": "1.0.20",
+		"mimetext": "3.0.28",
+		"postal-mime": "2.7.5",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {

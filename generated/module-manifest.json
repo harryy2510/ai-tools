@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-21T01:52:47.067Z",
+	"generatedAt": "2026-07-21T02:07:02.790Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -38,5 +38,39 @@
 			"source": "src/mcp/index.ts"
 		}
 	],
-	"modules": []
+	"modules": [
+		{
+			"key": "cloudflare-email",
+			"entry": "src/modules/cloudflare-email/index.ts",
+			"entryKey": "modules/cloudflare-email/index",
+			"exportNames": ["CloudflareEmailAuth", "cloudflareEmailAuthSchema", "cloudflareEmailModule", "sendEmailTool"],
+			"moduleId": "cloudflare-email",
+			"moduleIdSource": "src/modules/cloudflare-email/module.ts"
+		},
+		{
+			"key": "mime",
+			"entry": "src/modules/mime/index.ts",
+			"entryKey": "modules/mime/index",
+			"exportNames": ["buildMimeTool", "mimeModule", "parseMimeTool"],
+			"moduleId": "mime",
+			"moduleIdSource": "src/modules/mime/module.ts"
+		},
+		{
+			"key": "s3-storage",
+			"entry": "src/modules/s3-storage/index.ts",
+			"entryKey": "modules/s3-storage/index",
+			"exportNames": [
+				"S3StorageAuth",
+				"deleteObjectTool",
+				"getObjectTool",
+				"headObjectTool",
+				"listObjectsTool",
+				"putObjectTool",
+				"s3StorageAuthSchema",
+				"s3StorageModule"
+			],
+			"moduleId": "s3-storage",
+			"moduleIdSource": "src/modules/s3-storage/module.ts"
+		}
+	]
 }

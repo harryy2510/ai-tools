@@ -9,7 +9,10 @@ export default defineConfig({
 		'ai-sdk/index': 'src/ai-sdk/index.ts',
 		'tanstack/index': 'src/tanstack/index.ts',
 		'cloudflare/index': 'src/cloudflare/index.ts',
-		'mcp/index': 'src/mcp/index.ts'
+		'mcp/index': 'src/mcp/index.ts',
+		'modules/cloudflare-email/index': 'src/modules/cloudflare-email/index.ts',
+		'modules/mime/index': 'src/modules/mime/index.ts',
+		'modules/s3-storage/index': 'src/modules/s3-storage/index.ts'
 	},
 	format: ['esm'],
 	// package.json is "type": "module" — emit .js / .d.ts (not .mjs / .d.mts)
@@ -17,6 +20,15 @@ export default defineConfig({
 	dts: true,
 	sourcemap: true,
 	deps: {
-		neverBundle: ['@mastra/core', '@modelcontextprotocol/sdk', '@tanstack/ai', 'ai', 'zod']
+		neverBundle: [
+			'@mastra/core',
+			'@modelcontextprotocol/sdk',
+			'@tanstack/ai',
+			'ai',
+			'aws4fetch',
+			'mimetext',
+			'postal-mime',
+			'zod'
+		]
 	}
 })

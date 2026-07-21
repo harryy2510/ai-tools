@@ -19,4 +19,13 @@ export const BRAIN_PACKAGES: readonly BrainPackage[] = [
 	{ exportKey: 'mcp', entryKey: 'mcp/index', source: 'src/mcp/index.ts' }
 ]
 
-export const NEVER_BUNDLE = ['@mastra/core', '@modelcontextprotocol/sdk', '@tanstack/ai', 'ai', 'zod'] as const
+export const NEVER_BUNDLE = [
+	'@mastra/core',
+	'@modelcontextprotocol/sdk',
+	'@tanstack/ai',
+	'ai',
+	'aws4fetch',
+	'mimetext',
+	'postal-mime',
+	'zod'
+] as const
