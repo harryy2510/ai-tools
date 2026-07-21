@@ -6,6 +6,9 @@ import { defineModule, defineTool } from '../../core/define'
 import { ToolError } from '../../core/errors'
 import type { ToolContext } from '../../core/types'
 import { httpRequest } from '../../http/client'
+import { utf8ToBytes } from '../../shared/bytes'
+
+const MAX_EMAIL_BYTES = 5 * 1024 * 1024
 
 const emailAddressSchema = z.string().email().describe('Email address')
 
@@ -100,14 +103,48 @@ function stringArray(value: unknown): string[] {
 	return isArray(value) ? value.filter(isString) : []
 }
 
+function firstErrorMessage(errors: unknown): string | undefined {
+	if (!isArray(errors) || errors.length === 0) return undefined
+	const first = errors[0]
+	if (!isPlainObject(first)) return undefined
+	const message = first['message']
+	return isString(message) && message.length > 0 ? message : undefined
+}
+
+function firstErrorCode(errors: unknown): number | undefined {
+	if (!isArray(errors) || errors.length === 0) return undefined
+	const first = errors[0]
+	if (!isPlainObject(first)) return undefined
+	const code = first['code']
+	return typeof code === 'number' && Number.isFinite(code) ? code : undefined
+}
+
 function parseSendResult(data: unknown): z.infer<typeof sendEmailOutputSchema> {
 	if (!isPlainObject(data)) {
 		throw new ToolError('Cloudflare Email returned an unexpected payload', { code: 'upstream' })
 	}
 	if (data['success'] === false) {
-		throw new ToolError('Cloudflare Email API rejected the send', {
-			code: 'upstream',
-			details: { success: false }
+		const errors = data['errors']
+		const message = firstErrorMessage(errors) ?? 'Cloudflare Email API rejected the send'
+		const cfCode = firstErrorCode(errors)
+		const lower = message.toLowerCase()
+		const code =
+			lower.includes('unauthorized') || lower.includes('authentication') || cfCode === 10000
+				? 'bad_auth'
+				: lower.includes('forbidden') || lower.includes('permission')
+					? 'forbidden'
+					: lower.includes('rate') || lower.includes('too many')
+						? 'rate_limited'
+						: lower.includes('too large') || lower.includes('size')
+							? 'too_large'
+							: 'upstream'
+		throw new ToolError(message, {
+			code,
+			retryable: code === 'rate_limited',
+			details: {
+				success: false,
+				...(cfCode === undefined ? {} : { cloudflare_error_code: cfCode })
+			}
 		})
 	}
 	const result = data['result']
@@ -120,6 +157,16 @@ function parseSendResult(data: unknown): z.infer<typeof sendEmailOutputSchema> {
 		queued: stringArray(result['queued']),
 		permanent_bounces: stringArray(result['permanent_bounces'])
 	})
+}
+
+function assertPayloadSize(payload: Record<string, unknown>): void {
+	const bytes = utf8ToBytes(JSON.stringify(payload)).byteLength
+	if (bytes > MAX_EMAIL_BYTES) {
+		throw new ToolError('Email payload exceeds 5 MiB limit', {
+			code: 'too_large',
+			details: { bytes, max_bytes: MAX_EMAIL_BYTES }
+		})
+	}
 }
 
 const sendEmailTool = defineTool({
@@ -155,6 +202,8 @@ const sendEmailTool = defineTool({
 		}
 		if (input.headers !== undefined) payload['headers'] = input.headers
 		if (input.attachments !== undefined) payload['attachments'] = input.attachments
+
+		assertPayloadSize(payload)
 
 		const { data } = await httpRequest(
 			{

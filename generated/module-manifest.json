@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-21T02:15:48.136Z",
+	"generatedAt": "2026-07-21T02:32:55.831Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -61,6 +61,8 @@
 			"entryKey": "modules/s3-storage/index",
 			"exportNames": [
 				"S3StorageAuth",
+				"copyObjectTool",
+				"createSignedUrlTool",
 				"deleteObjectTool",
 				"getObjectTool",
 				"headObjectTool",

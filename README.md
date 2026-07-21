@@ -28,7 +28,7 @@ bun add @modelcontextprotocol/sdk
 | `@harryy/ai-tools/cloudflare` | `src/adapters/cloudflare` | Workers AI tool defs |
 | `@harryy/ai-tools/mcp` | `src/adapters/mcp` | MCP list/call + register |
 | `@harryy/ai-tools/cloudflare-email` | `src/modules/cloudflare-email` | Email Service REST send |
-| `@harryy/ai-tools/s3-storage` | `src/modules/s3-storage` | S3-compatible object ops |
+| `@harryy/ai-tools/s3-storage` | `src/modules/s3-storage` | S3-compatible object ops + signed URLs |
 | `@harryy/ai-tools/mime` | `src/modules/mime` | Parse/build MIME |
 
 ## Kernel sketch
@@ -75,14 +75,31 @@ bun run hooks:install
 oxfmt --write <touched-paths>
 bun run check          # format + lint + codegen:check + tests
 bun run codegen        # discover src/modules/* → exports / tsdown / manifest
+bun run new-module <kebab-key> [--title …] [--description …] [--auth none|custom]
 bun run build          # codegen + tsdown
 bun run typecheck
 ```
 
-### Adding a product module later
+### Scaffold a product module
 
-1. Create `src/modules/<kebab-key>/index.ts` (and implementation).
-2. Run `bun run codegen` (or `bun run build`).
-3. Subpath `@harryy/ai-tools/<kebab-key>` is generated automatically.
+```bash
+bun run new-module weather --title "Weather" --description "Forecast tools."
+# creates:
+#   src/modules/weather/{index,module}.ts
+#   test/modules/weather.test.ts
+# then runs codegen so @harryy/ai-tools/weather is exported
+```
+
+### Publish
+
+CI runs `check` + `build` on every push/PR (`.github/workflows/ci.yml`).
+
+npm publish is gated by `prepublishOnly` (`check` + `build`). GitHub release or workflow dispatch runs `.github/workflows/publish.yml` (needs `NPM_TOKEN` secret and optional `npm` environment).
+
+```bash
+# local (after version bump)
+bun run prepublishOnly
+npm publish --access public
+```
 
 See `AGENTS.md` for agent rules (behavior, quality, gates).

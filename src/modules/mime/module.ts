@@ -13,6 +13,15 @@ const addressSchema = z.object({
 	name: z.string().optional().describe('Display name')
 })
 
+const attachmentOutSchema = z.object({
+	filename: z.string().optional(),
+	mimeType: z.string().optional(),
+	size: z.number().optional(),
+	disposition: z.enum(['attachment', 'inline']).optional(),
+	content_id: z.string().optional(),
+	content_base64: z.string().optional().describe('Attachment bytes as base64 when available')
+})
+
 const parseInput = z.object({
 	raw: z.string().min(1).describe('Raw RFC 822 / MIME message as utf8 text or base64'),
 	encoding: z.enum(['utf8', 'base64']).optional().describe('How to decode raw. Defaults to utf8')
@@ -23,16 +32,32 @@ const parseOutput = z.object({
 	from: addressSchema.optional(),
 	to: z.array(addressSchema).optional(),
 	cc: z.array(addressSchema).optional(),
+	bcc: z.array(addressSchema).optional(),
+	reply_to: z.array(addressSchema).optional(),
+	message_id: z.string().optional(),
+	in_reply_to: z.string().optional(),
+	references: z.string().optional(),
+	date: z.string().optional(),
 	text: z.string().optional(),
 	html: z.string().optional(),
-	attachments: z.array(
-		z.object({
-			filename: z.string().optional(),
-			mimeType: z.string().optional(),
-			size: z.number().optional(),
-			content_base64: z.string().optional().describe('Attachment bytes as base64 when available')
-		})
-	)
+	headers: z
+		.array(
+			z.object({
+				key: z.string().describe('Lowercase header name'),
+				value: z.string()
+			})
+		)
+		.optional()
+		.describe('Parsed header key/value pairs'),
+	attachments: z.array(attachmentOutSchema)
+})
+
+const buildAttachmentSchema = z.object({
+	filename: z.string().min(1).max(255).describe('Attachment file name'),
+	content_base64: z.string().min(1).describe('Attachment bytes as base64 (no data: URL prefix)'),
+	content_type: z.string().min(1).optional().describe('MIME type. Defaults to application/octet-stream'),
+	inline: z.boolean().optional().describe('When true, attach as inline content'),
+	content_id: z.string().optional().describe('Content-ID for inline references')
 })
 
 const buildInput = z
@@ -48,7 +73,17 @@ const buildInput = z
 			.union([z.string().email(), addressSchema, z.array(z.union([z.string().email(), addressSchema]))])
 			.optional()
 			.describe('CC recipients'),
-		reply_to: z.union([z.string().email(), addressSchema]).optional().describe('Reply-To address')
+		bcc: z
+			.union([z.string().email(), addressSchema, z.array(z.union([z.string().email(), addressSchema]))])
+			.optional()
+			.describe('BCC recipients'),
+		reply_to: z.union([z.string().email(), addressSchema]).optional().describe('Reply-To address'),
+		headers: z.record(z.string(), z.string()).optional().describe('Additional headers as a string map'),
+		attachments: z
+			.array(buildAttachmentSchema)
+			.max(32)
+			.optional()
+			.describe('Up to 32 base64 attachments to include in the message')
 	})
 	.refine((v) => Boolean(v.text?.trim() || v.html?.trim()), {
 		message: 'Provide text and/or html body'
@@ -104,11 +139,15 @@ function formatMailboxList(value: unknown): string[] {
 	return castArray(value).map((item) => formatMailbox(item))
 }
 
+function mapDisposition(value: unknown): 'attachment' | 'inline' | undefined {
+	return value === 'attachment' || value === 'inline' ? value : undefined
+}
+
 const parseMimeTool = defineTool({
 	id: 'mime-parse',
 	name: 'parseMime',
 	description:
-		'Parse a raw MIME/RFC 822 email into structured headers, text/html bodies, and attachment metadata. Use when you need to inspect message content without sending mail.',
+		'Parse a raw MIME/RFC 822 email into structured headers, text/html bodies, identifiers, and attachment metadata. Use when you need to inspect message content without sending mail.',
 	inputSchema: parseInput,
 	outputSchema: parseOutput,
 	sideEffect: 'read',
@@ -120,24 +159,46 @@ const parseMimeTool = defineTool({
 			const message = await parser.parse(bytes)
 			const from = mapAddr(message.from)
 			const html = isString(message.html) && message.html.length > 0 ? message.html : undefined
+			const headers: Array<{ key: string; value: string }> = []
+			if (isArray(message.headers)) {
+				for (const h of message.headers) {
+					if (!isPlainObject(h)) continue
+					const key = h['key']
+					const value = h['value']
+					if (isString(key) && isString(value)) headers.push({ key, value })
+				}
+			}
 			return parseOutput.parse({
 				...(message.subject === undefined ? {} : { subject: message.subject }),
 				...(from === undefined ? {} : { from }),
 				to: mapAddrList(message.to),
 				cc: mapAddrList(message.cc),
+				bcc: mapAddrList(message.bcc),
+				reply_to: mapAddrList(message.replyTo),
+				...(message.messageId === undefined ? {} : { message_id: message.messageId }),
+				...(message.inReplyTo === undefined ? {} : { in_reply_to: message.inReplyTo }),
+				...(message.references === undefined ? {} : { references: message.references }),
+				...(message.date === undefined ? {} : { date: message.date }),
 				...(message.text === undefined ? {} : { text: message.text }),
 				...(html === undefined ? {} : { html }),
+				...(headers.length > 0 ? { headers } : {}),
 				attachments: (message.attachments ?? []).map((att) => {
 					const encoded = contentToBase64(att.content)
+					const disposition = mapDisposition(att.disposition)
+					const filename = isString(att.filename) && att.filename.length > 0 ? att.filename : undefined
+					const contentId = isString(att.contentId) && att.contentId.length > 0 ? att.contentId : undefined
 					return {
-						...(att.filename === undefined ? {} : { filename: att.filename }),
+						...(filename === undefined ? {} : { filename }),
 						...(att.mimeType === undefined ? {} : { mimeType: att.mimeType }),
 						...(encoded.size === undefined ? {} : { size: encoded.size }),
+						...(disposition === undefined ? {} : { disposition }),
+						...(contentId === undefined ? {} : { content_id: contentId }),
 						...(encoded.base64 === undefined ? {} : { content_base64: encoded.base64 })
 					}
 				})
 			})
 		} catch (error) {
+			if (error instanceof ToolError) throw error
 			throw new ToolError('Failed to parse MIME message', {
 				code: 'bad_input',
 				cause: error
@@ -150,7 +211,7 @@ const buildMimeTool = defineTool({
 	id: 'mime-build',
 	name: 'buildMime',
 	description:
-		'Build a raw MIME email from structured sender, recipients, subject, and text/html bodies. Use when you need a serialized message for SMTP or archival. Provide text and/or html.',
+		'Build a raw MIME email from structured sender, recipients, subject, text/html bodies, optional headers, and base64 attachments. Use when you need a serialized message for SMTP or archival. Provide text and/or html.',
 	inputSchema: buildInput,
 	outputSchema: buildOutput,
 	sideEffect: 'none',
@@ -162,8 +223,18 @@ const buildMimeTool = defineTool({
 			msg.setRecipients(formatMailboxList(input.to))
 			const cc = formatMailboxList(input.cc)
 			if (cc.length > 0) msg.setCc(cc)
+			const bcc = formatMailboxList(input.bcc)
+			if (bcc.length > 0) msg.setBcc(bcc)
 			if (input.reply_to !== undefined) {
 				msg.setHeader('Reply-To', formatMailbox(input.reply_to))
+			}
+			if (input.headers !== undefined) {
+				for (const [name, value] of Object.entries(input.headers)) {
+					if (name.trim().length === 0) {
+						throw new ToolError('Header names must be non-empty', { code: 'bad_input' })
+					}
+					msg.setHeader(name, value)
+				}
 			}
 			msg.setSubject(input.subject)
 			if (input.text !== undefined) {
@@ -172,8 +243,32 @@ const buildMimeTool = defineTool({
 			if (input.html !== undefined) {
 				msg.addMessage({ contentType: 'text/html', data: input.html })
 			}
+			if (input.attachments !== undefined) {
+				for (const att of input.attachments) {
+					// Validate base64 early for a stable error code.
+					try {
+						base64ToBytes(att.content_base64)
+					} catch (error) {
+						throw new ToolError('Attachment content_base64 is not valid base64', {
+							code: 'bad_input',
+							cause: error
+						})
+					}
+					const headers: Record<string, string> = {}
+					if (att.content_id !== undefined) headers['Content-ID'] = att.content_id
+					msg.addAttachment({
+						filename: att.filename,
+						contentType: att.content_type ?? 'application/octet-stream',
+						data: att.content_base64,
+						encoding: 'base64',
+						inline: att.inline === true,
+						headers
+					})
+				}
+			}
 			return buildOutput.parse({ raw: msg.asRaw() })
 		} catch (error) {
+			if (error instanceof ToolError) throw error
 			throw new ToolError('Failed to build MIME message', {
 				code: 'bad_input',
 				cause: error

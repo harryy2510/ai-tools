@@ -9,7 +9,9 @@
 		"url": "https://github.com/harryy/ai-tools"
 	},
 	"files": [
-		"dist"
+		"dist",
+		"LICENSE",
+		"README.md"
 	],
 	"type": "module",
 	"sideEffects": false,
@@ -55,9 +57,14 @@
 			"default": "./dist/modules/s3-storage/index.js"
 		}
 	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org"
+	},
 	"scripts": {
 		"codegen": "bun scripts/codegen/main.ts",
 		"codegen:check": "bun scripts/codegen/main.ts --check",
+		"new-module": "bun scripts/new-module.ts",
 		"build": "bun run codegen && tsdown",
 		"typecheck": "tsc --noEmit",
 		"test": "bun test --parallel --reporter=dots",

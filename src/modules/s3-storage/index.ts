@@ -1,4 +1,6 @@
 export {
+	copyObjectTool,
+	createSignedUrlTool,
 	deleteObjectTool,
 	getObjectTool,
 	headObjectTool,

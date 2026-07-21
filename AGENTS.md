@@ -55,7 +55,7 @@ Repository rules constrain agent behavior. They do not teach package usage (see 
 ### Public surface
 
 - **Brain packages** (`core`, `http`, adapters): edit source under `src/<name>/` and `scripts/codegen/brain.ts`, then `bun run codegen`.
-- **Product modules**: add `src/modules/<key>/index.ts` (+ tests); run `bun run codegen` so exports/tsdown/manifest update. Do not hand-wire those files.
+- **Product modules**: prefer `bun run new-module <kebab-key>` (writes index/module/test + codegen), or add `src/modules/<key>/index.ts` by hand then `bun run codegen`. Do not hand-wire package exports/tsdown/manifest.
 
 ## Dependencies and tooling
 
