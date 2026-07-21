@@ -36,6 +36,7 @@ If nothing releasable has landed since the last tag, semantic-release exits 0 an
 4. Permission: `npm publish`
 5. Do **not** set repo secret `NPM_TOKEN` / `NODE_AUTH_TOKEN` for this workflow (empty token → `EINVALIDNPMTOKEN`). OIDC uses `id-token: write` only.
 6. In `release.yml`, do **not** use `actions/setup-node` `registry-url` (it injects token auth into `.npmrc` and shadows OIDC).
+7. `package.json` → `publishConfig.registry` must be exactly `https://registry.npmjs.org/` (**trailing slash**). Without it, `@semantic-release/npm` skips OIDC and demands `NPM_TOKEN`.
 
 ### Git tag for the version already on npm
 
