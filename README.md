@@ -92,14 +92,12 @@ bun run new-module weather --title "Weather" --description "Forecast tools."
 
 ### Publish
 
-CI runs `check` + `build` on every push/PR (`.github/workflows/ci.yml`).
-
-npm publish is gated by `prepublishOnly` (`check` + `build`). GitHub release or workflow dispatch runs `.github/workflows/publish.yml` (needs `NPM_TOKEN` secret and optional `npm` environment).
+CI runs `check` + `build` on every push/PR (`.github/workflows/ci.yml`). Publishing is local only: connect npm (and GitHub Packages if you want) yourself, bump the version, then:
 
 ```bash
-# local (after version bump)
-bun run prepublishOnly
-npm publish --access public
+bun run release   # npm publish --access public
 ```
+
+`prepublishOnly` runs `check` + `build` before the pack goes up. No CI token or publish workflow required.
 
 See `AGENTS.md` for agent rules (behavior, quality, gates).

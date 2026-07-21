@@ -76,7 +76,8 @@
 		"hooks:install": "lefthook install",
 		"hooks:validate": "lefthook validate",
 		"prepare": "lefthook install || true",
-		"prepublishOnly": "bun run check && bun run build"
+		"prepublishOnly": "bun run check && bun run build",
+		"release": "npm publish --access public"
 	},
 	"dependencies": {
 		"aws4fetch": "1.0.20",
