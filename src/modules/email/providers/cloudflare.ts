@@ -7,8 +7,8 @@ import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
 import { utf8ToBytes } from '../../../shared/bytes'
 import { runBatchItems } from '../../../shared/batch'
-import { createServiceFetch, mapOfetchError } from '../../../shared/ofetch-client'
-import { throwHttpStatus, retryAfterMsFromHeader } from '../../../shared/rate-limit'
+import { createServiceFetch, serviceRequestJson } from '../../../shared/ofetch-client'
+import type { ServiceHttp } from '../../../shared/ofetch-client'
 import { MAX_EMAIL_BYTES } from '../contracts'
 import type { EmailOps, NamedAddress, SendEmailInput, SendEmailOutput } from '../contracts'
 
@@ -45,8 +45,8 @@ function readAuth(ctx: ToolContext): CloudflareEmailAuth {
 	return parsed.data
 }
 
-function cloudflareClient(auth: CloudflareEmailAuth, ctx: ToolContext) {
-	return createServiceFetch(
+function createCloudflareEmailService(auth: CloudflareEmailAuth, ctx: ToolContext) {
+	const http: ServiceHttp = createServiceFetch(
 		{
 			baseURL: 'https://api.cloudflare.com/client/v4',
 			headers: {
@@ -56,6 +56,15 @@ function cloudflareClient(auth: CloudflareEmailAuth, ctx: ToolContext) {
 		},
 		ctx
 	)
+	return {
+		send: (payload: Record<string, unknown>) =>
+			serviceRequestJson(
+				http,
+				'Cloudflare Email send',
+				`/accounts/${encodeURIComponent(auth.accountId)}/email/sending/send`,
+				{ method: 'POST', body: payload }
+			)
+	}
 }
 
 function stringArray(value: unknown): string[] {
@@ -158,19 +167,8 @@ async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEma
 
 	assertPayloadSize(payload)
 
-	const $fetch = cloudflareClient(auth, ctx)
-	try {
-		const res = await $fetch.raw(`/accounts/${encodeURIComponent(auth.accountId)}/email/sending/send`, {
-			method: 'POST',
-			body: payload
-		})
-		if (!res.ok) {
-			throwHttpStatus('Cloudflare Email send', res.status, retryAfterMsFromHeader(res.headers.get('retry-after')))
-		}
-		return parseSendResult(res._data)
-	} catch (error) {
-		mapOfetchError(error, 'Cloudflare Email')
-	}
+	const { data } = await createCloudflareEmailService(auth, ctx).send(payload)
+	return parseSendResult(data)
 }
 
 const ops: EmailOps = {

@@ -7,12 +7,12 @@ import type { ToolContext } from '../../../core/types'
 import { runBatchItems } from '../../../shared/batch'
 import { artifactRefSchema } from '../../../shared/artifact'
 import { deriveOutputKey, mediaTypeFromPath, resolveFileExtension } from '../../../shared/media-type'
-import { createServiceFetch, mapOfetchError } from '../../../shared/ofetch-client'
+import { createServiceFetch, serviceRequestBytes, serviceRequestJson } from '../../../shared/ofetch-client'
+import type { ServiceHttp } from '../../../shared/ofetch-client'
 import { s3StorageAuthSchema, s3StorageProvider } from '../../storage/providers/s3'
 import type { ConvertInput, ConvertOutput, FileConvertOps } from '../contracts'
 import { convertOutputSchema } from '../contracts'
 
-/** Nested object-store credentials for reading/writing ArtifactRefs (host-only). */
 const storageAuthSchema = s3StorageAuthSchema
 
 export const transmuteConvertAuthSchema = z.object({
@@ -32,8 +32,8 @@ function readAuth(ctx: ToolContext): TransmuteConvertAuth {
 	return parsed.data
 }
 
-function transmuteClient(auth: TransmuteConvertAuth, ctx: ToolContext) {
-	return createServiceFetch(
+function createTransmuteService(auth: TransmuteConvertAuth, ctx: ToolContext) {
+	const http: ServiceHttp = createServiceFetch(
 		{
 			baseURL: auth.transmute_base_url,
 			headers: {
@@ -42,24 +42,21 @@ function transmuteClient(auth: TransmuteConvertAuth, ctx: ToolContext) {
 		},
 		ctx
 	)
-}
-
-function mapFetchError(error: unknown): never {
-	mapOfetchError(error, 'Transmute')
-}
-
-async function getBytes(auth: z.infer<typeof storageAuthSchema>, key: string, ctx: ToolContext): Promise<Uint8Array> {
-	return s3StorageProvider.ops.getBytes(key, { ...ctx, auth })
-}
-
-async function putBytes(
-	auth: z.infer<typeof storageAuthSchema>,
-	key: string,
-	bytes: Uint8Array,
-	contentType: string | undefined,
-	ctx: ToolContext
-): Promise<void> {
-	return s3StorageProvider.ops.putBytes(key, bytes, contentType, { ...ctx, auth })
+	return {
+		upload: (form: FormData) =>
+			serviceRequestJson(http, 'Transmute upload', '/api/files', {
+				method: 'POST',
+				body: form
+			}),
+		convert: (body: Record<string, unknown>) =>
+			serviceRequestJson(http, 'Transmute convert', '/api/conversions', {
+				method: 'POST',
+				body,
+				headers: { 'Content-Type': 'application/json' }
+			}),
+		download: (fileId: string) =>
+			serviceRequestBytes(http, 'Transmute download', `/api/files/${encodeURIComponent(fileId)}`)
+	}
 }
 
 async function convertOne(input: ConvertInput, ctx: ToolContext): Promise<ConvertOutput> {
@@ -68,7 +65,7 @@ async function convertOne(input: ConvertInput, ctx: ToolContext): Promise<Conver
 		throw new ToolError('file-convert requires source.store "object"', { code: 'bad_input' })
 	}
 
-	const bytes = await getBytes(auth.storage, input.source.key, ctx)
+	const bytes = await s3StorageProvider.ops.getBytes(input.source.key, { ...ctx, auth: auth.storage })
 	const ext = resolveFileExtension({
 		filename: input.filename ?? input.source.filename,
 		mediaType: input.source.media_type,
@@ -83,30 +80,15 @@ async function convertOne(input: ConvertInput, ctx: ToolContext): Promise<Conver
 		mediaTypeFromPath(ext) ??
 		'application/octet-stream'
 
-	const $fetch = transmuteClient(auth, ctx)
+	const svc = createTransmuteService(auth, ctx)
 	const form = new FormData()
 	const uploadBuffer = new ArrayBuffer(bytes.byteLength)
 	new Uint8Array(uploadBuffer).set(bytes)
 	const blob = new Blob([uploadBuffer], { type: uploadMediaType })
 	form.append('file', blob, filename)
 
-	let uploadJson: unknown
-	try {
-		const uploadRes = await $fetch.raw('/api/files', {
-			method: 'POST',
-			body: form
-		})
-		if (!uploadRes.ok) {
-			throw new ToolError(`Convert upload failed with HTTP ${uploadRes.status}`, {
-				code: 'upstream',
-				details: { status: uploadRes.status }
-			})
-		}
-		uploadJson = uploadRes._data
-	} catch (error) {
-		mapFetchError(error)
-	}
-
+	const upload = await svc.upload(form)
+	const uploadJson = upload.data
 	if (!isPlainObject(uploadJson) || !isPlainObject(uploadJson['metadata'])) {
 		throw new ToolError('Convert upload returned unexpected payload', { code: 'upstream' })
 	}
@@ -117,32 +99,12 @@ async function convertOne(input: ConvertInput, ctx: ToolContext): Promise<Conver
 	}
 
 	const outputFormat = trimStart(input.output_format, '.').toLowerCase()
-	let convertedMeta: unknown
-	try {
-		const convRes = await $fetch.raw('/api/conversions', {
-			method: 'POST',
-			body: {
-				id: sourceId,
-				output_format: outputFormat,
-				...(input.quality === undefined ? {} : { quality: input.quality })
-			},
-			headers: { 'Content-Type': 'application/json' }
-		})
-		if (!convRes.ok) {
-			const detail =
-				isPlainObject(convRes._data) && isString(convRes._data['detail'])
-					? convRes._data['detail']
-					: `Conversion failed with HTTP ${convRes.status}`
-			throw new ToolError(detail, {
-				code: 'upstream',
-				details: { status: convRes.status }
-			})
-		}
-		convertedMeta = convRes._data
-	} catch (error) {
-		mapFetchError(error)
-	}
-
+	const conv = await svc.convert({
+		id: sourceId,
+		output_format: outputFormat,
+		...(input.quality === undefined ? {} : { quality: input.quality })
+	})
+	const convertedMeta = conv.data
 	if (!isPlainObject(convertedMeta)) {
 		throw new ToolError('Conversion returned unexpected payload', { code: 'upstream' })
 	}
@@ -151,34 +113,7 @@ async function convertOne(input: ConvertInput, ctx: ToolContext): Promise<Conver
 		throw new ToolError('Conversion missing result id', { code: 'upstream' })
 	}
 
-	let outBytes = new Uint8Array(0)
-	try {
-		const dl = await $fetch.raw(`/api/files/${encodeURIComponent(resultId)}`, {
-			method: 'GET',
-			responseType: 'arrayBuffer'
-		})
-		if (!dl.ok) {
-			throw new ToolError(`Convert download failed with HTTP ${dl.status}`, {
-				code: 'upstream',
-				details: { status: dl.status }
-			})
-		}
-		const data: unknown = dl._data
-		let raw: Uint8Array | undefined
-		if (data instanceof ArrayBuffer) {
-			raw = new Uint8Array(data)
-		} else if (ArrayBuffer.isView(data)) {
-			raw = new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
-		}
-		if (raw === undefined) {
-			throw new ToolError('Convert download returned non-binary body', { code: 'upstream' })
-		}
-		const copy = new ArrayBuffer(raw.byteLength)
-		outBytes = new Uint8Array(copy)
-		outBytes.set(raw)
-	} catch (error) {
-		mapFetchError(error)
-	}
+	const { bytes: outBytes } = await svc.download(resultId)
 
 	const resultKey = deriveOutputKey(input.source.key, outputFormat, input.output_key)
 	const resultMedia =
@@ -194,7 +129,7 @@ async function convertOne(input: ConvertInput, ctx: ToolContext): Promise<Conver
 			? convertedMeta['original_filename']
 			: deriveOutputKey(filename, outputFormat, undefined)
 
-	await putBytes(auth.storage, resultKey, outBytes, undefined, ctx)
+	await s3StorageProvider.ops.putBytes(resultKey, outBytes, undefined, { ...ctx, auth: auth.storage })
 
 	const result = artifactRefSchema.parse({
 		store: 'object',

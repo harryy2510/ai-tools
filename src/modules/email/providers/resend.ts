@@ -7,8 +7,8 @@ import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
 import { utf8ToBytes } from '../../../shared/bytes'
 import { runBatchItems } from '../../../shared/batch'
-import { createServiceFetch, mapOfetchError } from '../../../shared/ofetch-client'
-import { retryAfterMsFromHeader, throwHttpStatus } from '../../../shared/rate-limit'
+import { createServiceFetch, serviceRequestJson } from '../../../shared/ofetch-client'
+import type { ServiceHttp } from '../../../shared/ofetch-client'
 import { MAX_EMAIL_BYTES } from '../contracts'
 import type { EmailOps, NamedAddress, SendEmailInput, SendEmailOutput } from '../contracts'
 
@@ -42,8 +42,8 @@ function recipientCount(value: NamedAddress | NamedAddress[] | undefined): numbe
 	return castArray(value).length
 }
 
-function resendClient(auth: ResendEmailAuth, ctx: ToolContext) {
-	return createServiceFetch(
+function createResendService(auth: ResendEmailAuth, ctx: ToolContext) {
+	const http: ServiceHttp = createServiceFetch(
 		{
 			baseURL: 'https://api.resend.com',
 			headers: {
@@ -53,6 +53,10 @@ function resendClient(auth: ResendEmailAuth, ctx: ToolContext) {
 		},
 		ctx
 	)
+	return {
+		sendEmail: (payload: Record<string, unknown>) =>
+			serviceRequestJson(http, 'Resend send', '/emails', { method: 'POST', body: payload })
+	}
 }
 
 async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEmailOutput> {
@@ -92,22 +96,13 @@ async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEma
 		})
 	}
 
-	const $fetch = resendClient(auth, ctx)
-	try {
-		const res = await $fetch.raw('/emails', { method: 'POST', body: payload })
-		if (!res.ok) {
-			throwHttpStatus('Resend send', res.status, retryAfterMsFromHeader(res.headers.get('retry-after')))
-		}
-		const data: unknown = res._data
-		const id = isPlainObject(data) && isString(data['id']) ? data['id'] : undefined
-		const accepted = to ?? []
-		return {
-			success: true,
-			...(id === undefined ? {} : { id }),
-			...(accepted.length > 0 ? { accepted } : {})
-		}
-	} catch (error) {
-		mapOfetchError(error, 'Resend')
+	const { data } = await createResendService(auth, ctx).sendEmail(payload)
+	const id = isPlainObject(data) && isString(data['id']) ? data['id'] : undefined
+	const accepted = to ?? []
+	return {
+		success: true,
+		...(id === undefined ? {} : { id }),
+		...(accepted.length > 0 ? { accepted } : {})
 	}
 }
 

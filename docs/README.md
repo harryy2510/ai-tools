@@ -38,6 +38,7 @@ Documentation hub for the package. Source of truth for architecture and module c
 | `@harryy/ai-tools/document-extract` | [document-extract](./modules/document-extract.md) |
 | `@harryy/ai-tools/file-convert` | [file-convert](./modules/file-convert.md) |
 | Spec: provider seam | [provider-seam](./specs/provider-seam.md) |
+| ofetch service clients | [ofetch-services](./reference/ofetch-services.md) |
 
 ## Mental model
 

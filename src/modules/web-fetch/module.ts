@@ -1,9 +1,9 @@
-import { createFetch, FetchError } from 'ofetch'
 import { z } from 'zod'
 
 import { defineModule, defineTool } from '../../core/define'
 import { ToolError } from '../../core/errors'
-import type { FetchLike, ToolContext } from '../../core/types'
+import type { ToolContext } from '../../core/types'
+import { createServiceFetch, mapOfetchError, serviceRequestJson } from '../../shared/ofetch-client'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -150,38 +150,8 @@ function headersForRequest(
 	return { ...model, ...hostDefaults }
 }
 
-function bindFetch(fetchImpl: FetchLike): typeof globalThis.fetch {
-	function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-		return fetchImpl(input, init)
-	}
-	fetch.preconnect = (url: string | URL, options?: Parameters<typeof globalThis.fetch.preconnect>[1]): void => {
-		if (typeof globalThis.fetch.preconnect === 'function') {
-			globalThis.fetch.preconnect(url, options)
-		}
-	}
-	return fetch
-}
-
-function failHttp(error: unknown): never {
-	if (error instanceof ToolError) throw error
-	if (error instanceof FetchError) {
-		const msg = error.message.toLowerCase()
-		if (msg.includes('timeout') || msg.includes('aborted') || error.name === 'AbortError') {
-			throw new ToolError('Request timed out or was aborted', {
-				code: 'timeout',
-				retryable: true,
-				cause: error
-			})
-		}
-	}
-	if (error instanceof Error && error.name === 'AbortError') {
-		throw new ToolError('Request timed out or was aborted', {
-			code: 'timeout',
-			retryable: true,
-			cause: error
-		})
-	}
-	throw new ToolError('HTTP request failed', { code: 'upstream', retryable: true, cause: error })
+function createWebFetchService(ctx: ToolContext, timeoutMs: number) {
+	return createServiceFetch({ timeout: timeoutMs }, ctx)
 }
 
 async function executeHttp(input: ExecuteArgs, ctx: ToolContext): Promise<z.infer<typeof requestOutputSchema>> {
@@ -200,27 +170,17 @@ async function executeHttp(input: ExecuteArgs, ctx: ToolContext): Promise<z.infe
 
 	const target = assertAllowed(input.url, allowed, requireHttps)
 	const method = input.method
-
-	const fetchImpl = ctx.fetch ?? globalThis.fetch
-	if (!fetchImpl) {
-		throw new ToolError('fetch is not available in this runtime', { code: 'unsupported_runtime' })
-	}
-
-	const $fetch = createFetch({
-		fetch: bindFetch(fetchImpl),
-		defaults: { retry: false, ignoreResponseError: true }
-	})
-
 	const timeout = input.timeout_ms ?? auth.timeout_ms ?? DEFAULT_TIMEOUT_MS
+	const http = createWebFetchService(ctx, timeout)
 
 	try {
-		const response = await $fetch.raw(target.href, {
+		const response = await serviceRequestJson(http, 'Web fetch', target.href, {
 			method,
 			headers: headersForRequest(auth.default_headers, modelHeaders(input.headers)),
 			...(input.query === undefined ? {} : { query: input.query }),
 			...(input.body === undefined ? {} : { body: input.body }),
 			timeout,
-			...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+			throwOnError: false
 		})
 
 		const finalUrl = response.url.length > 0 ? response.url : target.href
@@ -238,10 +198,10 @@ async function executeHttp(input: ExecuteArgs, ctx: ToolContext): Promise<z.infe
 			ok: response.ok,
 			headers,
 			...(contentType === undefined ? {} : { content_type: contentType }),
-			body: method === 'HEAD' ? null : response._data
+			body: method === 'HEAD' ? null : response.data
 		})
 	} catch (error) {
-		failHttp(error)
+		mapOfetchError(error, 'Web fetch')
 	}
 }
 
