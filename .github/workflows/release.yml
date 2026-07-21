@@ -1,6 +1,7 @@
 # semantic-release on main: conventional commits → version, changelog, tag, npm.
-# npm Trusted Publisher must point at this workflow file: release.yml (not ci.yml).
-# No NPM_TOKEN — OIDC only (id-token: write).
+# npm Trusted Publisher must point at this workflow file: release.yml
+# Package: @harryy/ai-tools · Repo: harryy2510/ai-tools
+# No NPM_TOKEN / NODE_AUTH_TOKEN — OIDC only (id-token: write).
 name: release
 
 on:
@@ -39,11 +40,12 @@ jobs:
         with:
           bun-version-file: package.json
 
-      - name: Setup Node (npm + OIDC registry)
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
+          # Do NOT set registry-url — it writes //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
+          # which forces token auth and breaks OIDC Trusted Publishing.
 
       - name: Cache Bun install
         uses: actions/cache@v4
@@ -56,10 +58,21 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
+      - name: Drop token auth that would shadow OIDC
+        run: |
+          set -euo pipefail
+          # Ensure no empty/invalid token path is used by @semantic-release/npm
+          unset NPM_TOKEN NODE_AUTH_TOKEN || true
+          rm -f "$HOME/.npmrc" .npmrc
+          # Prefer public registry without auth for installs already done via bun
+          npm config delete //registry.npmjs.org/:_authToken 2>/dev/null || true
+
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Do not set NPM_TOKEN — Trusted Publisher uses OIDC.
           HUSKY: '0'
+          # Explicitly clear — GitHub org secrets named NPM_TOKEN would break OIDC
+          NPM_TOKEN: ''
+          NODE_AUTH_TOKEN: ''
         # prepublishOnly runs check + build before npm publish
         run: bunx semantic-release
