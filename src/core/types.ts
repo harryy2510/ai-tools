@@ -4,6 +4,7 @@ export type ToolRuntime = 'both' | 'edge' | 'node'
 
 export type ToolSideEffect = 'delete' | 'none' | 'read' | 'send' | 'write'
 
+/** Injectable fetch for tests. Call signature only (no preconnect required). */
 export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
 export type ToolContext<TAuth = unknown> = {

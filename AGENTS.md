@@ -105,27 +105,45 @@ src/modules|vendors/<key>/
   index.ts        # public re-exports (client, module, types)
 ```
 
-### R6 — HTTP (non-SigV4) — ofetch only
+### R6 — Transport classes (HTTP + AWS)
+
+**New code uses classes** (see `src/shared/http-service.ts`, `src/shared/aws-service.ts`):
 
 ```ts
-function createXService(auth: XAuth, ctx: ToolContext) {
-  const http = createServiceFetch({ baseURL: '…', headers: { … } }, ctx)
-  return {
-    sendEmail: (body: Record<string, unknown>) =>
-      serviceRequestJson(http, 'Resend sendEmail', '/emails', { method: 'POST', body }),
-  }
-}
-// Client methods map domain I/O → svc.endpoint only
+// Non-SigV4
+const http = new HttpService({ baseURL: '…', headers: { … }, label: 'Resend', fetch, signal })
+await http.post('/emails', body)
+await http.query('GET', '/path', { query: { cursor } })
+await http.bytes('GET', '/file')
+
+// SigV4
+const aws = new AwsService({
+  accessKeyId, secretAccessKey, region, service: 's3', label: 'S3', fetch, signal,
+})
+await aws.put(absoluteUrl, body, { headers: { 'content-type': '…' } })
+await aws.get(absoluteUrl)
+await aws.sign(url, { signQuery: true })
 ```
+
+| API | Role |
+| --- | --- |
+| `query` | Parsed body; **throws ToolError on non-2xx by default** |
+| `bytes` | Binary body |
+| `get` / `post` / `put` / `patch` / `delete` / `head` | Sugar |
+| `noThrow` / `allowStatuses` | Opt out of default throw |
+| `AwsService.sign` | Presigned URLs |
+
+Product clients **own** the transport instance (constructor), not free sibling `createXService` functions.
 
 | Forbidden | Use instead |
 | --- | --- |
-| Raw `fetch` loops | `createServiceFetch` + `serviceRequestJson` / `serviceRequestBytes` |
-| Dual body helpers / dynamic method routers | One named endpoint method per API path |
-| Paths in tools/module execute | Only inside private service |
-| `throwOnError: false` on every call | Only when envelope must be parsed; document why |
+| Raw `fetch` loops for JSON/HTTP | `HttpService` |
+| Raw `AwsClient` soup in providers | `AwsService` |
+| Dual body helpers / dynamic method routers | Named product methods → `http.post` / `aws.put` |
+| Paths in tools/module execute | Only inside product client/provider |
+| Free `serviceRequestJson` in **new** code | `HttpService.query` / `.post` … |
 
-**Exception:** `aws4fetch` for SigV4 only (S3-compatible, Textract, SQS, …).
+Legacy `ofetch-client.ts` free helpers remain until call sites migrate.
 
 ### R7 — Auth and naming
 
