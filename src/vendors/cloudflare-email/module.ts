@@ -1,4 +1,5 @@
 import { defineModule, defineTool } from '../../core/define'
+import { CloudflareEmailClient } from './client'
 import {
 	cloudflareEmailAuthSchema,
 	cloudflareEmailSendBatchInputSchema,
@@ -6,9 +7,9 @@ import {
 	cloudflareEmailSendInputSchema,
 	cloudflareEmailSendOutputSchema
 } from './contracts'
-import { CloudflareEmailClient } from './client'
 
-const sendTool = defineTool({
+/** Single-email send tool. Host binds auth via withAuth. */
+export const cloudflareEmailSendTool = defineTool({
 	id: 'cloudflare-email-send',
 	name: 'cloudflareEmailSend',
 	description:
@@ -20,7 +21,8 @@ const sendTool = defineTool({
 	execute: async (input, ctx) => CloudflareEmailClient.fromContext(ctx).send(input)
 })
 
-const sendBatchTool = defineTool({
+/** Batch send (max 20). Per-message success/error; does not abort the batch. */
+export const cloudflareEmailSendBatchTool = defineTool({
 	id: 'cloudflare-email-send-batch',
 	name: 'cloudflareEmailSendBatch',
 	description:
@@ -36,10 +38,8 @@ export const cloudflareEmailModule = defineModule({
 	id: 'cloudflare-email',
 	title: 'Cloudflare Email',
 	description:
-		'Cloudflare Email Sending vendor pack: full Cloudflare email API surface over time. Host binds account_id and api_token. Not a multi-provider email seam.',
+		'Cloudflare Email Sending vendor pack: send transactional email (batch supported). Host binds account_id and api_token. Expand with more Cloudflare email APIs over time. Not a multi-provider email seam.',
 	runtime: 'both',
 	auth: { type: 'custom', schema: cloudflareEmailAuthSchema },
-	tools: [sendTool, sendBatchTool]
+	tools: [cloudflareEmailSendTool, cloudflareEmailSendBatchTool]
 })
-
-export { sendBatchTool as cloudflareEmailSendBatchTool, sendTool as cloudflareEmailSendTool }

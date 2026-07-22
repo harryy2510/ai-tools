@@ -1,53 +1,95 @@
-import { isNil, isString } from 'es-toolkit'
-import { castArray } from 'es-toolkit/compat'
+/**
+ * Cloudflare Email Sending payload + envelope parse.
+ * Vertical helpers: `vendors/_email`.
+ */
+
+import { isNumber, isPlainObject, isString, pick } from 'es-toolkit'
+import { isArray } from 'es-toolkit/compat'
 
 import { ToolError } from '../../core/errors'
-import { base64ToBytes, utf8ToBytes } from '../../shared/bytes'
-import { MAX_EMAIL_BYTES } from './contracts'
-import type { CloudflareEmailSendInput, NamedAddress } from './contracts'
+import { addressObject, addressObjectList, assertEmailSize, assertRecipientLimit } from '../_email'
+import type { CloudflareEmailSendInput, CloudflareEmailSendOutput } from './contracts'
 
-export function normalizeAddressObject(item: NamedAddress): string | { email: string; name?: string } {
-	if (isString(item)) return item
-	return item.name === undefined ? { email: item.email } : { email: item.email, name: item.name }
-}
-
-export function normalizeAddressObjectList(
-	value: NamedAddress | NamedAddress[] | undefined
-): Array<string | { email: string; name?: string }> | undefined {
-	if (isNil(value)) return undefined
-	return castArray(value).map(normalizeAddressObject)
-}
-
-export function recipientCount(value: NamedAddress | NamedAddress[] | undefined): number {
-	if (isNil(value)) return 0
-	return castArray(value).length
-}
-
-export function assertRecipientLimit(input: CloudflareEmailSendInput): void {
-	const total = recipientCount(input.to) + recipientCount(input.cc) + recipientCount(input.bcc)
-	if (total > 50) {
-		throw new ToolError('Combined to/cc/bcc recipients cannot exceed 50', { code: 'bad_input' })
+export function buildSendPayload(input: CloudflareEmailSendInput): Record<string, unknown> {
+	return {
+		...pick(input, ['subject', 'html', 'text', 'headers', 'attachments']),
+		to: addressObjectList(input.to),
+		from: addressObject(input.from),
+		cc: addressObjectList(input.cc),
+		bcc: addressObjectList(input.bcc),
+		...(input.reply_to && { replyTo: addressObject(input.reply_to) })
 	}
 }
 
-export function assertEmailSize(payload: Record<string, unknown>, attachmentsBase64?: string[]): void {
-	let bytes = utf8ToBytes(JSON.stringify(payload)).byteLength
-	if (attachmentsBase64 !== undefined) {
-		for (const content of attachmentsBase64) {
-			try {
-				bytes += base64ToBytes(content).byteLength
-			} catch (error) {
-				throw new ToolError('Attachment content is not valid base64', {
-					code: 'bad_input',
-					cause: error
-				})
+export function preflightSend(input: CloudflareEmailSendInput): Record<string, unknown> {
+	assertRecipientLimit(input)
+	const payload = buildSendPayload(input)
+	assertEmailSize(
+		payload,
+		input.attachments?.map((a) => a.content)
+	)
+	return payload
+}
+
+function stringArray(value: unknown): string[] {
+	return isArray(value) ? value.filter(isString) : []
+}
+
+function firstError(errors: unknown): { message?: string; code?: number } {
+	if (!isArray(errors) || errors.length === 0) return {}
+	const first = errors[0]
+	if (!isPlainObject(first)) return {}
+	const message = first['message']
+	const code = first['code']
+	return {
+		...(isString(message) && message.length > 0 && { message }),
+		...(isNumber(code) && Number.isFinite(code) && { code })
+	}
+}
+
+/** Map Cloudflare `{ success, result | errors }` to tool output or ToolError. */
+export function parseSendResult(data: unknown): CloudflareEmailSendOutput {
+	if (!isPlainObject(data)) {
+		throw new ToolError('Cloudflare Email returned an unexpected payload', { code: 'upstream' })
+	}
+
+	if (data['success'] === false) {
+		const { message, code: cfCode } = firstError(data['errors'])
+		const text = message ?? 'Email API rejected the send'
+		const lower = text.toLowerCase()
+		const code =
+			lower.includes('unauthorized') || lower.includes('authentication') || cfCode === 10000
+				? 'bad_auth'
+				: lower.includes('forbidden') || lower.includes('permission')
+					? 'forbidden'
+					: lower.includes('rate') || lower.includes('too many')
+						? 'rate_limited'
+						: lower.includes('too large') || lower.includes('size')
+							? 'too_large'
+							: 'upstream'
+		throw new ToolError(text, {
+			code,
+			retryable: code === 'rate_limited',
+			details: {
+				success: false,
+				cloudflare_error_code: cfCode
 			}
-		}
-	}
-	if (bytes > MAX_EMAIL_BYTES) {
-		throw new ToolError('Email payload exceeds 5 MiB limit', {
-			code: 'too_large',
-			details: { bytes, max_bytes: MAX_EMAIL_BYTES }
 		})
+	}
+
+	const result = data['result']
+	if (!isPlainObject(result)) {
+		throw new ToolError('Cloudflare Email returned no result object', { code: 'upstream' })
+	}
+
+	const delivered = stringArray(result['delivered'])
+	const queued = stringArray(result['queued'])
+	const rejected = stringArray(result['permanent_bounces'])
+	const accepted = [...delivered, ...queued]
+
+	return {
+		success: data['success'] === true,
+		...(accepted.length > 0 && { accepted }),
+		...(rejected.length > 0 && { rejected })
 	}
 }

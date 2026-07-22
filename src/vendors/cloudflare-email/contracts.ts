@@ -1,26 +1,11 @@
 import { z } from 'zod'
 
 import { batchResultSchema } from '../../shared/batch'
+import type { NamedAddress } from '../_email'
+import { attachmentSchema, MAX_BATCH_EMAILS, MAX_EMAIL_BYTES, namedAddressSchema } from '../_email'
 
-export const MAX_EMAIL_BYTES = 5 * 1024 * 1024
-export const MAX_BATCH_EMAILS = 20
-
-const emailAddressSchema = z.email().describe('Email address')
-
-export const namedAddressSchema = z.union([
-	emailAddressSchema,
-	z.object({
-		email: emailAddressSchema,
-		name: z.string().max(200).optional().describe('Display name')
-	})
-])
-
-export const attachmentSchema = z.object({
-	content: z.string().min(1).describe('Base64-encoded file bytes (no data: URL prefix)'),
-	filename: z.string().min(1).max(255).describe('Attachment file name'),
-	type: z.string().min(1).describe('MIME type, for example application/pdf'),
-	disposition: z.enum(['attachment', 'inline']).optional().describe('Content disposition. Defaults to attachment')
-})
+export { MAX_BATCH_EMAILS, MAX_EMAIL_BYTES, namedAddressSchema, attachmentSchema }
+export type { NamedAddress }
 
 export const cloudflareEmailAuthSchema = z.object({
 	account_id: z.string().min(1).describe('Cloudflare account id'),
@@ -74,4 +59,3 @@ export type CloudflareEmailSendInput = z.infer<typeof cloudflareEmailSendInputSc
 export type CloudflareEmailSendOutput = z.infer<typeof cloudflareEmailSendOutputSchema>
 export type CloudflareEmailSendBatchInput = z.infer<typeof cloudflareEmailSendBatchInputSchema>
 export type CloudflareEmailSendBatchOutput = z.infer<typeof cloudflareEmailSendBatchOutputSchema>
-export type NamedAddress = z.infer<typeof namedAddressSchema>
