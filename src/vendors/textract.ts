@@ -3,12 +3,17 @@ import { isPlainObject, isString } from 'es-toolkit'
 import { isArray } from 'es-toolkit/compat'
 import { z } from 'zod'
 
-import { defineProvider } from '../../../core/provider'
-import { ToolError } from '../../../core/errors'
-import type { ToolContext } from '../../../core/types'
-import { runBatchItems } from '../../../shared/batch'
-import type { DocumentExtractOps, ExtractResult, ExtractTextInput, StatusInput } from '../contracts'
-import { extractResultSchema } from '../contracts'
+import { defineProvider } from '../core/provider'
+import { ToolError } from '../core/errors'
+import type { ToolContext } from '../core/types'
+import { runBatchItems } from '../shared/batch'
+import type {
+	DocumentExtractOps,
+	ExtractResult,
+	ExtractTextInput,
+	StatusInput
+} from '../modules/document-extract/contracts'
+import { extractResultSchema } from '../modules/document-extract/contracts'
 
 const DEFAULT_POLL_TIMEOUT_MS = 60_000
 const DEFAULT_POLL_INTERVAL_MS = 2_000

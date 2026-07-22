@@ -2,12 +2,12 @@ import { AwsClient } from 'aws4fetch'
 import { isNil, isString } from 'es-toolkit'
 import { z } from 'zod'
 
-import { defineProvider } from '../../../core/provider'
-import { ToolError } from '../../../core/errors'
-import type { ToolContext } from '../../../core/types'
-import { base64ToBytes, bytesToBase64, bytesToUtf8, utf8ToBytes } from '../../../shared/bytes'
-import { throwHttpStatus } from '../../../transport/errors'
-import { DEFAULT_SIGNED_URL_SECONDS, MAX_MULTIPART_PART_BYTES, MAX_OBJECT_BYTES } from '../contracts'
+import { defineProvider } from '../core/provider'
+import { ToolError } from '../core/errors'
+import type { ToolContext } from '../core/types'
+import { base64ToBytes, bytesToBase64, bytesToUtf8, utf8ToBytes } from '../shared/bytes'
+import { throwHttpStatus } from '../transport/errors'
+import { DEFAULT_SIGNED_URL_SECONDS, MAX_MULTIPART_PART_BYTES, MAX_OBJECT_BYTES } from '../modules/storage/contracts'
 import type {
 	AbortMultipartUploadInput,
 	CompleteMultipartUploadInput,
@@ -21,7 +21,7 @@ import type {
 	SignedUrlInput,
 	StorageOps,
 	UploadPartInput
-} from '../contracts'
+} from '../modules/storage/contracts'
 
 /**
  * S3-compatible object stores via **aws4fetch** (SigV4):

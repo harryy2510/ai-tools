@@ -1,9 +1,9 @@
 import { isPlainObject, isString } from 'es-toolkit'
 import { z } from 'zod'
 
-import { defineProvider } from '../../../core/provider'
-import { ToolError } from '../../../core/errors'
-import type { ToolContext } from '../../../core/types'
+import { defineProvider } from '../core/provider'
+import { ToolError } from '../core/errors'
+import type { ToolContext } from '../core/types'
 import {
 	base64ToBytes,
 	bytesToBase64,
@@ -11,9 +11,9 @@ import {
 	encodeObjectKeyPath,
 	toArrayBuffer,
 	utf8ToBytes
-} from '../../../shared/bytes'
-import { HttpService } from '../../../transport/http-service'
-import { MAX_OBJECT_BYTES } from '../contracts'
+} from '../shared/bytes'
+import { HttpService } from '../transport/http-service'
+import { MAX_OBJECT_BYTES } from '../modules/storage/contracts'
 import type {
 	CopyObjectInput,
 	DeleteObjectInput,
@@ -22,7 +22,7 @@ import type {
 	ListObjectsInput,
 	PutObjectInput,
 	StorageOps
-} from '../contracts'
+} from '../modules/storage/contracts'
 
 /**
  * Cloudflare R2 via the **Cloudflare REST API** (api.cloudflare.com).

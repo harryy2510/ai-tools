@@ -50,8 +50,8 @@ Do not invent a new layout, naming scheme, or HTTP stack.
 
 - **Seams → modules.** Multi-provider only when 2+ backends share the same verbs (`defineProvider` + auth `{ provider, … }`).
 - **3rd party → vendors.** Including email ESPs **and** chat platforms (Telegram, Slack, …). Not a thin multi-provider “messaging” or “email” seam that shrinks the real API.
-- Temporary trees (e.g. `src/messaging/`) are OK until moved under `vendors/` or `modules/` as appropriate — **no rush**, but new packs follow the table above.
 - Do **not** put fat single-vendor APIs under `modules/` as fake multi-provider seams.
+- Cross-channel helpers for vendor chat packs: `src/vendors/channel-transport.ts` (not a product export lane).
 
 ### R3 — Exports: flat; tree keeps module vs vendor
 
@@ -170,7 +170,7 @@ Product clients **own** the transport instance (constructor), not free sibling `
 - Kernel (`defineTool` / `defineModule`) is the only tool authoring surface; adapters only project.
 - Class clients for multi-call host DX; tools for agents; both wrap the same implementation.
 - `HttpService` / `AwsService` for all product HTTP (`src/transport/`). See `docs/reference/http-and-aws-services.md`.
-- Layout: `transport/` = HTTP only; `shared/` = cross-module product utils only; `messaging/channel-transport` = channel contracts (not shared).
+- Layout: `transport/` = HTTP only; `shared/` = cross-module product utils only; `modules/` = seams; `vendors/` = 3rd-party packs (+ `channel-transport.ts`).
 - Batch: `runBatchItems` in `shared/batch` (`p-map` + optional `p-retry`). Not inside transport.
 - Composio/Nango stay host SaaS OAuth + PHI catalog; this package does not replace them.
 - Prefer `es-toolkit` / `es-toolkit/compat` over hand-rolled typeof/array helpers.

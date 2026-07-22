@@ -1,13 +1,18 @@
 import { z } from 'zod'
 
-import { defineProvider } from '../../../core/provider'
-import { ToolError } from '../../../core/errors'
-import type { ToolContext } from '../../../core/types'
-import { artifactRefSchema } from '../../../shared/artifact'
-import { toArrayBuffer } from '../../../shared/bytes'
-import { HttpService } from '../../../transport/http-service'
-import type { DocumentRenderOps, RenderPdfInput, RenderScreenshotInput, RenderSource } from '../contracts'
-import { defaultRenderKey, putRenderBytes, renderStorageAuthSchema } from '../storage'
+import { defineProvider } from '../core/provider'
+import { ToolError } from '../core/errors'
+import type { ToolContext } from '../core/types'
+import { artifactRefSchema } from '../shared/artifact'
+import { toArrayBuffer } from '../shared/bytes'
+import { HttpService } from '../transport/http-service'
+import type {
+	DocumentRenderOps,
+	RenderPdfInput,
+	RenderScreenshotInput,
+	RenderSource
+} from '../modules/document-render/contracts'
+import { defaultRenderKey, putRenderBytes, renderStorageAuthSchema } from '../modules/document-render/storage'
 
 export const gotenbergRenderAuthSchema = z.object({
 	provider: z.literal('gotenberg'),

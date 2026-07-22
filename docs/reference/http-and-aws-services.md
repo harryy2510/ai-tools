@@ -42,4 +42,4 @@ await aws.sign(url, { signQuery: true })
 | --- | --- |
 | `src/transport/` | HTTP only |
 | `src/shared/` | `artifact`, `batch`, `bytes`, `media-type`, list `pagination` |
-| `src/messaging/` | channel contracts + packs |
+| `src/vendors/` | 3rd-party packs; `channel-transport.ts` for chat contracts |

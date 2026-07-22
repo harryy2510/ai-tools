@@ -1,16 +1,16 @@
 import { isPlainObject, isString, trimStart } from 'es-toolkit'
 import { z } from 'zod'
 
-import { defineProvider } from '../../../core/provider'
-import { ToolError } from '../../../core/errors'
-import type { ToolContext } from '../../../core/types'
-import { runBatchItems } from '../../../shared/batch'
-import { artifactRefSchema } from '../../../shared/artifact'
-import { deriveOutputKey, mediaTypeFromPath, resolveFileExtension } from '../../../shared/media-type'
-import { HttpService } from '../../../transport/http-service'
-import { s3StorageAuthSchema, s3StorageProvider } from '../../storage/providers/s3'
-import type { ConvertInput, ConvertOutput, FileConvertOps } from '../contracts'
-import { convertOutputSchema } from '../contracts'
+import { defineProvider } from '../core/provider'
+import { ToolError } from '../core/errors'
+import type { ToolContext } from '../core/types'
+import { runBatchItems } from '../shared/batch'
+import { artifactRefSchema } from '../shared/artifact'
+import { deriveOutputKey, mediaTypeFromPath, resolveFileExtension } from '../shared/media-type'
+import { HttpService } from '../transport/http-service'
+import { s3StorageAuthSchema, s3StorageProvider } from './s3'
+import type { ConvertInput, ConvertOutput, FileConvertOps } from '../modules/file-convert/contracts'
+import { convertOutputSchema } from '../modules/file-convert/contracts'
 
 const storageAuthSchema = s3StorageAuthSchema
 

@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-22T01:24:28.316Z",
+	"generatedAt": "2026-07-22T22:20:45.721Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -10,7 +10,7 @@
 		{
 			"exportKey": "http",
 			"entryKey": "http/index",
-			"source": "src/http/index.ts"
+			"source": "src/transport/index.ts"
 		},
 		{
 			"exportKey": "mastra",
@@ -246,9 +246,9 @@
 		},
 		{
 			"key": "telegram",
-			"lane": "messaging",
-			"entry": "src/messaging/telegram/index.ts",
-			"entryKey": "messaging/telegram/index",
+			"lane": "vendors",
+			"entry": "src/vendors/telegram/index.ts",
+			"entryKey": "vendors/telegram/index",
 			"exportNames": [
 				"ChannelTransport",
 				"LiveMessage",
@@ -286,7 +286,7 @@
 				"verifyTelegramWebhookSecret"
 			],
 			"moduleId": "telegram",
-			"moduleIdSource": "src/messaging/telegram/module.ts"
+			"moduleIdSource": "src/vendors/telegram/module.ts"
 		},
 		{
 			"key": "web-fetch",

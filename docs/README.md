@@ -40,8 +40,8 @@ Documentation hub for the package. Source of truth for architecture and module c
 | `@harryy/ai-tools/files` | [files](./modules/files.md) |
 | `@harryy/ai-tools/resend` | [resend](./modules/resend.md) (vendor) |
 | `@harryy/ai-tools/cloudflare-email` | [cloudflare-email](./modules/cloudflare-email.md) (vendor) |
-| `@harryy/ai-tools/telegram` | [telegram](./modules/telegram.md) (messaging) |
-| Spec: package surface (modules · vendors · messaging) | [package-surface-architecture](./specs/package-surface-architecture.md) |
+| `@harryy/ai-tools/telegram` | [telegram](./modules/telegram.md) (vendor / chat) |
+| Spec: package surface (modules · vendors) | [package-surface-architecture](./specs/package-surface-architecture.md) |
 | Working: surface delivery board | [package-surface-working](./roadmap/package-surface-working.md) |
 | Spec: provider seam (capability modules) | [provider-seam](./specs/provider-seam.md) |
 | HTTP / AWS transport | [http-and-aws-services](./reference/http-and-aws-services.md) |

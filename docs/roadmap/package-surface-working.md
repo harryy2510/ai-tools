@@ -39,9 +39,9 @@ This is **not** a second architecture lock. It tracks inventory, migration, open
 | `vector-store` / `rag` | Not started | knowledge tools |
 | thin multi-send messaging seam | Not planned | full messaging packs only |
 | `speech` / `pdf` / `image` / `browser` / `queue` / `webhook` / `crypto` / `calendar` | Not started | |
-| Codegen multi-lane | Done | discovers modules + vendors + messaging |
-| `messaging/telegram` | Done | full pack + live message + webhook helpers |
-| `messaging/*` (others) | Not started | slack / imessage / … |
+| Codegen multi-lane | Done | discovers modules + vendors |
+| `vendors/telegram` | Done | full pack + live message + webhook helpers |
+| `vendors/*` chat (others) | Not started | slack / imessage / … |
 
 ### B. Five Star host — custom tools (`packages/tools/src/custom`)
 
@@ -67,11 +67,11 @@ Logical tools (Gmail, Sheets, Drive, QBO, Zoom, ads, CRMs, …) stay on the **co
 
 | Channel | Product role | Package home |
 | --- | --- | --- |
-| Telegram | P0 production | `messaging/telegram` |
-| Slack | P1 | `messaging/slack` |
-| iMessage (Photon) | Specced | `messaging/imessage` |
-| Teams | Later | `messaging/teams` |
-| WhatsApp | Later | `messaging/whatsapp` |
+| Telegram | P0 production | `vendors/telegram` |
+| Slack | P1 | `vendors/slack` |
+| iMessage (Photon) | Specced | `vendors/imessage` |
+| Teams | Later | `vendors/teams` |
+| WhatsApp | Later | `vendors/whatsapp` |
 | Email as channel | Delivery + tools | `email` module + host inbound |
 
 Host still owns: webhook HTTP routes, secret storage, chat→org/agent map, durable outbox, accessLevel, audit.
@@ -175,7 +175,7 @@ Slice 3 done when: this capability map is implemented under `src/channels/telegr
 | 0 | Multi-lane codegen (`modules` + `vendors` + `channels`) | Done | `bun run codegen` registers all three |
 | 1 | `document-render` + gotenberg + cloudflare-browser | Done | PDF + screenshot; ArtifactRef out; tests |
 | 2 | `files` (root_prefix + storage auth) | Done | list/search/stat relative keys; tests |
-| 3 | `messaging/telegram` | Done | Full pack; tools + live message + webhook helpers |
+| 3 | `vendors/telegram` | Done | Full pack; tools + live message + webhook helpers |
 | 3b | `vendors/resend` + `vendors/cloudflare-email` | Done | Lane B email ESPs (no multi-provider email seam) |
 | 4 | `vendors/woocommerce` (first action group) | Pending | orders + products read path |
 | 5 | `vendors/katana` | Pending | sales order query parity |

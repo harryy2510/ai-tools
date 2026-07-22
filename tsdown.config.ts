@@ -19,7 +19,7 @@ export default defineConfig({
 		'modules/mime/index': 'src/modules/mime/index.ts',
 		'vendors/resend/index': 'src/vendors/resend/index.ts',
 		'modules/storage/index': 'src/modules/storage/index.ts',
-		'messaging/telegram/index': 'src/messaging/telegram/index.ts',
+		'vendors/telegram/index': 'src/vendors/telegram/index.ts',
 		'modules/web-fetch/index': 'src/modules/web-fetch/index.ts'
 	},
 	format: ['esm'],

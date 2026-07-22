@@ -10,7 +10,7 @@ import {
 	parseTelegramUpdate,
 	telegramModule,
 	verifyTelegramWebhookSecret
-} from '../../src/messaging/telegram'
+} from '../../src/vendors/telegram'
 import { bytesToBase64 } from '../../src/shared/bytes'
 
 function asRecord(value: unknown): Record<string, unknown> {

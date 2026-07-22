@@ -1,4 +1,4 @@
-# Spec: Package surface architecture (modules · vendors · messaging)
+# Spec: Package surface architecture (modules · vendors)
 
 Status: **locked for implementation**  
 Package: `@harryy/ai-tools`  
@@ -23,7 +23,7 @@ Related:
 
 ## Goals
 
-1. One package, three **lanes** so platform primitives, fat vendor APIs, and product messaging are not forced into one taxonomy.
+1. One package, two **source roots** so platform seams and fat vendor APIs are not forced into one taxonomy.
 2. Keep **Composio / Nango** as the OAuth SaaS catalog and PHI routing path; this package owns first-party HTTP/SigV4, self-hostable services, and channels the host operates.
 3. Make **channel messaging** complete: not “webhook only” — inbound parse, outbound tools, media, edits, and host-owned durable delivery.
 4. Prefer **self-hostable providers** for document render, convert, extract, speech, browser, and vectors, with managed clouds as optional providers.
@@ -44,17 +44,16 @@ Related:
 
 ```text
 @harryy/ai-tools
-├── modules/      Platform capabilities + messaging packs (telegram, slack, …)
-└── vendors/      First-party vendor packs (resend, cloudflare-email, woocommerce, …)
+├── modules/      Platform seams (storage, files, document-render, …)
+└── vendors/      3rd-party packs (resend, telegram, cloudflare-email, …)
 ```
 
 | Kind | Preferred source path | Module id style | When to use |
 | --- | --- | --- | --- |
 | **Platform capability** | `src/modules/<capability>/` | Capability name (`storage`, `files`) | Small stable contracts; **2+ swappable providers** with same verbs |
-| **Messaging pack** | `src/modules/<channel>/` (preferred) | Channel name (`telegram`, `slack`) | Full chat transport (tools + webhook + presentation); **not** a thin multi-provider send seam |
-| **Vendor pack** | `src/vendors/<vendor>/` | Vendor name (`resend`, `cloudflare-email`, `woocommerce`) | Full first-party API; grow tools over time |
+| **Vendor pack** | `src/vendors/<vendor>/` | Vendor name (`resend`, `telegram`, `cloudflare-email`, …) | Full first-party API; grow tools over time (includes chat platforms) |
 
-**3rd party → vendors; seams → modules.** Chat platforms (Telegram, Slack, …) and email ESPs (Resend, Cloudflare Email) are **vendor packs**. Platform **seams** (storage, files, document-render, …) stay under **modules/**. A temporary `src/messaging/` tree is OK until packs move to `vendors/<channel>/`. Do not invent a multi-provider `messaging` or `email` platform module that shrinks full APIs.
+**3rd party → vendors; seams → modules.** Chat platforms (Telegram, Slack, …) and email ESPs (Resend, Cloudflare Email) are **vendor packs**. Platform **seams** (storage, files, document-render, …) stay under **modules/**. Do not invent a multi-provider `messaging` or `email` platform module that shrinks full APIs.
 
 Public imports stay **flat** regardless of source lane:
 
@@ -64,7 +63,7 @@ import { resendModule, ResendClient } from '@harryy/ai-tools/resend'
 import { telegramModule } from '@harryy/ai-tools/telegram'
 ```
 
-Codegen discovers at least `modules/*` and `vendors/*` (and may still discover `messaging/*` until packs are moved under `modules/`).
+Codegen discovers `modules/*` and `vendors/*` only.
 
 ### Email and messaging (locked)
 
@@ -72,7 +71,7 @@ Codegen discovers at least `modules/*` and `vendors/*` (and may still discover `
 | --- | --- | --- |
 | Full Resend API | Vendor | `vendors/resend` |
 | Full Cloudflare Email API | Vendor | `vendors/cloudflare-email` |
-| Full Telegram Bot API | Vendor (chat) | `vendors/telegram` (may currently live under `messaging/telegram` until moved) |
+| Full Telegram Bot API | Vendor (chat) | `vendors/telegram` |
 | Full Slack / iMessage | Vendor (chat) | `vendors/slack`, … |
 
 There is **no** multi-provider `email` platform module and **no** multi-provider `messaging` seam that shrinks Telegram to “send only.”  
@@ -214,7 +213,7 @@ Grouping Amazon + Woo under one UI “Orders” catalog is a **host connector/ca
 
 ### Product reality
 
-Product messaging is multi-channel (Telegram first; Slack; Photon-backed iMessage; later Teams, WhatsApp). Each transport is a **full module** (not a thin provider under a generic chat seam). Preferred tree is **`src/modules/telegram`**, etc.; `src/messaging/` is only a temporary alternate root until packs are moved. Host keeps durable turns, authZ, and audit.
+Product messaging is multi-channel (Telegram first; Slack; Photon-backed iMessage; later Teams, WhatsApp). Each transport is a **full vendor pack** under `src/vendors/<channel>/` (not a thin provider under a generic chat seam). Host keeps durable turns, authZ, and audit.
 
 ### Messaging pack owns more than webhooks
 
@@ -249,7 +248,7 @@ Product hosts (including Five Star) are **capability inventories only**. They ar
 ### Layout
 
 ```text
-src/modules/<channel-key>/   # preferred (or src/messaging/<channel-key>/ until moved)
+src/vendors/<channel-key>/
   contracts.ts
   client.ts               # class client + private ofetch service
   webhook.ts              # verify + parse → normalized inbound event (pure)
@@ -357,10 +356,10 @@ Document each provider’s host setup in module docs (host-facing only; not mode
 
 ## Build order (locked preference)
 
-1. **Layout** — discover `modules` / `vendors` / `messaging`; docs + AGENTS locks (this spec).  
+1. **Layout** — discover `modules` / `vendors`; docs + AGENTS locks (this spec).  
 2. **`document-render`** — providers: gotenberg + cloudflare-browser.  
 3. **`files`** — path root over storage.  
-4. **`messaging/telegram`** — full Bot API pack (product P0).  
+4. **`vendors/telegram`** — full Bot API pack (product P0).  
 5. **Email vendor packs** — `resend`, `cloudflare-email` (expand APIs over time).  
 6. **Vendor lifts** — `woocommerce`, `katana`, `amazon-sp-api`.  
 7. **`vector-store` + `rag`**.  
@@ -371,7 +370,7 @@ Document each provider’s host setup in module docs (host-facing only; not mode
 
 ## Acceptance criteria
 
-- Spec distinguishes **modules / vendors / messaging** with explicit layout and import paths.  
+- Spec distinguishes **modules / vendors** with explicit layout and import paths.  
 - Platform modules keep generic tool ids + provider auth unions.  
 - Vendor packs may use vendor-prefixed tool ids and full API surfaces.  
 - Channel packs include **tools + webhook verify/parse**, not webhook-only stubs.  
@@ -385,6 +384,6 @@ Document each provider’s host setup in module docs (host-facing only; not mode
 
 - Lane A: storage, extract, convert, web-fetch, mime, media-type, files, document-render.  
 - Lane B: `resend`, `cloudflare-email` (more vendors as product needs).  
-- Lane C: `messaging/telegram` (more messaging packs as product needs).  
+- Chat vendors: `vendors/telegram` (more channels as product needs).  
 - Codegen discovers all three lanes.  
 - FSS `packages/tools/src/custom/*` can become thin adapters over platform/vendor modules over time without a big-bang rewrite.

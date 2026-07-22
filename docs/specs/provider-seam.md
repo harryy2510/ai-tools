@@ -2,7 +2,7 @@
 
 Status: **locked**  
 Package: `@harryy/ai-tools`  
-Scope: **Lane A only** (`src/modules/*`). Vendors and messaging: [package-surface-architecture.md](./package-surface-architecture.md).
+Scope: **modules only** (`src/modules/*`). Vendors: [package-surface-architecture.md](./package-surface-architecture.md).
 
 ## Goals
 
