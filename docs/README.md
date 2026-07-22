@@ -39,6 +39,7 @@ Documentation hub for the package. Source of truth for architecture and module c
 | `@harryy/ai-tools/file-convert` | [file-convert](./modules/file-convert.md) |
 | `@harryy/ai-tools/document-render` | [document-render](./modules/document-render.md) |
 | `@harryy/ai-tools/files` | [files](./modules/files.md) |
+| `@harryy/ai-tools/telegram` | [telegram](./modules/telegram.md) (channel pack) |
 | Spec: package surface (modules · vendors · channels) | [package-surface-architecture](./specs/package-surface-architecture.md) |
 | Working: surface delivery board | [package-surface-working](./roadmap/package-surface-working.md) |
 | Spec: provider seam (capability modules) | [provider-seam](./specs/provider-seam.md) |

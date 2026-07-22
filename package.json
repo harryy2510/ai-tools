@@ -77,6 +77,10 @@
 			"types": "./dist/modules/storage/index.d.ts",
 			"default": "./dist/modules/storage/index.js"
 		},
+		"./telegram": {
+			"types": "./dist/channels/telegram/index.d.ts",
+			"default": "./dist/channels/telegram/index.js"
+		},
 		"./web-fetch": {
 			"types": "./dist/modules/web-fetch/index.d.ts",
 			"default": "./dist/modules/web-fetch/index.js"

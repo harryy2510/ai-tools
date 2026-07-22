@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-22T00:02:54.648Z",
+	"generatedAt": "2026-07-22T00:30:46.668Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -224,6 +224,50 @@
 			],
 			"moduleId": "storage",
 			"moduleIdSource": "src/modules/storage/module.ts"
+		},
+		{
+			"key": "telegram",
+			"lane": "channels",
+			"entry": "src/channels/telegram/index.ts",
+			"entryKey": "channels/telegram/index",
+			"exportNames": [
+				"ChannelTransport",
+				"LiveMessage",
+				"LiveMessageDeps",
+				"ParseTelegramUpdateResult",
+				"TelegramAuth",
+				"TelegramBotIdentity",
+				"TelegramClient",
+				"TelegramClientError",
+				"TelegramClientOptions",
+				"TelegramInboundEvent",
+				"TelegramInboundMedia",
+				"TelegramWebhookInfo",
+				"TypingPulse",
+				"TypingPulseDeps",
+				"answerCallbackTool",
+				"clearReactionTool",
+				"createLiveMessage",
+				"createTelegramClient",
+				"createTelegramClientFromAuth",
+				"createTypingPulse",
+				"downloadFileTool",
+				"editTextTool",
+				"getBotTool",
+				"isTelegramDefiniteRejection",
+				"isTelegramOutcomeUnknown",
+				"parseTelegramUpdate",
+				"sendChatActionTool",
+				"sendMediaGroupTool",
+				"sendMediaTool",
+				"sendTextTool",
+				"setReactionTool",
+				"telegramAuthSchema",
+				"telegramModule",
+				"verifyTelegramWebhookSecret"
+			],
+			"moduleId": "telegram",
+			"moduleIdSource": "src/channels/telegram/module.ts"
 		},
 		{
 			"key": "web-fetch",

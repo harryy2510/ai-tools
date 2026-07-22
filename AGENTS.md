@@ -10,6 +10,93 @@ Repository rules constrain agent behavior. They do not teach package usage (see 
 - Do not invent tools, adapters, export surfaces, or defaults without an explicit request.
 - Global agent policy still applies. This file only adds package-specific constraints.
 
+## HARD RULES — never skip (agent must obey)
+
+These override convenience, host inventory code, and “I’ll clean it up later.” Violation = stop and fix before any other work.
+
+### R0 — Read order before any code change
+
+1. This file (`AGENTS.md`)
+2. `docs/reference/ofetch-services.md` (if the task touches network I/O)
+3. `docs/specs/provider-seam.md` (Lane A) or `docs/specs/package-surface-architecture.md` (lanes / channels / vendors)
+4. **Clone a gold file** (open it, match structure):
+   - HTTP provider: `src/modules/email/providers/resend.ts` and/or `src/modules/storage/providers/supabase.ts`
+   - Lane A module shell: `src/modules/email/module.ts` + `contracts.ts`
+   - SigV4 only: `src/modules/storage/providers/s3.ts`
+
+Do not invent a new layout, naming scheme, or HTTP stack.
+
+### R1 — Consistency over invention
+
+- **Same problem → same shape.** If resend/supabase/r2 already solve it, copy that shape. Do not introduce a second pattern.
+- Host repos (e.g. Five Star) are **capability inventory only**. Never copy their file layout, function names, fetch loops, or client wrappers into this package.
+- Do not add `json`/`form`/`methodJson`/`callTelegram`/generic-path routers on top of ofetch. ofetch already handles body types.
+- Do not invent parallel clients (`TelegramHttp`, `rawFetch`, custom retry frameworks) unless the user explicitly orders that design.
+
+### R2 — HTTP (non-SigV4) — ofetch only, fixed signature
+
+Every non-SigV4 network call in modules, vendors, and channels:
+
+```ts
+// 1) Service factory (same signature as resend)
+function createXService(auth: XAuth, ctx: ToolContext) {
+  const http = createServiceFetch({ baseURL: '…', headers: { … } }, ctx)
+  return {
+    // 2) Named endpoint → one serviceRequestJson / serviceRequestBytes call each
+    sendMessage: (body: Record<string, unknown>) =>
+      serviceRequestJson(http, 'Telegram sendMessage', '/sendMessage', {
+        method: 'POST',
+        body
+      })
+  }
+}
+
+// 3) Ops / domain map tool I/O → svc.endpoint only (no paths here)
+```
+
+**Forbidden:**
+
+| Forbidden | Use instead |
+| --- | --- |
+| Raw `fetch` / `globalThis.fetch` loops | `createServiceFetch` + `serviceRequestJson` / `serviceRequestBytes` |
+| Dynamic `/${method}` or body-type dual helpers (`json` + `form`) | One explicit endpoint method per API path; pass body through |
+| Path strings in tools or module execute | Only inside `createXService` endpoint methods |
+| New HTTP helper modules for a single vendor | Pattern above in the provider/channel file |
+| `throwOnError: false` by default on every call | Default throw-on-error; only set `false` when the API returns a useful error body that must be parsed (document why on that call) |
+
+**Allowed exception:** `aws4fetch` for SigV4 only (S3-compatible, Textract, SQS, …).
+
+### R3 — File layout
+
+| Lane | Layout (do not freestyle) |
+| --- | --- |
+| Platform module | `src/modules/<key>/{contracts,module,index}.ts` + `providers/<provider>.ts` |
+| Vendor pack | `src/vendors/<key>/{…}` same idea; vendor-named tools ok |
+| Channel pack | `src/channels/<key>/{contracts,module,index,webhook}.ts` + HTTP via same ofetch service pattern **in one implementation file** (not a second custom HTTP framework) |
+| Shared pure helpers | `src/shared/*` only if used by 2+ surfaces |
+
+- One public `index.ts` re-exports. Codegen owns package exports.
+- Do not split the same provider into invent-as-you-go `service.ts` + `client.ts` + `http.ts` unless an existing gold module already does that exact split (none do for ofetch — service factory + ops live together like resend).
+
+### R4 — Auth and tools
+
+- Auth only via `withAuth` / `ctx.auth` / `requireAuth`. Never on tool inputs.
+- Tool ids: stable kebab-case (`email-send`, `telegram-send-text`).
+- Model-facing descriptions: what/when/bounds only — no secrets, env, vault, host wiring.
+- Lane A: capability tools + `defineProvider` + ops type class. See provider-seam.
+- Channels/vendors: full surface; package-owned names; host is inventory only.
+
+### R5 — Before writing new code
+
+1. Name the gold file you are cloning.
+2. Name the ofetch service factory and each endpoint method (or state SigV4).
+3. If you cannot point at an existing file with the same shape, **stop and ask** — do not invent.
+
+### R6 — Gate
+
+- Session-touched paths only for format: `oxfmt --write <paths>`
+- Done means `bun run check` green. No `--no-verify`. No “tests later.”
+
 ## Architecture locks
 
 - **Single package, subpath imports only.** No root mega-barrel that pulls every module.
@@ -32,7 +119,12 @@ Repository rules constrain agent behavior. They do not teach package usage (see 
 - **Prefer `es-toolkit` / `es-toolkit/compat`** for list/object/string helpers over hand-rolled typeof/array boilerplate.
 - **Auth is host-bound only.** `withAuth` + `ctx.auth`. Never put credentials on model-facing tool inputs/outputs/descriptions. Nested credentials (e.g. convert → storage) stay in the host auth bag.
 - **Batch, pagination, rate limits** are first-class where the domain allows.
-- **HTTP:** ofetch service clients for JSON HTTP; aws4fetch only for SigV4. Prefer REST/S3 over Workers-only bindings as primary providers. See `docs/reference/ofetch-services.md`.
+- **HTTP (mandatory for non-SigV4):** ofetch service pattern is **first priority** for modules, vendors, and channels. See `docs/reference/ofetch-services.md`.
+  1. `createServiceFetch` (baseURL + host headers + `ctx`)
+  2. Named `createXService(auth, ctx)` with **endpoint methods only**
+  3. Domain client/ops map I/O onto those methods — **no raw `fetch` loops, no path strings in tools/modules**
+  - **aws4fetch** is the only intentional exception (SigV4: S3-compatible, Textract, SQS, …).
+  - Prefer REST/S3 over Workers-only bindings as primary providers.
 - **Do not add free-form “call any URL” agent tools** unless the product module is explicitly allowlisted (`web-fetch`).
 - **Tool ids are stable kebab-case.** Changing a published id is a breaking change.
 - **Runtime claims are honest.** `node` | `edge` | `both` must match actual imports and APIs. Node-only code must not claim edge.
@@ -57,7 +149,7 @@ Repository rules constrain agent behavior. They do not teach package usage (see 
 
 - Named exports; lowercase kebab-case source filenames.
 - Tree-shake friendly: leaf modules, no side-effect registration at import time.
-- Prefer installed vendor SDKs or the shared HTTP factory over ad-hoc fetch soup.
+- Prefer installed vendor SDKs or the shared ofetch service layer over ad-hoc fetch soup.
 - Fail with stable `ToolError` codes. Do not leak secrets, tokens, or raw credential material in errors.
 - Default tests mock network. Do not require live provider calls for the main gate.
 

@@ -18,6 +18,7 @@ export default defineConfig({
 		'modules/media-type/index': 'src/modules/media-type/index.ts',
 		'modules/mime/index': 'src/modules/mime/index.ts',
 		'modules/storage/index': 'src/modules/storage/index.ts',
+		'channels/telegram/index': 'src/channels/telegram/index.ts',
 		'modules/web-fetch/index': 'src/modules/web-fetch/index.ts'
 	},
 	format: ['esm'],

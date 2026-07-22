@@ -9,6 +9,7 @@ export const moduleKeys = [
 	'media-type',
 	'mime',
 	'storage',
+	'telegram',
 	'web-fetch'
 ] as const
 

@@ -207,26 +207,43 @@ Product messaging is multi-channel (Telegram first; Slack; Photon-backed iMessag
 
 ### Channel pack owns more than webhooks
 
+**Locked:** a channel pack is a **full transport + presentation surface**, not a thin “send message” wrapper.  
+If the product channel already does typing, reactions, progressive edit/stream, final/complete, media groups, callbacks, file download, webhook lifecycle, etc., the pack must expose those primitives (client + tools/helpers). Host owns orchestration (when to type, when to react, FIFO cohorts, durable claim) but must not reimplement Bot API / Spectrum / Photon calls.
+
 | Piece | Package (channel) | Host product |
 | --- | --- | --- |
-| API client (Bot API, Slack Web API, Photon, …) | Yes | — |
-| Outbound tools (send text/media, edit, react, …) | Yes | Allowlist which tools agents get |
+| API client (Bot API, Slack Web API, Photon, …) | Yes — **full used surface** | — |
+| Outbound tools (send text/media, edit, react, typing, stream write/final, …) | Yes | Allowlist which tools agents get |
+| Presentation helpers (e.g. edited-text stream, typing refresher) | Yes (pure/composition over client) | Schedules when to call them |
 | Inbound webhook **verification + parse** helpers | Yes | HTTP route registration, raw body |
 | Webhook **route**, signature secret storage | Helpers only | Host HTTP + secrets |
-| Durable outbox / retries / idempotency | Optional pure helpers | **Host owns** production durability |
+| Durable outbox / retries / idempotency / FIFO cohorts | Optional pure helpers | **Host owns** production durability |
 | Tenant mapping (chat id → org/agent) | — | **Host** |
-| Access level / confirmation / audit | — | **Host** |
+| Access level / confirmation / audit / reaction policy | — | **Host** |
 
-So: **webhook is one piece; tooling around it is in-package.** Host still owns product orchestration.
+So: **every feature the product channel uses for transport/presentation lives in the pack.** Host still owns product orchestration, tenancy, and durability.
+
+### Naming and API design (locked)
+
+Product hosts (including Five Star) are **capability inventories only**. They are **not** the naming authority.
+
+| Rule | Detail |
+| --- | --- |
+| **No host name inheritance** | Do not copy host symbols, tool ids, helper names, or awkward legacy terms (`sendTelegramMessage`, `createEditedTextStream`, eyes/thinking enums, etc.). |
+| **Package-owned names** | Stable, capability-shaped, snake/kebab tool ids (`telegram-send-text`, `telegram-set-reaction`), clean client methods, plain contracts. |
+| **Capability ≥ host, often more** | Match every host transport behavior, then open constraints the host hardcoded without product reason (e.g. reactions = **any emoji** + clear, not a four-emoji enum). |
+| **Provider limits only** | Cap behavior by the real API (Telegram Bot API, Slack, Photon), not by host policy. Host policy stays in the host. |
+| **Thin host adapters later** | Host maps its old names onto this package; the package never mirrors the host. |
 
 ### Layout
 
 ```text
 src/channels/<channel-key>/
   auth.ts
-  client.ts               # service client
+  client.ts               # service client (package-owned method names)
   webhook.ts              # verify + parse → normalized inbound event (pure)
-  tools/                  # send-message, send-media, …
+  presentation.ts         # typing refresher, progressive message stream, …
+  tools/                  # or tools defined in module.ts
   module.ts
   index.ts
 ```
@@ -262,9 +279,61 @@ PHI/PII: never log full payloads in package errors; host applies classification.
 | `teams` | P2 | Bot Framework / Graph as chosen by host |
 | `whatsapp` | P2 | Meta Cloud API or BSP |
 
+### Dual access: pack direct + shared seam (locked)
+
+Both are first-class. Neither replaces the other.
+
+| Path | Import / use | For |
+| --- | --- | --- |
+| **A. Direct pack** | `@harryy/ai-tools/telegram` (full client, tools, webhook) | Full surface, channel-native ops, agents bound to one channel |
+| **B. Shared seam** | `modules/messaging` (or `shared/channel-transport`) over **aligned** client methods | Cross-channel host loops, thin multi-send tools, future adapters |
+
+```text
+Host / agent
+    │
+    ├─► telegramModule / createTelegramClient()     // A: everything
+    ├─► slackModule / createSlackClient()
+    │
+    └─► messagingModule (provider: telegram|slack|…) // B: shared subset only
+              │
+              └─► same method names on each client
+```
+
+Rules:
+
+1. **Packs are source of truth.** Seam never reimplements Bot API / Slack / Photon; it calls pack clients.
+2. **Shared subset only.** Seam tools = intersection that is real on every supported channel (send text, edit text when supported, typing/chat-action, set/clear reaction when supported, …). Channel-only ops stay on the pack (`sendMediaGroup`, Slack blocks, Photon containers, …).
+3. **Aligned method names (mandatory).** Every channel client implements the shared ops with **identical method names and input shapes** so the seam is wiring, not adapters-per-channel.
+
+### Shared transport method names (package-owned)
+
+These names are the seam contract. Each channel client implements them (or throws `unsupported` only when the provider truly cannot).
+
+| Method | Meaning |
+| --- | --- |
+| `sendText` | Send plain (or structured-plain) text; optional reply-to |
+| `editText` | Edit an existing message’s text |
+| `sendChatAction` | Presentation pulse (typing, upload_photo, …); channel maps action → native API |
+| `setReaction` | Set reaction emoji(s) on a message; **any emoji** where the API allows |
+| `clearReaction` | Clear reactions on a message |
+| `sendMedia` | Send one media item (photo/document/file); channel maps kind |
+| `downloadFile` | Fetch bytes for a provider file ref |
+| `answerCallback` | Acknowledge an interactive callback when the channel has one |
+
+Progressive live text is **not** a seam method; it is a pure helper:
+
+```ts
+createLiveMessage({ sendText, editText }) → { start, update, finalize }
+```
+
+Same helper works on every client that implements `sendText` + `editText`.
+
+Channel-specific methods use the same style but are **not** on the shared type (`sendMediaGroup`, `setWebhook`, …).
+
 ### Optional `messaging` platform module
 
-A thin **send-only** capability with providers `telegram | slack | …` is allowed for agents that only need “send a message” without the full channel API. Full channel packs remain the source of truth for rich operations and webhooks.
+Thin Lane A module: auth `{ provider: 'telegram' | 'slack' | …, … }`, tools named `messaging-send-text`, `messaging-set-reaction`, etc., dispatching to the pack client’s **shared** methods.  
+Not required on day one of Telegram, but **method alignment starts with pack #1** so the seam is free later.
 
 ---
 

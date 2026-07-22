@@ -39,7 +39,8 @@ This is **not** a second architecture lock. It tracks inventory, migration, open
 | `speech` / `pdf` / `image` / `browser` / `queue` / `webhook` / `crypto` / `calendar` | Not started | |
 | Codegen multi-lane | Done | discovers modules + vendors + channels |
 | `vendors/*` | Not started | layout not scaffolded |
-| `channels/*` | Not started | layout not scaffolded |
+| `channels/telegram` | Done | full pack + shared method names; live message + webhook helpers |
+| `channels/*` (others) | Not started | slack / imessage / … |
 
 ### B. Five Star host — custom tools (`packages/tools/src/custom`)
 
@@ -80,17 +81,53 @@ Host still owns: webhook HTTP routes, secret storage, chat→org/agent map, dura
 
 Use for Telegram first, then copy the row pattern.
 
+**Locked:**
+
+1. Full transport + presentation surface (not thin send).  
+2. Host code is a **capability inventory only** — **do not reuse host naming** (it is legacy/messy). Package owns clean names.  
+3. Capability **≥ host**, often **strictly more** (provider limits only). Example: reactions accept **any emoji** (and clear); host policy may still pick 👀/🤔/👍/👎.
+
 | Work item | Package | Host |
 | --- | --- | --- |
 | Auth schema (bot token / app creds) | Yes | Vault bind |
-| ofetch/aws service client | Yes | — |
-| `send-message` / `send-media` tools | Yes | Agent allowlist |
-| Edit / react / thread tools (as API allows) | Yes | Allowlist |
+| Service client covering **all** used API methods | Yes (package method names) | — |
+| Send text / media / media group | Yes | Agent allowlist / delivery claim |
+| Edit message text (+ markup when used) | Yes | Allowlist / stream cadence |
+| Typing / chat action + refresh helper | Yes | When to start/stop/renew |
+| Reactions set/clear (**any emoji**, not host enum) | Yes | Which emoji for which lifecycle phase |
+| Progressive live message: start / update / finalize | Yes | Model delta wiring + final claim |
+| Callback answer, file download, webhook get/set/delete | Yes | Route + vault + lifecycle |
 | Webhook signature verify | Yes (pure helper) | Call from route |
-| Webhook body → normalized inbound event | Yes | Persist / route to agent |
+| Webhook body → normalized inbound event (+ album hints) | Yes | Persist / route / album settlement |
 | HTTP route registration | — | Yes |
-| Outbox / retries / idempotency | optional helpers | **Yes (production)** |
-| Tenant + agent resolution | — | Yes |
+| Outbox / retries / idempotency / FIFO cohorts | optional helpers | **Yes (production)** |
+| Tenant + agent resolution / authZ / audit | — | Yes |
+
+### Telegram capability map (inventory from host; **names are package-owned**)
+
+Host files are reference only for *what* exists, never for *what to call things*.
+
+| Capability (package-facing) | Host does this today | Package shape (proposed) |
+| --- | --- | --- |
+| Bot identity | `getMe` | client `getBot` · tool `telegram-get-bot` |
+| Webhook lifecycle | get/set/delete webhook | client only (or admin tools); host UI |
+| Send text | send + reply + markup | `telegram-send-text` |
+| Edit text | edit (+ markup) | `telegram-edit-text` |
+| Send photo / document / media group | yes | `telegram-send-photo`, `telegram-send-document`, `telegram-send-media-group` |
+| Download file bytes | getFile + download | client `downloadFile` · tool `telegram-download-file` |
+| Answer callback | yes | `telegram-answer-callback` |
+| Chat action / typing | typing only | `telegram-send-chat-action` (full Bot API actions, not typing-only) + `createTypingPulse` helper |
+| Message reaction | fixed `👀\|🤔\|👍\|👎\|null` | `telegram-set-reaction` with **any emoji string** or clear |
+| Progressive outbound text | `createEditedTextStream` start/write/finish | `createLiveMessage` (`start` / `update` / `finalize`) over send+edit |
+| Lifecycle presentation | host picks eyes→thinking→like/dislike | host policy; pack only sets emoji it is given |
+| Typing renew | host loop | host schedules; pack supplies action + optional pulse helper |
+| Album by media group | durable host | parse/normalize in pack; settlement host |
+| Webhook verify + Update parse | host route | pure verify/parse in pack |
+| Tenant / grants / FIFO / send claim | host | **host only** |
+
+**Naming anti-patterns (do not ship):** `sendTelegramMessage`, `setTelegramMessageReaction`, `createEditedTextStream`, host-only emoji unions, `AcceptedTurn*`, `permanentOperation`, FSS RPC names.
+
+Slice 3 done when: this capability map is implemented under `src/channels/telegram` with **package names**, tests, docs; host can thin-adapt without reimplementing Bot API.
 
 ---
 
@@ -137,7 +174,7 @@ Use for Telegram first, then copy the row pattern.
 | 0 | Multi-lane codegen (`modules` + `vendors` + `channels`) | Done | `bun run codegen` registers all three |
 | 1 | `document-render` + gotenberg + cloudflare-browser | Done | PDF + screenshot; ArtifactRef out; tests |
 | 2 | `files` (root_prefix + storage auth) | Done | list/search/stat relative keys; tests |
-| 3 | `channels/telegram` | Pending | send tools + webhook verify/parse + tests |
+| 3 | `channels/telegram` | Done | Full pack + shared method names; tools + live message + webhook helpers |
 | 4 | `vendors/woocommerce` (first action group) | Pending | orders + products read path |
 | 5 | `vendors/katana` | Pending | sales order query parity |
 | 6 | `vendors/amazon-sp-api` (first action group) | Pending | documented subset live |
@@ -175,7 +212,7 @@ Use for Telegram first, then copy the row pattern.
 Record answers here; promote locked answers into the architecture spec.
 
 1. **Codegen:** one manifest for all lanes, or separate manifests? (Default: one discovery root list.)  
-2. **messaging vs channels only:** ship thin `messaging` send module, or channels-only until needed?  
+2. ~~**messaging vs channels only**~~ → **Locked:** both. Full packs (A) + thin shared seam (B). Shared client method names (`sendText`, `editText`, `sendChatAction`, `setReaction`, `clearReaction`, `sendMedia`, `downloadFile`, `answerCallback`) so seam is wiring. Ship Telegram pack first with those names; `messaging` module can follow once 2+ packs exist.
 3. **Amazon auth model:** host always supplies LWA tokens, or package documents refresh helpers?  
 4. **document-render ArtifactRef:** always write PDF/PNG to storage, or allow base64 for tiny screenshots? (Default: storage for anything agent-facing in FSS.)  
 5. **iMessage:** Photon as only provider under `channels/imessage`?  
@@ -190,6 +227,9 @@ Record answers here; promote locked answers into the architecture spec.
 | 2026-07-22 | Three lanes: modules / vendors / channels |
 | 2026-07-22 | Fat APIs are vendor packs, not forced commerce facades |
 | 2026-07-22 | Channels include tools + webhook tooling; host owns durability |
+| 2026-07-22 | Channel packs = full transport/presentation surface (typing, reactions, stream edit/final, media groups, …), not thin send |
+| 2026-07-22 | Channel naming is package-owned; host is capability inventory only; reactions any emoji (not host enum); capability ≥ host |
+| 2026-07-22 | Channels dual access: A full packs + B thin shared seam; aligned client method names for seam wiring |
 | 2026-07-22 | document-render ≠ file-convert; self-host first (Gotenberg) |
 | 2026-07-22 | org files → path-scoped `files` over storage |
 | 2026-07-22 | Composio/Nango remain SaaS OAuth + PHI catalog |
