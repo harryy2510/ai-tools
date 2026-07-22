@@ -1,7 +1,7 @@
 import { dynamicTool } from 'ai'
 
 import { resolveTools } from '../../core/resolve-tools'
-import type { BoundModule, KernelTool, ModuleDefinition, ToolDefinition } from '../../core/types'
+import type { ToolDefinition, ToolSource } from '../../core/types'
 import { runTool } from '../../core/with-auth'
 
 type AiSdkTool = ReturnType<typeof dynamicTool>
@@ -24,9 +24,7 @@ export function createAiSdkTool(kernelTool: ToolDefinition): AiSdkTool {
 }
 
 /** Project tools into an AI SDK tools record keyed by tool id. */
-export function createAiSdkTools(
-	source: ModuleDefinition | BoundModule | readonly KernelTool[]
-): Record<string, AiSdkTool> {
+export function createAiSdkTools(source: ToolSource): Record<string, AiSdkTool> {
 	const tools = resolveTools(source)
 	const record: Record<string, AiSdkTool> = {}
 

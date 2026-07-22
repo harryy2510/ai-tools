@@ -98,7 +98,7 @@ defineTool / defineModule  (kernel — only real tool definitions)
 src/modules|vendors/<key>/
   contracts.ts    # Zod I/O + auth schema + domain types
   domain.ts       # optional shared preflight (no HTTP)
-  client.ts       # public class client + private createXService (ofetch)
+  client.ts       # public class client (owns HttpService / AwsService)
   providers/      # modules only: multi-provider ops (real seams)
   webhook.ts      # chat vendors only: verify + parse
   module.ts       # defineModule + defineTool adapters over client

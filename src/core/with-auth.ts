@@ -1,12 +1,5 @@
 import { ToolError } from './errors'
-import type {
-	AuthDefinition,
-	BoundModule,
-	BoundToolDefinition,
-	ModuleDefinition,
-	ToolContext,
-	ToolDefinition
-} from './types'
+import type { AuthDefinition, ModuleDefinition, ToolContext, ToolDefinition } from './types'
 
 function assertAuth<TAuth>(auth: AuthDefinition<TAuth>, value: unknown): TAuth | undefined {
 	if (auth.type === 'none') {
@@ -27,56 +20,40 @@ function assertAuth<TAuth>(auth: AuthDefinition<TAuth>, value: unknown): TAuth |
 	return parsed.data
 }
 
-function buildBoundContext(ctx: Omit<ToolContext, 'auth'>, auth: unknown): ToolContext {
-	if (auth === undefined) {
-		return { ...ctx }
-	}
+function withBoundAuth(ctx: ToolContext, auth: unknown): ToolContext {
+	if (auth === undefined) return { ...ctx }
 	return { ...ctx, auth }
 }
 
+/** Bind auth into a single tool's execute (same ToolDefinition shape). */
 export function withAuthTool<TInput, TOutput>(
 	tool: ToolDefinition<TInput, TOutput>,
 	auth: unknown
-): BoundToolDefinition {
+): ToolDefinition<TInput, TOutput> {
 	return {
-		id: tool.id,
-		name: tool.name,
-		description: tool.description,
-		inputSchema: tool.inputSchema,
-		outputSchema: tool.outputSchema,
-		meta: tool.meta,
-		execute: async (input, ctx) => tool.execute(input, buildBoundContext(ctx, auth))
+		...tool,
+		execute: async (input, ctx) => tool.execute(input, withBoundAuth(ctx, auth))
 	}
 }
 
 /**
  * Bind validated credentials into a module's tools.
  * Model-facing schemas never include auth; hosts call this before agent projection.
+ * Returns the same ModuleDefinition shape (auth closed over in execute).
  */
-export function withAuth<TAuth>(module: ModuleDefinition<TAuth>, auth?: TAuth): BoundModule<TAuth> {
+export function withAuth<TAuth>(module: ModuleDefinition<TAuth>, auth?: TAuth): ModuleDefinition<TAuth> {
 	if (module.auth.type !== 'none' && auth === undefined) {
 		throw new ToolError(`Module ${module.id} requires auth`, { code: 'bad_auth' })
 	}
 
 	const boundAuth = assertAuth(module.auth, auth)
 
-	const tools: BoundToolDefinition[] = module.tools.map((tool) => ({
-		id: tool.id,
-		name: tool.name,
-		description: tool.description,
-		inputSchema: tool.inputSchema,
-		outputSchema: tool.outputSchema,
-		meta: tool.meta,
-		execute: async (input, ctx) => tool.execute(input, buildBoundContext(ctx, boundAuth))
-	}))
-
 	return {
-		id: module.id,
-		title: module.title,
-		description: module.description,
-		runtime: module.runtime,
-		auth: module.auth,
-		tools
+		...module,
+		tools: module.tools.map((tool) => ({
+			...tool,
+			execute: async (input, ctx) => tool.execute(input, withBoundAuth(ctx, boundAuth))
+		}))
 	}
 }
 
@@ -120,14 +97,6 @@ export async function runTool<TInput, TOutput>(
 	return parsedOutput.data
 }
 
-export function listTools(module: ModuleDefinition | BoundModule): readonly ToolDefinition[] {
-	return module.tools.map((tool) => ({
-		id: tool.id,
-		name: tool.name,
-		description: tool.description,
-		inputSchema: tool.inputSchema,
-		outputSchema: tool.outputSchema,
-		meta: tool.meta,
-		execute: async (input, ctx) => tool.execute(input, ctx)
-	}))
+export function listTools(module: ModuleDefinition): readonly ToolDefinition[] {
+	return module.tools
 }

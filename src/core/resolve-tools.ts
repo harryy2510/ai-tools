@@ -1,23 +1,16 @@
 import { isArray } from 'es-toolkit/compat'
 
-import type { BoundModule, KernelTool, ModuleDefinition, ToolDefinition } from './types'
+import type { ModuleDefinition, ToolDefinition, ToolSource } from './types'
 
-export function isToolArray(
-	source: ModuleDefinition | BoundModule | readonly KernelTool[]
-): source is readonly KernelTool[] {
+export function isToolArray(source: ToolSource): source is readonly ToolDefinition[] {
 	return isArray(source)
 }
 
-/** Normalize a module, bound module, or tool list into a flat tool list. */
-export function resolveTools(
-	source: ModuleDefinition | BoundModule | readonly KernelTool[]
-): readonly ToolDefinition[] {
+/** Normalize a module or tool list into a flat tool list. */
+export function resolveTools(source: ToolSource): readonly ToolDefinition[] {
 	return isToolArray(source) ? source : source.tools
 }
 
 export function filterToolsByRuntime(tools: readonly ToolDefinition[], runtime: 'edge' | 'node'): ToolDefinition[] {
-	return tools.filter((tool) => {
-		if (tool.meta.runtime === 'both') return true
-		return tool.meta.runtime === runtime
-	})
+	return tools.filter((tool) => tool.meta.runtime === 'both' || tool.meta.runtime === runtime)
 }

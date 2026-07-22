@@ -1,6 +1,7 @@
-import { zodToJsonSchema } from '../../core/json-schema'
+import { toJSONSchema } from 'zod'
+
 import { resolveTools } from '../../core/resolve-tools'
-import type { BoundModule, KernelTool, ModuleDefinition, ToolContext, ToolDefinition } from '../../core/types'
+import type { ToolContext, ToolDefinition, ToolSource } from '../../core/types'
 import { runTool } from '../../core/with-auth'
 
 /**
@@ -29,7 +30,7 @@ export function createCloudflareAiToolDefinition(tool: ToolDefinition): Cloudfla
 	return {
 		name: tool.id,
 		description: tool.description,
-		parameters: zodToJsonSchema(tool.inputSchema)
+		parameters: toJSONSchema(tool.inputSchema)
 	}
 }
 
@@ -37,9 +38,7 @@ export function createCloudflareAiToolDefinition(tool: ToolDefinition): Cloudfla
  * Project kernel tools into Cloudflare Workers AI traditional function-calling shape
  * plus host-side executors. No Cloudflare package dependency required.
  */
-export function createCloudflareAiTools(
-	source: ModuleDefinition | BoundModule | readonly KernelTool[]
-): CloudflareAiToolset {
+export function createCloudflareAiTools(source: ToolSource): CloudflareAiToolset {
 	const tools = resolveTools(source)
 	const definitions: CloudflareAiToolDefinition[] = []
 	const executors: Record<string, (args: unknown, ctx?: ToolContext) => Promise<unknown>> = {}

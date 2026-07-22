@@ -1,3 +1,5 @@
+import { countBy } from 'es-toolkit'
+
 import type {
 	AuthDefinition,
 	ModuleDefinition,
@@ -77,12 +79,9 @@ export function defineModule<TAuth = unknown>(options: DefineModuleOptions<TAuth
 		throw new Error(`Module ${options.id} must declare at least one tool`)
 	}
 
-	const ids = new Set<string>()
-	for (const tool of options.tools) {
-		if (ids.has(tool.id)) {
-			throw new Error(`Module ${options.id} has duplicate tool id: ${tool.id}`)
-		}
-		ids.add(tool.id)
+	const duplicateId = Object.entries(countBy(options.tools, (tool) => tool.id)).find(([, count]) => count > 1)?.[0]
+	if (duplicateId) {
+		throw new Error(`Module ${options.id} has duplicate tool id: ${duplicateId}`)
 	}
 
 	return {

@@ -1,4 +1,5 @@
-import { zodToJsonSchema } from './json-schema'
+import { toJSONSchema } from 'zod'
+
 import type { AuthDefinition, ModuleDefinition, ToolDefinition } from './types'
 
 export type ToolCatalogEntry = {
@@ -29,8 +30,8 @@ export function toToolCatalogEntry(tool: ToolDefinition): ToolCatalogEntry {
 		runtime: tool.meta.runtime,
 		sideEffect: tool.meta.sideEffect,
 		tags: tool.meta.tags ?? [],
-		inputJsonSchema: zodToJsonSchema(tool.inputSchema),
-		outputJsonSchema: zodToJsonSchema(tool.outputSchema)
+		inputJsonSchema: toJSONSchema(tool.inputSchema),
+		outputJsonSchema: toJSONSchema(tool.outputSchema)
 	}
 }
 

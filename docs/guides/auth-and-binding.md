@@ -38,8 +38,7 @@ Bind a single tool when you do not want the whole module surface.
 | `auth.type` | Meaning |
 | --- | --- |
 | `none` | No credentials (e.g. MIME). |
-| `custom` | Zod object of host fields (most product modules). |
-| `api_key` / `bearer` / `basic` / `oauth2` | Reserved shapes for HTTP-oriented modules; still host-supplied. |
+| `custom` | Zod schema of host fields; client turns them into headers / AwsService credentials. |
 
 ## Tool context
 

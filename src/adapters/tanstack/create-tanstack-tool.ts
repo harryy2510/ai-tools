@@ -1,7 +1,7 @@
 import { toolDefinition } from '@tanstack/ai'
 
 import { resolveTools } from '../../core/resolve-tools'
-import type { BoundModule, KernelTool, ModuleDefinition, ToolDefinition } from '../../core/types'
+import type { ToolDefinition, ToolSource } from '../../core/types'
 import { runTool } from '../../core/with-auth'
 
 type TanStackServerTool = ReturnType<ReturnType<typeof toolDefinition>['server']>
@@ -28,9 +28,7 @@ export function createTanStackTool(kernelTool: ToolDefinition): TanStackServerTo
 }
 
 /** Project tools into a TanStack AI tool array (chat `tools` accepts arrays). */
-export function createTanStackTools(
-	source: ModuleDefinition | BoundModule | readonly KernelTool[]
-): TanStackServerTool[] {
+export function createTanStackTools(source: ToolSource): TanStackServerTool[] {
 	const tools = resolveTools(source)
 	const seen = new Set<string>()
 	const result: TanStackServerTool[] = []
@@ -47,9 +45,7 @@ export function createTanStackTools(
 }
 
 /** Same tools as a record keyed by id for hosts that prefer maps. */
-export function createTanStackToolRecord(
-	source: ModuleDefinition | BoundModule | readonly KernelTool[]
-): Record<string, TanStackServerTool> {
+export function createTanStackToolRecord(source: ToolSource): Record<string, TanStackServerTool> {
 	const list = createTanStackTools(source)
 	const record: Record<string, TanStackServerTool> = {}
 	for (const t of list) {

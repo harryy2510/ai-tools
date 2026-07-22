@@ -62,7 +62,7 @@ describe('withAuth', () => {
 		id: 'secret',
 		title: 'Secret',
 		description: 'Needs a key.',
-		auth: { type: 'api_key', schema: authSchema },
+		auth: { type: 'custom', schema: authSchema },
 		tools: [secretTool]
 	})
 

@@ -1,15 +1,8 @@
 import { isFunction, isPlainObject, isString } from 'es-toolkit'
+import { toJSONSchema } from 'zod'
 
-import { zodToJsonSchema } from '../../core/json-schema'
 import { resolveTools } from '../../core/resolve-tools'
-import type {
-	BoundModule,
-	KernelTool,
-	ModuleDefinition,
-	ToolContext,
-	ToolDefinition,
-	ToolSideEffect
-} from '../../core/types'
+import type { ToolContext, ToolDefinition, ToolSideEffect, ToolSource } from '../../core/types'
 import { runTool } from '../../core/with-auth'
 
 /**
@@ -81,7 +74,7 @@ export function createMcpToolListItem(tool: ToolDefinition): McpToolListItem {
 	return {
 		name: tool.id,
 		description: tool.description,
-		inputSchema: zodToJsonSchema(tool.inputSchema),
+		inputSchema: toJSONSchema(tool.inputSchema),
 		annotations: annotationsForSideEffect(tool.meta.sideEffect)
 	}
 }
@@ -101,7 +94,7 @@ function toCallResult(value: unknown): McpCallToolResult {
  * Project kernel tools into MCP list + call helpers (no SDK required).
  * Hosts implement transport / McpServer themselves.
  */
-export function createMcpTools(source: ModuleDefinition | BoundModule | readonly KernelTool[]): McpToolset {
+export function createMcpTools(source: ToolSource): McpToolset {
 	const tools = resolveTools(source)
 	const list: McpToolListItem[] = []
 	const executors: Record<string, (args: unknown, ctx?: ToolContext) => Promise<unknown>> = {}
@@ -153,7 +146,7 @@ export type RegisterMcpToolsOptions = {
  */
 export function registerMcpTools(
 	server: McpServerLike,
-	source: ModuleDefinition | BoundModule | readonly KernelTool[],
+	source: ToolSource,
 	options: RegisterMcpToolsOptions = {}
 ): void {
 	const tools = resolveTools(source)

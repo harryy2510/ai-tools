@@ -19,7 +19,6 @@ import {
   toToolCatalogEntry,
   resolveTools,
   filterToolsByRuntime,
-  zodToJsonSchema,
   ToolError,
   isToolError,
 } from '@harryy/ai-tools/core'
@@ -87,7 +86,7 @@ Host UIs / registries can list tools without executing them.
 
 ## JSON Schema
 
-`zodToJsonSchema(schema)` projects Zod types for MCP / framework adapters that need JSON Schema.
+Adapters use Zod's `toJSONSchema` for host tool parameters (MCP, Cloudflare AI, catalogs).
 
 ## Errors
 

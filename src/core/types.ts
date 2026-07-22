@@ -4,21 +4,26 @@ export type ToolRuntime = 'both' | 'edge' | 'node'
 
 export type ToolSideEffect = 'delete' | 'none' | 'read' | 'send' | 'write'
 
-/** Injectable fetch for tests. Call signature only (no preconnect required). */
+/** Injectable fetch (tests, custom runtimes). Passed into HttpService / AwsService. */
 export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
+/**
+ * Per-invocation host context.
+ * Auth is host-bound (`withAuth` / client constructor), never tool inputs.
+ * `fetch` / `signal` feed product clients → transport.
+ */
 export type ToolContext<TAuth = unknown> = {
 	auth?: TAuth
+	/** Host bag for non-auth injectables (rare). */
 	extras?: Record<string, unknown>
-	/** Injectable fetch for tests and custom runtimes. */
 	fetch?: FetchLike
 	now?: () => Date
 	signal?: AbortSignal
 }
 
 /**
- * Public execute boundary always takes unknown input so tools can be collected
- * and projected without type assertions. `defineTool` validates via inputSchema first.
+ * Public execute boundary takes unknown input so tools can be collected without
+ * type assertions. `defineTool` validates via inputSchema first.
  */
 export type ToolExecute = (input: unknown, ctx: ToolContext) => Promise<unknown>
 
@@ -30,27 +35,20 @@ export type ToolMeta = {
 
 export type ToolDefinition<TInput = unknown, TOutput = unknown> = {
 	description: string
-	/** Stable tool id. Prefer kebab-case (`weather-get`) to match Mastra docs. */
+	/** Stable kebab-case id (`weather-get`). */
 	id: string
 	inputSchema: z.ZodType<TInput>
 	meta: ToolMeta
-	/** Optional friendly name; not used as Mastra stream toolName unless you key by it. */
 	name: string
 	outputSchema: z.ZodType<TOutput>
 	execute: ToolExecute
 }
 
-/** Alias for erased module tool lists (same shape as ToolDefinition). */
-export type AnyToolDefinition = ToolDefinition
-
-export type AuthDefinition<TAuth> =
-	| {
-			schema: z.ZodType<TAuth>
-			type: 'api_key' | 'basic' | 'bearer' | 'custom' | 'oauth2'
-	  }
-	| {
-			type: 'none'
-	  }
+/**
+ * Module auth: none, or a Zod schema (always `custom` — protocol is the client's job).
+ * Bearer/API-key/etc. are headers or AwsService credentials, not kernel kinds.
+ */
+export type AuthDefinition<TAuth> = { type: 'none' } | { type: 'custom'; schema: z.ZodType<TAuth> }
 
 export type ModuleDefinition<TAuth = unknown> = {
 	auth: AuthDefinition<TAuth>
@@ -61,16 +59,5 @@ export type ModuleDefinition<TAuth = unknown> = {
 	tools: readonly ToolDefinition[]
 }
 
-/** Same shape as ToolDefinition; auth is closed over by withAuth. */
-export type BoundToolDefinition = ToolDefinition
-
-export type BoundModule<TAuth = unknown> = {
-	auth: AuthDefinition<TAuth>
-	description: string
-	id: string
-	runtime: ToolRuntime
-	title: string
-	tools: readonly BoundToolDefinition[]
-}
-
-export type KernelTool = ToolDefinition | BoundToolDefinition
+/** Module, or a flat tool list (adapters). */
+export type ToolSource = ModuleDefinition | readonly ToolDefinition[]

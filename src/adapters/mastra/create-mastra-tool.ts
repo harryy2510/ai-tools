@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 
 import { resolveTools } from '../../core/resolve-tools'
-import type { BoundModule, KernelTool, ModuleDefinition, ToolDefinition } from '../../core/types'
+import type { ToolDefinition, ToolSource } from '../../core/types'
 import { runTool } from '../../core/with-auth'
 
 type MastraTool = ReturnType<typeof createTool>
@@ -28,9 +28,7 @@ export function createMastraTool(tool: ToolDefinition): MastraTool {
 }
 
 /** Project tools into a Mastra tools record keyed by tool id. */
-export function createMastraTools(
-	source: ModuleDefinition | BoundModule | readonly KernelTool[]
-): Record<string, MastraTool> {
+export function createMastraTools(source: ToolSource): Record<string, MastraTool> {
 	const tools = resolveTools(source)
 	const record: Record<string, MastraTool> = {}
 
