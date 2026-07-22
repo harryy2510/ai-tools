@@ -1,5 +1,8 @@
 export {
+	abortMultipartUploadTool,
+	completeMultipartUploadTool,
 	copyObjectTool,
+	createMultipartUploadTool,
 	createSignedUrlTool,
 	deleteObjectTool,
 	deleteObjectsTool,
@@ -11,7 +14,8 @@ export {
 	putObjectsTool,
 	storageAuthSchema,
 	storageModule,
-	storageProviders
+	storageProviders,
+	uploadPartTool
 } from './module'
 export type { StorageAuth } from './module'
 export type { StorageOps } from './contracts'

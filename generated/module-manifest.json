@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-21T23:25:11.048Z",
+	"generatedAt": "2026-07-22T00:02:54.648Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -137,6 +137,39 @@
 			"moduleIdSource": "src/modules/file-convert/module.ts"
 		},
 		{
+			"key": "files",
+			"lane": "modules",
+			"entry": "src/modules/files/index.ts",
+			"entryKey": "modules/files/index",
+			"exportNames": [
+				"FileItem",
+				"FilesAuth",
+				"FilesListInput",
+				"FilesSearchInput",
+				"FilesStatInput",
+				"filesAuthSchema",
+				"filesCopyTool",
+				"filesDeleteTool",
+				"filesGetTool",
+				"filesListTool",
+				"filesMkdirTool",
+				"filesModule",
+				"filesMoveTool",
+				"filesMultipartAbortTool",
+				"filesMultipartCompleteTool",
+				"filesMultipartStartTool",
+				"filesMultipartUploadPartTool",
+				"filesPutTool",
+				"filesSearchTool",
+				"filesStatTool",
+				"normalizeRootPrefix",
+				"resolveUnderRoot",
+				"toRelativeKey"
+			],
+			"moduleId": "files",
+			"moduleIdSource": "src/modules/files/module.ts"
+		},
+		{
 			"key": "media-type",
 			"lane": "modules",
 			"entry": "src/modules/media-type/index.ts",
@@ -165,7 +198,10 @@
 				"StorageAuth",
 				"StorageOps",
 				"SupabaseStorageAuth",
+				"abortMultipartUploadTool",
+				"completeMultipartUploadTool",
 				"copyObjectTool",
+				"createMultipartUploadTool",
 				"createSignedUrlTool",
 				"deleteObjectTool",
 				"deleteObjectsTool",
@@ -183,7 +219,8 @@
 				"storageModule",
 				"storageProviders",
 				"supabaseStorageAuthSchema",
-				"supabaseStorageProvider"
+				"supabaseStorageProvider",
+				"uploadPartTool"
 			],
 			"moduleId": "storage",
 			"moduleIdSource": "src/modules/storage/module.ts"

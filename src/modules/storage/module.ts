@@ -6,8 +6,14 @@ import { ToolError } from '../../core/errors'
 import type { ToolContext } from '../../core/types'
 import { runBatchItems } from '../../shared/batch'
 import {
+	abortMultipartUploadInputSchema,
+	abortMultipartUploadOutputSchema,
+	completeMultipartUploadInputSchema,
+	completeMultipartUploadOutputSchema,
 	copyObjectInputSchema,
 	copyObjectOutputSchema,
+	createMultipartUploadInputSchema,
+	createMultipartUploadOutputSchema,
 	deleteObjectInputSchema,
 	deleteObjectOutputSchema,
 	deleteObjectsInputSchema,
@@ -25,7 +31,9 @@ import {
 	putObjectsInputSchema,
 	putObjectsOutputSchema,
 	signedUrlInputSchema,
-	signedUrlOutputSchema
+	signedUrlOutputSchema,
+	uploadPartInputSchema,
+	uploadPartOutputSchema
 } from './contracts'
 import type { StorageOps } from './contracts'
 import { r2StorageAuthSchema, r2StorageProvider } from './providers/r2'
@@ -137,6 +145,78 @@ const createSignedUrlTool = defineTool({
 	}
 })
 
+function requireMultipartOps(ctx: ToolContext): {
+	createMultipartUpload: NonNullable<StorageOps['createMultipartUpload']>
+	uploadPart: NonNullable<StorageOps['uploadPart']>
+	completeMultipartUpload: NonNullable<StorageOps['completeMultipartUpload']>
+	abortMultipartUpload: NonNullable<StorageOps['abortMultipartUpload']>
+} {
+	const ops = resolveOps(ctx)
+	if (
+		ops.createMultipartUpload === undefined ||
+		ops.uploadPart === undefined ||
+		ops.completeMultipartUpload === undefined ||
+		ops.abortMultipartUpload === undefined
+	) {
+		throw new ToolError('Multipart upload is not supported by the bound storage provider', {
+			code: 'unsupported'
+		})
+	}
+	return {
+		createMultipartUpload: ops.createMultipartUpload,
+		uploadPart: ops.uploadPart,
+		completeMultipartUpload: ops.completeMultipartUpload,
+		abortMultipartUpload: ops.abortMultipartUpload
+	}
+}
+
+const createMultipartUploadTool = defineTool({
+	id: 'storage-create-multipart-upload',
+	name: 'createMultipartUpload',
+	description:
+		'Start an S3-compatible multipart upload for one object key when the bound provider supports it. Returns upload_id for uploadPart/complete/abort. Use for objects larger than the single put limit. R2 REST and Supabase Storage REST do not support this path.',
+	inputSchema: createMultipartUploadInputSchema,
+	outputSchema: createMultipartUploadOutputSchema,
+	sideEffect: 'write',
+	runtime: 'both',
+	execute: async (input, ctx) => requireMultipartOps(ctx).createMultipartUpload(input, ctx)
+})
+
+const uploadPartTool = defineTool({
+	id: 'storage-upload-part',
+	name: 'uploadPart',
+	description:
+		'Upload one part of an in-progress multipart upload. Part bodies up to 25 MiB. S3 requires each part except the last to be at least 5 MiB. Returns etag required for completeMultipartUpload.',
+	inputSchema: uploadPartInputSchema,
+	outputSchema: uploadPartOutputSchema,
+	sideEffect: 'write',
+	runtime: 'both',
+	execute: async (input, ctx) => requireMultipartOps(ctx).uploadPart(input, ctx)
+})
+
+const completeMultipartUploadTool = defineTool({
+	id: 'storage-complete-multipart-upload',
+	name: 'completeMultipartUpload',
+	description:
+		'Finish a multipart upload by assembling uploaded parts (part_number + etag). Parts may be supplied in any order; they are sorted by part_number before complete.',
+	inputSchema: completeMultipartUploadInputSchema,
+	outputSchema: completeMultipartUploadOutputSchema,
+	sideEffect: 'write',
+	runtime: 'both',
+	execute: async (input, ctx) => requireMultipartOps(ctx).completeMultipartUpload(input, ctx)
+})
+
+const abortMultipartUploadTool = defineTool({
+	id: 'storage-abort-multipart-upload',
+	name: 'abortMultipartUpload',
+	description: 'Abort an in-progress multipart upload and discard uploaded parts for that upload_id.',
+	inputSchema: abortMultipartUploadInputSchema,
+	outputSchema: abortMultipartUploadOutputSchema,
+	sideEffect: 'delete',
+	runtime: 'both',
+	execute: async (input, ctx) => requireMultipartOps(ctx).abortMultipartUpload(input, ctx)
+})
+
 const getObjectsTool = defineTool({
 	id: 'storage-get-objects',
 	name: 'getObjects',
@@ -188,7 +268,7 @@ export const storageModule = defineModule({
 	id: 'storage',
 	title: 'Object Storage',
 	description:
-		'Object storage with provider seam: s3 (S3-compatible via aws4fetch), r2 (Cloudflare REST API via ofetch), supabase (Storage REST via ofetch). List, get, put, delete, head, copy, signed URLs when supported, and batch variants.',
+		'Object storage with provider seam: s3 (S3-compatible via aws4fetch), r2 (Cloudflare REST API via ofetch), supabase (Storage REST via ofetch). List, get, put, delete, head, copy, signed URLs and multipart when supported, and batch variants.',
 	runtime: 'both',
 	auth: { type: 'custom', schema: storageAuthSchema },
 	tools: [
@@ -199,6 +279,10 @@ export const storageModule = defineModule({
 		headObjectTool,
 		copyObjectTool,
 		createSignedUrlTool,
+		createMultipartUploadTool,
+		uploadPartTool,
+		completeMultipartUploadTool,
+		abortMultipartUploadTool,
 		getObjectsTool,
 		putObjectsTool,
 		deleteObjectsTool
@@ -206,7 +290,10 @@ export const storageModule = defineModule({
 })
 
 export {
+	abortMultipartUploadTool,
+	completeMultipartUploadTool,
 	copyObjectTool,
+	createMultipartUploadTool,
 	createSignedUrlTool,
 	deleteObjectTool,
 	deleteObjectsTool,
@@ -215,5 +302,6 @@ export {
 	headObjectTool,
 	listObjectsTool,
 	putObjectTool,
-	putObjectsTool
+	putObjectsTool,
+	uploadPartTool
 }

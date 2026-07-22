@@ -7,7 +7,7 @@
 | **Runtime** | `both` |
 | **Auth** | Host union: `provider: 's3' \| 'r2' \| 'supabase'` |
 
-Object storage capability: list (cursor pagination), get/put/delete/head/copy, signed URL when supported, and batch get/put/delete (max 25).
+Object storage capability: list (cursor pagination), get/put/delete/head/copy, signed URL and multipart when supported, and batch get/put/delete (max 25).
 
 ## Three ways in (host chooses)
 
@@ -49,7 +49,7 @@ Object routes:
 - `GET /accounts/{account_id}/r2/buckets/{bucket}/objects`
 - `GET|PUT|DELETE …/objects/{key}`
 
-Signed URLs are **unsupported** on this path (use `s3` for presign). Copy is get+put (same bucket only).
+Signed URLs and multipart are **unsupported** on this path (use `s3` for presign and multipart). Copy is get+put (same bucket only).
 
 ### `supabase`
 
@@ -64,4 +64,15 @@ withAuth(storageModule, {
 
 ## Tool ids
 
-`storage-list-objects`, `storage-get-object`, `storage-put-object`, `storage-delete-object`, `storage-head-object`, `storage-copy-object`, `storage-create-signed-url`, `storage-get-objects`, `storage-put-objects`, `storage-delete-objects`.
+`storage-list-objects`, `storage-get-object`, `storage-put-object`, `storage-delete-object`, `storage-head-object`, `storage-copy-object`, `storage-create-signed-url`, `storage-create-multipart-upload`, `storage-upload-part`, `storage-complete-multipart-upload`, `storage-abort-multipart-upload`, `storage-get-objects`, `storage-put-objects`, `storage-delete-objects`.
+
+### Multipart (S3-compatible only)
+
+| id | Notes |
+| --- | --- |
+| `storage-create-multipart-upload` | Returns `upload_id` |
+| `storage-upload-part` | Part body ≤ 25 MiB; S3 min 5 MiB except last part |
+| `storage-complete-multipart-upload` | `{ part_number, etag }[]` (any order) |
+| `storage-abort-multipart-upload` | Discard in-progress upload |
+
+Providers `r2` (REST) and `supabase` throw `unsupported` for multipart tools.

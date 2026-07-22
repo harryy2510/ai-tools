@@ -135,7 +135,7 @@ src/modules/<capability>/
 #### `files` (path-scoped; replaces “org files are only product”)
 
 - Host maps tenant → storage credentials + `root_prefix` (e.g. `orgs/{id}/files/`).  
-- Tools: list / search (name or prefix) / get metadata; later put/delete under root only.  
+- Tools: list / search / stat / get / put / delete / copy / mkdir — all under root only.  
 - Keys exposed to the model are **relative to root**.  
 - Host keeps RLS and org membership; package enforces prefix isolation at the tool boundary.
 

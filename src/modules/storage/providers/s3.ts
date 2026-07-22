@@ -7,16 +7,20 @@ import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
 import { base64ToBytes, bytesToBase64, bytesToUtf8, utf8ToBytes } from '../../../shared/bytes'
 import { throwHttpStatus } from '../../../shared/rate-limit'
-import { DEFAULT_SIGNED_URL_SECONDS, MAX_OBJECT_BYTES } from '../contracts'
+import { DEFAULT_SIGNED_URL_SECONDS, MAX_MULTIPART_PART_BYTES, MAX_OBJECT_BYTES } from '../contracts'
 import type {
+	AbortMultipartUploadInput,
+	CompleteMultipartUploadInput,
 	CopyObjectInput,
+	CreateMultipartUploadInput,
 	DeleteObjectInput,
 	GetObjectInput,
 	HeadObjectInput,
 	ListObjectsInput,
 	PutObjectInput,
 	SignedUrlInput,
-	StorageOps
+	StorageOps,
+	UploadPartInput
 } from '../contracts'
 
 /**
@@ -347,6 +351,114 @@ const ops: StorageOps = {
 				cause: error
 			})
 		}
+	},
+
+	createMultipartUpload: async (input: CreateMultipartUploadInput, ctx) => {
+		const auth = readS3Auth(ctx)
+		const headers: Record<string, string> = {}
+		if (input.content_type !== undefined) headers['Content-Type'] = input.content_type
+		const response = await signedFetch(auth, objectUrl(auth, input.key, 'uploads'), { method: 'POST', headers }, ctx)
+		if (!response.ok) throwHttpStatus('S3 create multipart upload', response.status)
+		const xml = await response.text()
+		const uploadIdRaw = xmlTag(xml, 'UploadId')[0]
+		if (uploadIdRaw === undefined || uploadIdRaw.length === 0) {
+			throw new ToolError('S3 create multipart upload returned no UploadId', { code: 'upstream' })
+		}
+		return {
+			key: input.key,
+			upload_id: decodeXmlEntities(uploadIdRaw)
+		}
+	},
+
+	uploadPart: async (input: UploadPartInput, ctx) => {
+		const auth = readS3Auth(ctx)
+		const encoding = input.body_encoding ?? 'utf8'
+		let bodyBytes: Uint8Array
+		try {
+			bodyBytes = encoding === 'base64' ? base64ToBytes(input.body) : utf8ToBytes(input.body)
+		} catch (error) {
+			throw new ToolError('Invalid body encoding for uploadPart', {
+				code: 'bad_input',
+				cause: error
+			})
+		}
+		if (bodyBytes.byteLength > MAX_MULTIPART_PART_BYTES) {
+			throw new ToolError('Multipart part exceeds 25 MiB upload limit', {
+				code: 'too_large',
+				details: { max_bytes: MAX_MULTIPART_PART_BYTES, content_length: bodyBytes.byteLength }
+			})
+		}
+		if (bodyBytes.byteLength === 0) {
+			throw new ToolError('Multipart part body must not be empty', { code: 'bad_input' })
+		}
+		const query = new URLSearchParams({
+			partNumber: String(input.part_number),
+			uploadId: input.upload_id
+		})
+		const response = await signedFetch(
+			auth,
+			objectUrl(auth, input.key, query.toString()),
+			{ method: 'PUT', body: toArrayBuffer(bodyBytes) },
+			ctx
+		)
+		if (!response.ok) throwHttpStatus('S3 upload part', response.status)
+		const etagHeader = response.headers.get('etag')
+		if (!isString(etagHeader) || etagHeader.length === 0) {
+			throw new ToolError('S3 upload part returned no ETag', { code: 'upstream' })
+		}
+		return {
+			key: input.key,
+			upload_id: input.upload_id,
+			part_number: input.part_number,
+			etag: etagHeader.replaceAll('"', ''),
+			content_length: bodyBytes.byteLength
+		}
+	},
+
+	completeMultipartUpload: async (input: CompleteMultipartUploadInput, ctx) => {
+		const auth = readS3Auth(ctx)
+		const sorted = [...input.parts].sort((a, b) => a.part_number - b.part_number)
+		const partsXml = sorted
+			.map((part) => {
+				const etag = part.etag.replaceAll('"', '')
+				return `<Part><PartNumber>${part.part_number}</PartNumber><ETag>"${etag}"</ETag></Part>`
+			})
+			.join('')
+		const body = `<CompleteMultipartUpload>${partsXml}</CompleteMultipartUpload>`
+		const query = new URLSearchParams({ uploadId: input.upload_id })
+		const response = await signedFetch(
+			auth,
+			objectUrl(auth, input.key, query.toString()),
+			{
+				method: 'POST',
+				body,
+				headers: { 'Content-Type': 'application/xml' }
+			},
+			ctx
+		)
+		if (!response.ok) throwHttpStatus('S3 complete multipart upload', response.status)
+		const xml = await response.text()
+		const etagRaw = xmlTag(xml, 'ETag')[0]
+		const headerEtag = response.headers.get('etag')
+		const etag =
+			etagRaw !== undefined
+				? decodeXmlEntities(etagRaw).replaceAll('"', '')
+				: isString(headerEtag)
+					? headerEtag.replaceAll('"', '')
+					: undefined
+		return {
+			key: input.key,
+			upload_id: input.upload_id,
+			...(etag === undefined || etag.length === 0 ? {} : { etag })
+		}
+	},
+
+	abortMultipartUpload: async (input: AbortMultipartUploadInput, ctx) => {
+		const auth = readS3Auth(ctx)
+		const query = new URLSearchParams({ uploadId: input.upload_id })
+		const response = await signedFetch(auth, objectUrl(auth, input.key, query.toString()), { method: 'DELETE' }, ctx)
+		if (!response.ok && response.status !== 404) throwHttpStatus('S3 abort multipart upload', response.status)
+		return { key: input.key, upload_id: input.upload_id, aborted: true }
 	},
 
 	getBytes: async (key, ctx) => {

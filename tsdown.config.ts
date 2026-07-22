@@ -14,6 +14,7 @@ export default defineConfig({
 		'modules/document-render/index': 'src/modules/document-render/index.ts',
 		'modules/email/index': 'src/modules/email/index.ts',
 		'modules/file-convert/index': 'src/modules/file-convert/index.ts',
+		'modules/files/index': 'src/modules/files/index.ts',
 		'modules/media-type/index': 'src/modules/media-type/index.ts',
 		'modules/mime/index': 'src/modules/mime/index.ts',
 		'modules/storage/index': 'src/modules/storage/index.ts',

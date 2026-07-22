@@ -5,6 +5,7 @@ export const moduleKeys = [
 	'document-render',
 	'email',
 	'file-convert',
+	'files',
 	'media-type',
 	'mime',
 	'storage',

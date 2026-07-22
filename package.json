@@ -61,6 +61,10 @@
 			"types": "./dist/modules/file-convert/index.d.ts",
 			"default": "./dist/modules/file-convert/index.js"
 		},
+		"./files": {
+			"types": "./dist/modules/files/index.d.ts",
+			"default": "./dist/modules/files/index.js"
+		},
 		"./media-type": {
 			"types": "./dist/modules/media-type/index.d.ts",
 			"default": "./dist/modules/media-type/index.js"

@@ -113,6 +113,67 @@ export const signedUrlOutputSchema = z.object({
 	expires_in: z.int().describe('Lifetime in seconds used when signing')
 })
 
+/** Max bytes per multipart part body (model-facing). S3 requires ≥5 MiB except the last part. */
+export const MAX_MULTIPART_PART_BYTES = 25 * 1024 * 1024
+
+export const createMultipartUploadInputSchema = z.object({
+	key: z.string().min(1).describe('Object key to create via multipart upload'),
+	content_type: z.string().optional().describe('Content-Type stored on the completed object')
+})
+
+export const createMultipartUploadOutputSchema = z.object({
+	key: z.string(),
+	upload_id: z.string().min(1).describe('Upload id required for subsequent part/complete/abort calls')
+})
+
+export const uploadPartInputSchema = z.object({
+	key: z.string().min(1).describe('Object key for the in-progress multipart upload'),
+	upload_id: z.string().min(1).describe('Upload id from createMultipartUpload'),
+	part_number: z.int().min(1).max(10_000).describe('Part number (1-10000). Must be unique within the upload'),
+	body: z.string().describe('Part body as utf8 text or base64 (see body_encoding)'),
+	body_encoding: z.enum(['utf8', 'base64']).optional().describe('How to interpret body. Defaults to utf8')
+})
+
+export const uploadPartOutputSchema = z.object({
+	key: z.string(),
+	upload_id: z.string(),
+	part_number: z.int(),
+	etag: z.string().min(1).describe('Part ETag required when completing the multipart upload'),
+	content_length: z.number().describe('Decoded part byte length uploaded')
+})
+
+export const multipartUploadedPartSchema = z.object({
+	part_number: z.int().min(1).max(10_000),
+	etag: z.string().min(1).describe('ETag returned by uploadPart (with or without surrounding quotes)')
+})
+
+export const completeMultipartUploadInputSchema = z.object({
+	key: z.string().min(1).describe('Object key for the in-progress multipart upload'),
+	upload_id: z.string().min(1).describe('Upload id from createMultipartUpload'),
+	parts: z
+		.array(multipartUploadedPartSchema)
+		.min(1)
+		.max(10_000)
+		.describe('Uploaded parts with part_number and etag, in any order (sorted before complete)')
+})
+
+export const completeMultipartUploadOutputSchema = z.object({
+	key: z.string(),
+	upload_id: z.string(),
+	etag: z.string().optional().describe('Final object ETag when the store returns one')
+})
+
+export const abortMultipartUploadInputSchema = z.object({
+	key: z.string().min(1).describe('Object key for the in-progress multipart upload'),
+	upload_id: z.string().min(1).describe('Upload id from createMultipartUpload')
+})
+
+export const abortMultipartUploadOutputSchema = z.object({
+	key: z.string(),
+	upload_id: z.string(),
+	aborted: z.boolean()
+})
+
 export const getObjectsInputSchema = z.object({
 	keys: z.array(z.string().min(1)).min(1).max(MAX_BATCH_ITEMS).describe('Object keys to download'),
 	encoding: z.enum(['base64', 'utf8']).optional().describe('Body encoding for each item. Defaults to base64')
@@ -144,6 +205,14 @@ export type CopyObjectInput = z.infer<typeof copyObjectInputSchema>
 export type CopyObjectOutput = z.infer<typeof copyObjectOutputSchema>
 export type SignedUrlInput = z.infer<typeof signedUrlInputSchema>
 export type SignedUrlOutput = z.infer<typeof signedUrlOutputSchema>
+export type CreateMultipartUploadInput = z.infer<typeof createMultipartUploadInputSchema>
+export type CreateMultipartUploadOutput = z.infer<typeof createMultipartUploadOutputSchema>
+export type UploadPartInput = z.infer<typeof uploadPartInputSchema>
+export type UploadPartOutput = z.infer<typeof uploadPartOutputSchema>
+export type CompleteMultipartUploadInput = z.infer<typeof completeMultipartUploadInputSchema>
+export type CompleteMultipartUploadOutput = z.infer<typeof completeMultipartUploadOutputSchema>
+export type AbortMultipartUploadInput = z.infer<typeof abortMultipartUploadInputSchema>
+export type AbortMultipartUploadOutput = z.infer<typeof abortMultipartUploadOutputSchema>
 
 /** Storage provider type class. Auth is only on ctx. */
 export type StorageOps = {
@@ -154,6 +223,14 @@ export type StorageOps = {
 	head: (input: HeadObjectInput, ctx: ToolContext) => Promise<HeadObjectOutput>
 	copy: (input: CopyObjectInput, ctx: ToolContext) => Promise<CopyObjectOutput>
 	createSignedUrl?: (input: SignedUrlInput, ctx: ToolContext) => Promise<SignedUrlOutput>
+	/** S3-compatible multipart lifecycle. Optional; unsupported providers omit these. */
+	createMultipartUpload?: (input: CreateMultipartUploadInput, ctx: ToolContext) => Promise<CreateMultipartUploadOutput>
+	uploadPart?: (input: UploadPartInput, ctx: ToolContext) => Promise<UploadPartOutput>
+	completeMultipartUpload?: (
+		input: CompleteMultipartUploadInput,
+		ctx: ToolContext
+	) => Promise<CompleteMultipartUploadOutput>
+	abortMultipartUpload?: (input: AbortMultipartUploadInput, ctx: ToolContext) => Promise<AbortMultipartUploadOutput>
 	/** Raw bytes for artifact pipelines (not model-facing). */
 	getBytes: (key: string, ctx: ToolContext) => Promise<Uint8Array>
 	putBytes: (key: string, bytes: Uint8Array, contentType: string | undefined, ctx: ToolContext) => Promise<void>

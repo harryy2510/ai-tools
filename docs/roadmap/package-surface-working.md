@@ -27,12 +27,12 @@ This is **not** a second architecture lock. It tracks inventory, migration, open
 | Kernel + adapters | Done | core, ofetch services, Mastra/AI SDK/MCP/… |
 | Provider seam | Done | Lane A modules |
 | `email` | Done | cloudflare, resend |
-| `storage` | Done | s3, r2 REST, supabase |
+| `storage` | Done | s3 (+ multipart + signed URL), r2 REST, supabase |
 | `document-extract` | Done | textract only |
 | `file-convert` | Done | transmute only |
 | `web-fetch` | Done | allowlisted ofetch |
 | `mime` / `media-type` | Done | pure |
-| `files` | Not started | path root over storage |
+| `files` | Done | path root over storage: list/search/stat/get/put/delete/copy/move/mkdir + multipart (S3) |
 | `document-render` | Done | gotenberg + cloudflare-browser |
 | `vector-store` / `rag` | Not started | knowledge tools |
 | `messaging` (thin send) | Not started | optional |
@@ -136,7 +136,7 @@ Use for Telegram first, then copy the row pattern.
 | --- | --- | --- | --- |
 | 0 | Multi-lane codegen (`modules` + `vendors` + `channels`) | Done | `bun run codegen` registers all three |
 | 1 | `document-render` + gotenberg + cloudflare-browser | Done | PDF + screenshot; ArtifactRef out; tests |
-| 2 | `files` (root_prefix + storage auth) | Pending | list/search/get relative keys; tests |
+| 2 | `files` (root_prefix + storage auth) | Done | list/search/stat relative keys; tests |
 | 3 | `channels/telegram` | Pending | send tools + webhook verify/parse + tests |
 | 4 | `vendors/woocommerce` (first action group) | Pending | orders + products read path |
 | 5 | `vendors/katana` | Pending | sales order query parity |
