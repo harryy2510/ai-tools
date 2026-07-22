@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-22T22:20:45.721Z",
+	"generatedAt": "2026-07-22T23:39:39.537Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -52,11 +52,19 @@
 				"CloudflareEmailSendBatchOutput",
 				"CloudflareEmailSendInput",
 				"CloudflareEmailSendOutput",
+				"MAX_BATCH_EMAILS",
+				"MAX_EMAIL_BYTES",
 				"NamedAddress",
+				"attachmentSchema",
 				"cloudflareEmailAuthSchema",
 				"cloudflareEmailModule",
+				"cloudflareEmailSendBatchInputSchema",
+				"cloudflareEmailSendBatchOutputSchema",
 				"cloudflareEmailSendBatchTool",
-				"cloudflareEmailSendTool"
+				"cloudflareEmailSendInputSchema",
+				"cloudflareEmailSendOutputSchema",
+				"cloudflareEmailSendTool",
+				"namedAddressSchema"
 			],
 			"moduleId": "cloudflare-email",
 			"moduleIdSource": "src/vendors/cloudflare-email/module.ts"
