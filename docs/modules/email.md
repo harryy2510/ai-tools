@@ -6,11 +6,32 @@
 | **Module id** | `email` |
 | **Runtime** | `both` |
 | **Auth** | Host union: `provider: 'cloudflare' \| 'resend'` |
+| **Public client** | `EmailClient` |
 | **Tools** | `email-send`, `email-send-batch` |
 
-Capability module for transactional email. Provider is selected by host auth, not tool args.
+Transactional email capability. **Host DX is the client.** Tools are the agent projection of the same methods.
 
-## Bind
+## Client (preferred)
+
+```ts
+import { EmailClient } from '@harryy/ai-tools/email'
+
+const email = new EmailClient({ provider: 'resend', apiKey: '…' })
+// or { provider: 'cloudflare', accountId: '…', apiToken: '…' }
+
+await email.send({
+  to: 'hello@example.com',
+  from: 'from@example.com',
+  subject: 'Hi',
+  text: 'Body',
+})
+
+await email.sendBatch({ messages: [/* … */] })
+```
+
+Optional constructor options: `fetch`, `signal` (tests / cancellation).
+
+## Tools (agents)
 
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
@@ -20,24 +41,30 @@ const bound = withAuth(emailModule, {
   provider: 'resend',
   apiKey: '…',
 })
-// or provider: 'cloudflare', accountId, apiToken
 ```
 
-## Tools
+Tools call `EmailClient.fromContext(ctx)` only (no direct ofetch).
 
-### `email-send` — sideEffect `send`
+| Tool | Client method |
+| --- | --- |
+| `email-send` | `send` |
+| `email-send-batch` | `sendBatch` |
 
-Generic input: to, from, subject, html/text, optional cc/bcc/reply_to/headers/attachments.
+## Layout
 
-Generic output: `success`, optional `id`, `accepted[]`, `rejected[]`.
-
-### `email-send-batch` — sideEffect `send`
-
-Up to 20 messages. Per-item ok/error; partial failure allowed.
+```text
+contracts.ts   # Zod I/O + EmailOps
+domain.ts      # shared preflight (no HTTP)
+client.ts      # EmailClient class
+providers/*    # createXService + ops
+module.ts      # defineTool adapters
+```
 
 ## Providers
 
-| provider | Host auth fields |
-| --- | --- |
-| `cloudflare` | `accountId`, `apiToken` |
-| `resend` | `apiKey` |
+| provider | Host auth fields | Service endpoints |
+| --- | --- | --- |
+| `resend` | `apiKey` | `sendEmail` → `POST /emails` |
+| `cloudflare` | `accountId`, `apiToken` | `sendEmail` → account email sending path |
+
+Both use ofetch (`createServiceFetch` + `serviceRequestJson`). Shared recipient/size checks live in `domain.ts`.

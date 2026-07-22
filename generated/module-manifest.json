@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-22T00:30:46.668Z",
+	"generatedAt": "2026-07-22T01:04:41.399Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -97,8 +97,12 @@
 			"exportNames": [
 				"CloudflareEmailAuth",
 				"EmailAuth",
+				"EmailClient",
+				"EmailClientOptions",
 				"EmailOps",
 				"ResendEmailAuth",
+				"SendEmailBatchInput",
+				"SendEmailBatchOutput",
 				"SendEmailInput",
 				"SendEmailOutput",
 				"cloudflareEmailAuthSchema",

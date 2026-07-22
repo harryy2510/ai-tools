@@ -20,8 +20,9 @@ These override convenience, host inventory code, and “I’ll clean it up later
 2. `docs/reference/ofetch-services.md` (if the task touches network I/O)
 3. `docs/specs/provider-seam.md` (Lane A) or `docs/specs/package-surface-architecture.md` (lanes / channels / vendors)
 4. **Clone a gold file** (open it, match structure):
+   - Capability client (public DX): `src/modules/email/client.ts`
+   - Lane A module + contracts: `src/modules/email/module.ts` + `contracts.ts` + `domain.ts`
    - HTTP provider: `src/modules/email/providers/resend.ts` and/or `src/modules/storage/providers/supabase.ts`
-   - Lane A module shell: `src/modules/email/module.ts` + `contracts.ts`
    - SigV4 only: `src/modules/storage/providers/s3.ts`
 
 Do not invent a new layout, naming scheme, or HTTP stack.
@@ -70,29 +71,70 @@ function createXService(auth: XAuth, ctx: ToolContext) {
 
 | Lane | Layout (do not freestyle) |
 | --- | --- |
-| Platform module | `src/modules/<key>/{contracts,module,index}.ts` + `providers/<provider>.ts` |
+| Platform module | `src/modules/<key>/{contracts,domain,client,module,index}.ts` + `providers/<provider>.ts` |
 | Vendor pack | `src/vendors/<key>/{…}` same idea; vendor-named tools ok |
-| Channel pack | `src/channels/<key>/{contracts,module,index,webhook}.ts` + HTTP via same ofetch service pattern **in one implementation file** (not a second custom HTTP framework) |
+| Channel pack | `src/channels/<key>/{contracts,client,module,index,webhook}.ts` (+ domain if shared) |
 | Shared pure helpers | `src/shared/*` only if used by 2+ surfaces |
 
+| File | Responsibility |
+| --- | --- |
+| `contracts.ts` | Zod I/O, shared domain types, ops interface if multi-provider |
+| `domain.ts` | Shared preflight / normalizers used by every provider (no HTTP) |
+| `client.ts` | **Public** capability client class (constructor auth) |
+| `providers/*.ts` | Private ofetch `createXService` + provider ops/driver |
+| `module.ts` | `defineTool` only — thin adapters over the client |
+| `webhook.ts` | Channels only: verify + parse (pure) |
+| `index.ts` | Public re-exports |
+
 - One public `index.ts` re-exports. Codegen owns package exports.
-- Do not split the same provider into invent-as-you-go `service.ts` + `client.ts` + `http.ts` unless an existing gold module already does that exact split (none do for ofetch — service factory + ops live together like resend).
+- Do not invent extra HTTP layers (`http.ts`, dual `service.ts`/`transport.ts`) beyond: **service factory inside provider/client file** + **public client class**.
 
-### R4 — Auth and tools
+### R4 — Capability client (public DX) — always the same
 
-- Auth only via `withAuth` / `ctx.auth` / `requireAuth`. Never on tool inputs.
+Every multi-call capability (email, storage, channels, vendors) exposes a **class client**:
+
+```ts
+export class EmailClient {
+  constructor(auth: EmailAuth, options?: { fetch?: FetchLike; signal?: AbortSignal }) { … }
+
+  /** Tools / withAuth path */
+  static fromContext(ctx: ToolContext): EmailClient { … }
+
+  async send(input: SendEmailInput): Promise<SendEmailOutput> { … }
+  async sendBatch(input: SendEmailBatchInput): Promise<SendEmailBatchOutput> { … }
+}
+```
+
+| Layer | Owns |
+| --- | --- |
+| **Client (public)** | Host DX: construct once with auth; methods = domain verbs |
+| **Tools** | Model projection only: `EmailClient.fromContext(ctx).send(input)` |
+| **Provider service (private)** | ofetch endpoints only (`createResendService`) |
+| **Ops / driver (private)** | Provider implements domain verbs for the client |
+
+**Rules:**
+
+- Client constructor takes **parsed auth** (union with `provider` for Lane A). Optional `fetch` / `signal` for tests and cancellation.
+- Tools **never** call ofetch or path strings; they only call the client.
+- Do not make tools the only public API. Export the client from `index.ts`.
+- Prefer **class** for multi-method clients (DX). Pure one-shot helpers stay functions (`createLiveMessage`, webhook verify).
+- Shared cross-provider method names stay stable (`send`, `sendBatch` for email; channel shared names per architecture).
+
+### R5 — Auth and tools
+
+- Auth only via client constructor / `withAuth` / `ctx.auth` / `requireAuth`. Never on tool inputs.
 - Tool ids: stable kebab-case (`email-send`, `telegram-send-text`).
 - Model-facing descriptions: what/when/bounds only — no secrets, env, vault, host wiring.
-- Lane A: capability tools + `defineProvider` + ops type class. See provider-seam.
+- Lane A: capability tools + `defineProvider` + ops type class behind the client. See provider-seam.
 - Channels/vendors: full surface; package-owned names; host is inventory only.
 
-### R5 — Before writing new code
+### R6 — Before writing new code
 
-1. Name the gold file you are cloning.
-2. Name the ofetch service factory and each endpoint method (or state SigV4).
+1. Name the gold file you are cloning (`email/client.ts` or `email/providers/resend.ts`).
+2. Name the public client methods and the ofetch service endpoints (or state SigV4).
 3. If you cannot point at an existing file with the same shape, **stop and ask** — do not invent.
 
-### R6 — Gate
+### R7 — Gate
 
 - Session-touched paths only for format: `oxfmt --write <paths>`
 - Done means `bun run check` green. No `--no-verify`. No “tests later.”

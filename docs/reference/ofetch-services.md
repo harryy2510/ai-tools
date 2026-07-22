@@ -1,8 +1,11 @@
 # ofetch service clients
 
 **Status: hard rule.** Agents must not invent a second HTTP style.  
-**Gold clones:** `src/modules/email/providers/resend.ts`, `src/modules/storage/providers/supabase.ts`.  
-**Package lock:** `AGENTS.md` → HARD RULES R0–R2.
+**Gold clones:**  
+- Client DX: `src/modules/email/client.ts`  
+- Provider ofetch: `src/modules/email/providers/resend.ts`, `src/modules/storage/providers/supabase.ts`  
+
+**Package lock:** `AGENTS.md` → HARD RULES (R0–R7).
 
 ## Mandatory pattern (modules · vendors · channels)
 

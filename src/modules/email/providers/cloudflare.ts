@@ -1,16 +1,15 @@
-import { isNil, isPlainObject, isString } from 'es-toolkit'
-import { castArray, isArray } from 'es-toolkit/compat'
+import { isPlainObject, isString } from 'es-toolkit'
+import { isArray } from 'es-toolkit/compat'
 import { z } from 'zod'
 
 import { defineProvider } from '../../../core/provider'
 import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
-import { utf8ToBytes } from '../../../shared/bytes'
 import { runBatchItems } from '../../../shared/batch'
 import { createServiceFetch, serviceRequestJson } from '../../../shared/ofetch-client'
 import type { ServiceHttp } from '../../../shared/ofetch-client'
-import { MAX_EMAIL_BYTES } from '../contracts'
-import type { EmailOps, NamedAddress, SendEmailInput, SendEmailOutput } from '../contracts'
+import type { EmailOps, SendEmailInput, SendEmailOutput } from '../contracts'
+import { assertEmailSize, assertRecipientLimit, normalizeAddressObject, normalizeAddressObjectList } from '../domain'
 
 export const cloudflareEmailAuthSchema = z.object({
 	provider: z.literal('cloudflare'),
@@ -20,23 +19,6 @@ export const cloudflareEmailAuthSchema = z.object({
 
 export type CloudflareEmailAuth = z.infer<typeof cloudflareEmailAuthSchema>
 
-function normalizeAddress(item: NamedAddress): string | { email: string; name?: string } {
-	if (isString(item)) return item
-	return item.name === undefined ? { email: item.email } : { email: item.email, name: item.name }
-}
-
-function normalizeAddressList(
-	value: NamedAddress | NamedAddress[] | undefined
-): Array<string | { email: string; name?: string }> | undefined {
-	if (isNil(value)) return undefined
-	return castArray(value).map(normalizeAddress)
-}
-
-function recipientCount(value: NamedAddress | NamedAddress[] | undefined): number {
-	if (isNil(value)) return 0
-	return castArray(value).length
-}
-
 function readAuth(ctx: ToolContext): CloudflareEmailAuth {
 	const parsed = cloudflareEmailAuthSchema.safeParse(ctx.auth)
 	if (!parsed.success) {
@@ -45,6 +27,7 @@ function readAuth(ctx: ToolContext): CloudflareEmailAuth {
 	return parsed.data
 }
 
+/** Private ofetch service — endpoint methods only. */
 function createCloudflareEmailService(auth: CloudflareEmailAuth, ctx: ToolContext) {
 	const http: ServiceHttp = createServiceFetch(
 		{
@@ -57,12 +40,12 @@ function createCloudflareEmailService(auth: CloudflareEmailAuth, ctx: ToolContex
 		ctx
 	)
 	return {
-		send: (payload: Record<string, unknown>) =>
+		sendEmail: (body: Record<string, unknown>) =>
 			serviceRequestJson(
 				http,
-				'Cloudflare Email send',
+				'Cloudflare sendEmail',
 				`/accounts/${encodeURIComponent(auth.accountId)}/email/sending/send`,
-				{ method: 'POST', body: payload }
+				{ method: 'POST', body }
 			)
 	}
 }
@@ -130,44 +113,32 @@ function parseSendResult(data: unknown): SendEmailOutput {
 	}
 }
 
-function assertPayloadSize(payload: Record<string, unknown>): void {
-	const bytes = utf8ToBytes(JSON.stringify(payload)).byteLength
-	if (bytes > MAX_EMAIL_BYTES) {
-		throw new ToolError('Email payload exceeds 5 MiB limit', {
-			code: 'too_large',
-			details: { bytes, max_bytes: MAX_EMAIL_BYTES }
-		})
-	}
-}
-
-async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEmailOutput> {
-	if (recipientCount(input.to) + recipientCount(input.cc) + recipientCount(input.bcc) > 50) {
-		throw new ToolError('Combined to/cc/bcc recipients cannot exceed 50', {
-			code: 'bad_input'
-		})
-	}
-
-	const auth = readAuth(ctx)
+function buildPayload(input: SendEmailInput): Record<string, unknown> {
 	const payload: Record<string, unknown> = {
-		to: normalizeAddressList(input.to),
-		from: normalizeAddress(input.from),
+		to: normalizeAddressObjectList(input.to),
+		from: normalizeAddressObject(input.from),
 		subject: input.subject
 	}
 	if (input.html !== undefined) payload['html'] = input.html
 	if (input.text !== undefined) payload['text'] = input.text
-	const cc = normalizeAddressList(input.cc)
-	const bcc = normalizeAddressList(input.bcc)
+	const cc = normalizeAddressObjectList(input.cc)
+	const bcc = normalizeAddressObjectList(input.bcc)
 	if (cc !== undefined) payload['cc'] = cc
 	if (bcc !== undefined) payload['bcc'] = bcc
-	if (input.reply_to !== undefined) {
-		payload['reply_to'] = normalizeAddress(input.reply_to)
-	}
+	if (input.reply_to !== undefined) payload['reply_to'] = normalizeAddressObject(input.reply_to)
 	if (input.headers !== undefined) payload['headers'] = input.headers
 	if (input.attachments !== undefined) payload['attachments'] = input.attachments
+	return payload
+}
 
-	assertPayloadSize(payload)
+async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEmailOutput> {
+	assertRecipientLimit(input)
+	const auth = readAuth(ctx)
+	const payload = buildPayload(input)
+	const attachmentBodies = input.attachments?.map((a) => a.content)
+	assertEmailSize(payload, attachmentBodies)
 
-	const { data } = await createCloudflareEmailService(auth, ctx).send(payload)
+	const { data } = await createCloudflareEmailService(auth, ctx).sendEmail(payload)
 	return parseSendResult(data)
 }
 

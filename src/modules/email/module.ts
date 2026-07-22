@@ -1,29 +1,11 @@
-import { z } from 'zod'
-
 import { defineModule, defineTool } from '../../core/define'
-import { requireAuth, resolveProvider } from '../../core/provider'
-import type { ToolContext } from '../../core/types'
-import { runBatchItems } from '../../shared/batch'
 import {
 	sendEmailBatchInputSchema,
 	sendEmailBatchOutputSchema,
 	sendEmailInputSchema,
 	sendEmailOutputSchema
 } from './contracts'
-import type { EmailOps } from './contracts'
-import { cloudflareEmailAuthSchema, cloudflareEmailProvider } from './providers/cloudflare'
-import { resendEmailAuthSchema, resendEmailProvider } from './providers/resend'
-
-export const emailProviders = [cloudflareEmailProvider, resendEmailProvider] as const
-
-export const emailAuthSchema = z.discriminatedUnion('provider', [cloudflareEmailAuthSchema, resendEmailAuthSchema])
-
-export type EmailAuth = z.infer<typeof emailAuthSchema>
-
-function resolveOps(ctx: ToolContext): EmailOps {
-	const auth = requireAuth(ctx, emailAuthSchema)
-	return resolveProvider(emailProviders, auth).ops
-}
+import { EmailClient, emailAuthSchema, emailProviders } from './client'
 
 const sendEmailTool = defineTool({
 	id: 'email-send',
@@ -34,7 +16,7 @@ const sendEmailTool = defineTool({
 	outputSchema: sendEmailOutputSchema,
 	sideEffect: 'send',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).send(input, ctx)
+	execute: async (input, ctx) => EmailClient.fromContext(ctx).send(input)
 })
 
 const sendEmailBatchTool = defineTool({
@@ -46,13 +28,7 @@ const sendEmailBatchTool = defineTool({
 	outputSchema: sendEmailBatchOutputSchema,
 	sideEffect: 'send',
 	runtime: 'both',
-	execute: async (input, ctx) => {
-		const ops = resolveOps(ctx)
-		if (ops.sendBatch !== undefined) {
-			return ops.sendBatch(input, ctx)
-		}
-		return runBatchItems(input.messages, async (message) => ops.send(message, ctx))
-	}
+	execute: async (input, ctx) => EmailClient.fromContext(ctx).sendBatch(input)
 })
 
 export const emailModule = defineModule({
@@ -64,4 +40,4 @@ export const emailModule = defineModule({
 	tools: [sendEmailTool, sendEmailBatchTool]
 })
 
-export { sendEmailBatchTool, sendEmailTool }
+export { emailAuthSchema, emailProviders, sendEmailBatchTool, sendEmailTool }

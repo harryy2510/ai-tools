@@ -1,16 +1,14 @@
-import { isNil, isPlainObject, isString } from 'es-toolkit'
-import { castArray } from 'es-toolkit/compat'
+import { isPlainObject, isString } from 'es-toolkit'
 import { z } from 'zod'
 
 import { defineProvider } from '../../../core/provider'
 import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
-import { utf8ToBytes } from '../../../shared/bytes'
 import { runBatchItems } from '../../../shared/batch'
 import { createServiceFetch, serviceRequestJson } from '../../../shared/ofetch-client'
 import type { ServiceHttp } from '../../../shared/ofetch-client'
-import { MAX_EMAIL_BYTES } from '../contracts'
-import type { EmailOps, NamedAddress, SendEmailInput, SendEmailOutput } from '../contracts'
+import type { EmailOps, SendEmailInput, SendEmailOutput } from '../contracts'
+import { addressList, addressToString, assertEmailSize, assertRecipientLimit } from '../domain'
 
 export const resendEmailAuthSchema = z.object({
 	provider: z.literal('resend'),
@@ -27,21 +25,7 @@ function readAuth(ctx: ToolContext): ResendEmailAuth {
 	return parsed.data
 }
 
-function addressToString(item: NamedAddress): string {
-	if (isString(item)) return item
-	return item.name === undefined ? item.email : `${item.name} <${item.email}>`
-}
-
-function addressList(value: NamedAddress | NamedAddress[] | undefined): string[] | undefined {
-	if (isNil(value)) return undefined
-	return castArray(value).map(addressToString)
-}
-
-function recipientCount(value: NamedAddress | NamedAddress[] | undefined): number {
-	if (isNil(value)) return 0
-	return castArray(value).length
-}
-
+/** Private ofetch service — endpoint methods only. */
 function createResendService(auth: ResendEmailAuth, ctx: ToolContext) {
 	const http: ServiceHttp = createServiceFetch(
 		{
@@ -54,21 +38,15 @@ function createResendService(auth: ResendEmailAuth, ctx: ToolContext) {
 		ctx
 	)
 	return {
-		sendEmail: (payload: Record<string, unknown>) =>
-			serviceRequestJson(http, 'Resend send', '/emails', { method: 'POST', body: payload })
+		sendEmail: (body: Record<string, unknown>) =>
+			serviceRequestJson(http, 'Resend sendEmail', '/emails', { method: 'POST', body })
 	}
 }
 
-async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEmailOutput> {
-	if (recipientCount(input.to) + recipientCount(input.cc) + recipientCount(input.bcc) > 50) {
-		throw new ToolError('Combined to/cc/bcc recipients cannot exceed 50', { code: 'bad_input' })
-	}
-
-	const auth = readAuth(ctx)
-	const to = addressList(input.to)
+function buildPayload(input: SendEmailInput): Record<string, unknown> {
 	const payload: Record<string, unknown> = {
 		from: addressToString(input.from),
-		to,
+		to: addressList(input.to),
 		subject: input.subject
 	}
 	if (input.html !== undefined) payload['html'] = input.html
@@ -87,22 +65,25 @@ async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEma
 			...(att.disposition === undefined ? {} : { content_disposition: att.disposition })
 		}))
 	}
+	return payload
+}
 
-	const bytes = utf8ToBytes(JSON.stringify(payload)).byteLength
-	if (bytes > MAX_EMAIL_BYTES) {
-		throw new ToolError('Email payload exceeds 5 MiB limit', {
-			code: 'too_large',
-			details: { bytes, max_bytes: MAX_EMAIL_BYTES }
-		})
-	}
+async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEmailOutput> {
+	assertRecipientLimit(input)
+	const auth = readAuth(ctx)
+	const payload = buildPayload(input)
+	const attachmentBodies = input.attachments?.map((a) => a.content)
+	assertEmailSize(payload, attachmentBodies)
 
 	const { data } = await createResendService(auth, ctx).sendEmail(payload)
-	const id = isPlainObject(data) && isString(data['id']) ? data['id'] : undefined
-	const accepted = to ?? []
+	if (!isPlainObject(data)) {
+		throw new ToolError('Resend returned an unexpected payload', { code: 'upstream' })
+	}
+	const id = isString(data['id']) ? data['id'] : undefined
+	// Do not invent accepted[] from `to` — only return provider-backed fields.
 	return {
 		success: true,
-		...(id === undefined ? {} : { id }),
-		...(accepted.length > 0 ? { accepted } : {})
+		...(id === undefined ? {} : { id })
 	}
 }
 
