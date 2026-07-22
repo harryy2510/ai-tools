@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { isToolError } from '../../src/core'
-import { HttpService } from '../../src/shared/http-service'
+import { HttpService } from '../../src/transport/http-service'
 
 describe('HttpService', () => {
 	test('get parses json and uses baseURL', async () => {

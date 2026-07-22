@@ -3,7 +3,9 @@ import { z } from 'zod'
 import { defineModule, defineTool } from '../../core/define'
 import { ToolError } from '../../core/errors'
 import type { ToolContext } from '../../core/types'
-import { createServiceFetch, mapOfetchError, serviceRequestJson } from '../../shared/ofetch-client'
+import type { HttpBody } from '../../transport/http-service'
+import { HttpService } from '../../transport/http-service'
+import { mapTransportNetworkError } from '../../transport/errors'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -76,8 +78,14 @@ type ExecuteArgs = {
 	method: string
 	headers?: Record<string, string>
 	query?: Record<string, string | number | boolean>
-	body?: unknown
+	body?: HttpBody
 	timeout_ms?: number
+}
+
+function requestBody(body: unknown): HttpBody {
+	if (body === null) return null
+	if (typeof body === 'string' || typeof body === 'object') return body
+	throw new ToolError('Request body must be a string, object, array, or null', { code: 'bad_input' })
 }
 
 function readAuth(ctx: ToolContext): WebFetchAuth {
@@ -150,10 +158,6 @@ function headersForRequest(
 	return { ...model, ...hostDefaults }
 }
 
-function createWebFetchService(ctx: ToolContext, timeoutMs: number) {
-	return createServiceFetch({ timeout: timeoutMs }, ctx)
-}
-
 async function executeHttp(input: ExecuteArgs, ctx: ToolContext): Promise<z.infer<typeof requestOutputSchema>> {
 	const auth = readAuth(ctx)
 	const requireHttps = auth.require_https === true
@@ -171,16 +175,20 @@ async function executeHttp(input: ExecuteArgs, ctx: ToolContext): Promise<z.infe
 	const target = assertAllowed(input.url, allowed, requireHttps)
 	const method = input.method
 	const timeout = input.timeout_ms ?? auth.timeout_ms ?? DEFAULT_TIMEOUT_MS
-	const http = createWebFetchService(ctx, timeout)
+	const http = new HttpService({
+		timeout,
+		label: 'Web fetch',
+		...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch }),
+		...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+	})
 
 	try {
-		const response = await serviceRequestJson(http, 'Web fetch', target.href, {
-			method,
+		const response = await http.query(method, target.href, {
 			headers: headersForRequest(auth.default_headers, modelHeaders(input.headers)),
 			...(input.query === undefined ? {} : { query: input.query }),
 			...(input.body === undefined ? {} : { body: input.body }),
 			timeout,
-			throwOnError: false
+			noThrow: true
 		})
 
 		const finalUrl = response.url.length > 0 ? response.url : target.href
@@ -201,7 +209,7 @@ async function executeHttp(input: ExecuteArgs, ctx: ToolContext): Promise<z.infe
 			body: method === 'HEAD' ? null : response.data
 		})
 	} catch (error) {
-		mapOfetchError(error, 'Web fetch')
+		mapTransportNetworkError(error, 'Web fetch')
 	}
 }
 
@@ -245,7 +253,7 @@ const webFetchRequestTool = defineTool({
 				method: input.method ?? 'POST',
 				...(input.headers === undefined ? {} : { headers: input.headers }),
 				...(input.query === undefined ? {} : { query: input.query }),
-				...(input.body === undefined ? {} : { body: input.body }),
+				...(input.body === undefined ? {} : { body: requestBody(input.body) }),
 				...(input.timeout_ms === undefined ? {} : { timeout_ms: input.timeout_ms })
 			},
 			ctx

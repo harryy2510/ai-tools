@@ -48,7 +48,7 @@ export const weatherModule = defineModule({
       sideEffect: 'read',
       runtime: 'both',
       execute: async (input) => {
-        // call vendor / httpRequest
+        // call vendor via HttpService / client
         return { temperature_c: 20, summary: 'Clear' }
       },
     }),
@@ -64,7 +64,7 @@ Then `bun run codegen` so exports and tsdown pick up the module.
 - `description` and input `.describe()`: **model selection and argument filling only**.
 - `runtime`: honest (`node` | `edge` | `both`).
 - `sideEffect`: `none` | `read` | `write` | `delete` | `send`.
-- Prefer `defineHttpApi` / `httpRequest` for fixed-origin REST.
+- Prefer `HttpService` / product class client for fixed-origin REST.
 - Prefer `es-toolkit` for object/list helpers.
 - Fail with `ToolError` and stable codes; never leak secrets.
 - Tests mock network; do not require live keys for `bun run check`.

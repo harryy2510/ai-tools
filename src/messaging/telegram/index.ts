@@ -23,11 +23,5 @@ export { telegramAuthSchema } from './contracts'
 export type { TelegramAuth } from './contracts'
 export { parseTelegramUpdate, verifyTelegramWebhookSecret } from './webhook'
 export type { ParseTelegramUpdateResult, TelegramInboundEvent, TelegramInboundMedia } from './webhook'
-export { createLiveMessage, createTypingPulse } from '../../shared/channel-transport'
-export type {
-	ChannelTransport,
-	LiveMessage,
-	LiveMessageDeps,
-	TypingPulse,
-	TypingPulseDeps
-} from '../../shared/channel-transport'
+export { createLiveMessage, createTypingPulse } from '../channel-transport'
+export type { ChannelTransport, LiveMessage, LiveMessageDeps, TypingPulse, TypingPulseDeps } from '../channel-transport'

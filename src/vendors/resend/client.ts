@@ -9,8 +9,7 @@ import { ToolError } from '../../core/errors'
 import { requireAuth } from '../../core/provider'
 import type { FetchLike, ToolContext } from '../../core/types'
 import { runBatchItems } from '../../shared/batch'
-import { createServiceFetch, serviceRequestJson } from '../../shared/ofetch-client'
-import type { ServiceHttp } from '../../shared/ofetch-client'
+import { HttpService } from '../../transport/http-service'
 import type {
 	ResendAuth,
 	ResendSendBatchInput,
@@ -27,19 +26,18 @@ export type ResendClientOptions = {
 }
 
 function createResendService(auth: ResendAuth, ctx: ToolContext) {
-	const http: ServiceHttp = createServiceFetch(
-		{
-			baseURL: 'https://api.resend.com',
-			headers: {
-				Authorization: `Bearer ${auth.api_key}`,
-				'Content-Type': 'application/json'
-			}
+	const http = new HttpService({
+		baseURL: 'https://api.resend.com',
+		headers: {
+			Authorization: `Bearer ${auth.api_key}`,
+			'Content-Type': 'application/json'
 		},
-		ctx
-	)
+		label: 'Resend',
+		...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch }),
+		...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+	})
 	return {
-		sendEmail: (body: Record<string, unknown>) =>
-			serviceRequestJson(http, 'Resend sendEmail', '/emails', { method: 'POST', body })
+		sendEmail: (body: Record<string, unknown>) => http.post('/emails', body, { label: 'Resend sendEmail' })
 	}
 }
 

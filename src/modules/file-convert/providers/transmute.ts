@@ -7,8 +7,7 @@ import type { ToolContext } from '../../../core/types'
 import { runBatchItems } from '../../../shared/batch'
 import { artifactRefSchema } from '../../../shared/artifact'
 import { deriveOutputKey, mediaTypeFromPath, resolveFileExtension } from '../../../shared/media-type'
-import { createServiceFetch, serviceRequestBytes, serviceRequestJson } from '../../../shared/ofetch-client'
-import type { ServiceHttp } from '../../../shared/ofetch-client'
+import { HttpService } from '../../../transport/http-service'
 import { s3StorageAuthSchema, s3StorageProvider } from '../../storage/providers/s3'
 import type { ConvertInput, ConvertOutput, FileConvertOps } from '../contracts'
 import { convertOutputSchema } from '../contracts'
@@ -33,29 +32,24 @@ function readAuth(ctx: ToolContext): TransmuteConvertAuth {
 }
 
 function createTransmuteService(auth: TransmuteConvertAuth, ctx: ToolContext) {
-	const http: ServiceHttp = createServiceFetch(
-		{
-			baseURL: auth.transmute_base_url,
-			headers: {
-				Authorization: `Bearer ${auth.transmute_token}`
-			}
+	const http = new HttpService({
+		baseURL: auth.transmute_base_url,
+		headers: {
+			Authorization: `Bearer ${auth.transmute_token}`
 		},
-		ctx
-	)
+		label: 'Transmute',
+		...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch }),
+		...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+	})
 	return {
-		upload: (form: FormData) =>
-			serviceRequestJson(http, 'Transmute upload', '/api/files', {
-				method: 'POST',
-				body: form
-			}),
+		upload: (form: FormData) => http.post('/api/files', form, { label: 'Transmute upload' }),
 		convert: (body: Record<string, unknown>) =>
-			serviceRequestJson(http, 'Transmute convert', '/api/conversions', {
-				method: 'POST',
-				body,
+			http.post('/api/conversions', body, {
+				label: 'Transmute convert',
 				headers: { 'Content-Type': 'application/json' }
 			}),
 		download: (fileId: string) =>
-			serviceRequestBytes(http, 'Transmute download', `/api/files/${encodeURIComponent(fileId)}`)
+			http.bytes('GET', `/api/files/${encodeURIComponent(fileId)}`, { label: 'Transmute download' })
 	}
 }
 

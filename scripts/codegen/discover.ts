@@ -21,7 +21,7 @@ export type DiscoveredModule = {
 	/** Named export bindings found on index.ts */
 	exportNames: string[]
 	/**
-	 * Kernel module id extracted via AST from defineModule/defineHttpApi if present
+	 * Kernel module id extracted via AST from defineModule if present
 	 * in index.ts or module.ts.
 	 */
 	moduleId?: string
@@ -29,7 +29,7 @@ export type DiscoveredModule = {
 	moduleIdSource?: string
 }
 
-const DEFINE_CALLEES = new Set(['defineModule', 'defineHttpApi'])
+const DEFINE_CALLEES = new Set(['defineModule'])
 
 const SURFACE_LANES: readonly SurfaceLane[] = ['modules', 'vendors', 'messaging']
 

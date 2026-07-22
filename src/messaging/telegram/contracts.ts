@@ -13,7 +13,7 @@ import type {
 	ChannelSendTextInput,
 	ChannelSetReactionInput,
 	ChannelTransport
-} from '../../shared/channel-transport'
+} from '../channel-transport'
 
 export const telegramChatActionSchema = z.enum([
 	'typing',

@@ -4,7 +4,7 @@ import { defineConfig } from 'tsdown'
 export default defineConfig({
 	entry: {
 		'core/index': 'src/core/index.ts',
-		'http/index': 'src/http/index.ts',
+		'http/index': 'src/transport/index.ts',
 		'mastra/index': 'src/adapters/mastra/index.ts',
 		'ai-sdk/index': 'src/adapters/ai-sdk/index.ts',
 		'tanstack/index': 'src/adapters/tanstack/index.ts',
@@ -38,6 +38,8 @@ export default defineConfig({
 			'mime',
 			'mimetext',
 			'ofetch',
+			'p-map',
+			'p-retry',
 			'postal-mime',
 			'zod'
 		]

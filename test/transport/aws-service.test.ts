@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { isToolError } from '../../src/core'
-import { AwsService } from '../../src/shared/aws-service'
+import { AwsService } from '../../src/transport/aws-service'
 
 describe('AwsService', () => {
 	test('get signs request and parses json', async () => {

@@ -6,7 +6,7 @@ import { defineProvider } from '../../../core/provider'
 import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
 import { base64ToBytes, bytesToBase64, bytesToUtf8, utf8ToBytes } from '../../../shared/bytes'
-import { throwHttpStatus } from '../../../shared/rate-limit'
+import { throwHttpStatus } from '../../../transport/errors'
 import { DEFAULT_SIGNED_URL_SECONDS, MAX_MULTIPART_PART_BYTES, MAX_OBJECT_BYTES } from '../contracts'
 import type {
 	AbortMultipartUploadInput,

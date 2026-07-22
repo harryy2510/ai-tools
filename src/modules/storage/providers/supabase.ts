@@ -4,15 +4,15 @@ import { z } from 'zod'
 import { defineProvider } from '../../../core/provider'
 import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
-import { base64ToBytes, bytesToBase64, bytesToUtf8, utf8ToBytes } from '../../../shared/bytes'
 import {
-	createServiceFetch,
+	base64ToBytes,
+	bytesToBase64,
+	bytesToUtf8,
 	encodeObjectKeyPath,
-	serviceRequestBytes,
-	serviceRequestJson,
-	toArrayBuffer
-} from '../../../shared/ofetch-client'
-import type { ServiceHttp } from '../../../shared/ofetch-client'
+	toArrayBuffer,
+	utf8ToBytes
+} from '../../../shared/bytes'
+import { HttpService } from '../../../transport/http-service'
 import { MAX_OBJECT_BYTES } from '../contracts'
 import type {
 	CopyObjectInput,
@@ -43,51 +43,44 @@ function readAuth(ctx: ToolContext): SupabaseStorageAuth {
 
 /** Supabase Storage REST service (`/storage/v1`). */
 function createSupabaseStorageService(auth: SupabaseStorageAuth, ctx: ToolContext) {
-	const http: ServiceHttp = createServiceFetch(
-		{
-			baseURL: `${auth.url.replace(/\/+$/, '')}/storage/v1`,
-			headers: {
-				Authorization: `Bearer ${auth.serviceRoleKey}`,
-				apikey: auth.serviceRoleKey
-			}
+	const http = new HttpService({
+		baseURL: `${auth.url.replace(/\/+$/, '')}/storage/v1`,
+		headers: {
+			Authorization: `Bearer ${auth.serviceRoleKey}`,
+			apikey: auth.serviceRoleKey
 		},
-		ctx
-	)
+		label: 'Supabase storage',
+		...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch }),
+		...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+	})
 	const bucket = encodeURIComponent(auth.bucket)
 	const objectPath = (key: string) => `/object/${bucket}/${encodeObjectKeyPath(key)}`
 	const label = 'Supabase storage'
 
 	return {
-		list: (body: Record<string, unknown>) =>
-			serviceRequestJson(http, `${label} list`, `/object/list/${bucket}`, {
-				method: 'POST',
-				body
-			}),
-		getObject: (key: string) => serviceRequestBytes(http, `${label} get`, objectPath(key)),
+		list: (body: Record<string, unknown>) => http.post(`/object/list/${bucket}`, body, { label: `${label} list` }),
+		getObject: (key: string) => http.bytes('GET', objectPath(key), { label: `${label} get` }),
 		putObject: (key: string, bytes: Uint8Array, contentType: string) =>
-			serviceRequestJson(http, `${label} put`, objectPath(key), {
-				method: 'POST',
-				body: toArrayBuffer(bytes),
+			http.post(objectPath(key), toArrayBuffer(bytes), {
+				label: `${label} put`,
 				headers: {
 					'Content-Type': contentType,
 					'x-upsert': 'true'
 				}
 			}),
 		deleteObjects: (prefixes: string[]) =>
-			serviceRequestJson(http, `${label} delete`, `/object/${bucket}`, {
-				method: 'DELETE',
+			http.query('DELETE', `/object/${bucket}`, {
+				label: `${label} delete`,
 				body: { prefixes },
 				allowStatuses: [404]
 			}),
 		objectInfo: (key: string) =>
-			serviceRequestJson(http, `${label} head`, `/object/info/${bucket}/${encodeObjectKeyPath(key)}`, {
+			http.get(`/object/info/${bucket}/${encodeObjectKeyPath(key)}`, {
+				label: `${label} head`,
 				allowStatuses: [404]
 			}),
 		copy: (body: { bucketId: string; sourceKey: string; destinationBucket: string; destinationKey: string }) =>
-			serviceRequestJson(http, `${label} copy`, '/object/copy', {
-				method: 'POST',
-				body
-			})
+			http.post('/object/copy', body, { label: `${label} copy` })
 	}
 }
 

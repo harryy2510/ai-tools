@@ -8,7 +8,7 @@ Related:
 
 - [provider-seam.md](./provider-seam.md) — multi-provider capability modules only  
 - [artifacts-extract-convert.md](./artifacts-extract-convert.md) — ArtifactRef pipelines  
-- [ofetch-services.md](../reference/ofetch-services.md) — HTTP client pattern  
+- [http-and-aws-services.md](../reference/http-and-aws-services.md) — HTTP / SigV4 transport  
 - **Working delivery board:** [package-surface-working.md](../roadmap/package-surface-working.md) — inventory, migration, checklists, open questions  
 - Host product context (Five Star): connector seam (Composio + Nango), channel productionization specs  
 
@@ -304,13 +304,13 @@ Channel-specific methods stay on the pack only (`sendMediaGroup`, Slack blocks, 
 
 Applies to all three lanes:
 
-1. **ofetch service clients** for JSON/HTTP (`createServiceFetch`, `serviceRequestJson` / `serviceRequestBytes`).  
-2. **aws4fetch** only when SigV4 is required (S3-compatible, Textract, SQS, …).  
+1. **`HttpService`** (ofetch) for JSON/HTTP.  
+2. **`AwsService`** (HttpService + aws4fetch SigV4) when signing is required.  
 3. Prefer **vendor REST** over Workers-only bindings (e.g. R2 REST or S3 API, not `env.R2` as the primary provider).  
 4. Auth only via `withAuth` / `ctx.auth`.  
 5. Batch + cursor pagination + `rate_limited` / `retryable` where the domain allows.
 
-See [ofetch-services.md](../reference/ofetch-services.md).
+See [http-and-aws-services.md](../reference/http-and-aws-services.md).
 
 ---
 

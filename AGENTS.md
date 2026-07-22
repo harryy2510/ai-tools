@@ -25,7 +25,7 @@ These override convenience, host inventory code, and “I’ll clean it up later
 ### R0 — Read order before any code change
 
 1. This file (`AGENTS.md`)
-2. `docs/reference/ofetch-services.md` (if the task touches network I/O)
+2. `docs/reference/http-and-aws-services.md` (if the task touches network I/O) — `src/transport/`
 3. `docs/specs/package-surface-architecture.md` (modules vs vendors) and/or `docs/specs/provider-seam.md` (multi-provider seams only)
 4. **Clone a gold file:**
    - Vendor pack: `src/vendors/resend/` (`client.ts`, `module.ts`, `contracts.ts`)
@@ -107,7 +107,7 @@ src/modules|vendors/<key>/
 
 ### R6 — Transport classes (HTTP + AWS)
 
-**New code uses classes** (see `src/shared/http-service.ts`, `src/shared/aws-service.ts`):
+**New code uses classes** (see `src/transport/http-service.ts`, `src/transport/aws-service.ts`):
 
 ```ts
 // Non-SigV4
@@ -141,9 +141,7 @@ Product clients **own** the transport instance (constructor), not free sibling `
 | Raw `AwsClient` soup in providers | `AwsService` |
 | Dual body helpers / dynamic method routers | Named product methods → `http.post` / `aws.put` |
 | Paths in tools/module execute | Only inside product client/provider |
-| Free `serviceRequestJson` in **new** code | `HttpService.query` / `.post` … |
-
-Legacy `ofetch-client.ts` free helpers remain until call sites migrate.
+| Free transport helper wrappers | `HttpService` / `AwsService` directly |
 
 ### R7 — Auth and naming
 
@@ -171,7 +169,9 @@ Legacy `ofetch-client.ts` free helpers remain until call sites migrate.
 - **modules/** = our seams; **vendors/** = 3rd-party full packs (including chat platforms and email ESPs).
 - Kernel (`defineTool` / `defineModule`) is the only tool authoring surface; adapters only project.
 - Class clients for multi-call host DX; tools for agents; both wrap the same implementation.
-- ofetch service pattern mandatory for non-SigV4 HTTP. See `docs/reference/ofetch-services.md`.
+- `HttpService` / `AwsService` for all product HTTP (`src/transport/`). See `docs/reference/http-and-aws-services.md`.
+- Layout: `transport/` = HTTP only; `shared/` = cross-module product utils only; `messaging/channel-transport` = channel contracts (not shared).
+- Batch: `runBatchItems` in `shared/batch` (`p-map` + optional `p-retry`). Not inside transport.
 - Composio/Nango stay host SaaS OAuth + PHI catalog; this package does not replace them.
 - Prefer `es-toolkit` / `es-toolkit/compat` over hand-rolled typeof/array helpers.
 - Type safety: no assertions except unchained `as const`; untrusted boundaries use `unknown` + narrowing.
@@ -235,5 +235,5 @@ If public surface / build emit changed: also `bun run build` and `bun run typech
 ## Slice discipline
 
 - Small vertical slices: contract → client/tools → tests → `bun run check` green → **user review** → commit only if asked.
-- Prefer `defineHttpApi` for fixed REST vendors when it fits before custom clients.
+- Prefer `HttpService` / `AwsService` class clients; set auth as headers (or SigV4).
 - Stop and ask for new dependencies, public API breaks, free-form HTTP, or unlocked product defaults.

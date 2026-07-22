@@ -10,9 +10,8 @@ import { isPlainObject, isString } from 'es-toolkit'
 
 import { ToolError } from '../../core/errors'
 import type { FetchLike, ToolContext } from '../../core/types'
-import { base64ToBytes, bytesToBase64 } from '../../shared/bytes'
-import { createServiceFetch, serviceRequestBytes, serviceRequestJson, toArrayBuffer } from '../../shared/ofetch-client'
-import type { ServiceHttp } from '../../shared/ofetch-client'
+import { base64ToBytes, bytesToBase64, toArrayBuffer } from '../../shared/bytes'
+import { HttpService } from '../../transport/http-service'
 import type {
 	ChannelAnswerCallbackInput,
 	ChannelClearReactionInput,
@@ -25,7 +24,7 @@ import type {
 	ChannelSendTextInput,
 	ChannelSetReactionInput,
 	ChannelTransport
-} from '../../shared/channel-transport'
+} from '../channel-transport'
 import type { TelegramAuth, TelegramSendMediaGroupInput } from './contracts'
 
 const TELEGRAM_API_BASE = 'https://api.telegram.org'
@@ -75,22 +74,26 @@ export function isTelegramOutcomeUnknown(error: unknown): boolean {
 }
 
 /**
- * ofetch service — endpoint methods only (same idea as createResendService).
- * ofetch already serializes object vs FormData; one POST path.
- * throwOnError: false so Telegram `{ ok, description }` envelope can be read.
+ * Endpoint methods only. noThrow so Telegram `{ ok, description }` envelope can be read.
  */
 function createTelegramService(auth: TelegramAuth, ctx: ToolContext) {
-	const api: ServiceHttp = createServiceFetch({ baseURL: `${TELEGRAM_API_BASE}/bot${auth.bot_token}` }, ctx)
-	const files: ServiceHttp = createServiceFetch({ baseURL: `${TELEGRAM_API_BASE}/file/bot${auth.bot_token}` }, ctx)
-	const signal = ctx.signal === undefined ? {} : { signal: ctx.signal }
+	const inject = {
+		...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch }),
+		...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+	}
+	const api = new HttpService({
+		baseURL: `${TELEGRAM_API_BASE}/bot${auth.bot_token}`,
+		label: 'Telegram',
+		...inject
+	})
+	const files = new HttpService({
+		baseURL: `${TELEGRAM_API_BASE}/file/bot${auth.bot_token}`,
+		label: 'Telegram',
+		...inject
+	})
 
 	const post = async (label: string, path: string, body: FormData | Record<string, unknown> = {}) => {
-		const res = await serviceRequestJson(api, label, path, {
-			method: 'POST',
-			body,
-			throwOnError: false,
-			...signal
-		})
+		const res = await api.post(path, body, { label, noThrow: true })
 		return telegramResult(label, res.status, res.data)
 	}
 
@@ -112,11 +115,7 @@ function createTelegramService(auth: TelegramAuth, ctx: ToolContext) {
 		sendMediaGroup: (body: FormData) => post('Telegram sendMediaGroup', '/sendMediaGroup', body),
 		downloadFileBytes: async (filePath: string): Promise<Uint8Array> => {
 			const path = `/${filePath.replace(/^\/+/, '')}`
-			const res = await serviceRequestBytes(files, 'Telegram downloadFile', path, {
-				method: 'GET',
-				throwOnError: false,
-				...signal
-			})
+			const res = await files.bytes('GET', path, { label: 'Telegram downloadFile', noThrow: true })
 			if (!res.ok) {
 				throw new TelegramClientError({
 					message: `Telegram downloadFile failed with HTTP ${res.status}`,
@@ -132,7 +131,7 @@ function createTelegramService(auth: TelegramAuth, ctx: ToolContext) {
 
 type TelegramService = ReturnType<typeof createTelegramService>
 
-/** Parse Telegram `{ ok, result | description }` after serviceRequestJson (HTTP may be non-2xx). */
+/** Parse Telegram `{ ok, result | description }` after HTTP (may be non-2xx). */
 function telegramResult(label: string, status: number, data: unknown): unknown {
 	if (!isPlainObject(data) || typeof data['ok'] !== 'boolean') {
 		throw new TelegramClientError({

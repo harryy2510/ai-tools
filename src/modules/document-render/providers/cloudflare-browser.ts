@@ -4,8 +4,7 @@ import { defineProvider } from '../../../core/provider'
 import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
 import { artifactRefSchema } from '../../../shared/artifact'
-import { createServiceFetch, serviceRequestBytes } from '../../../shared/ofetch-client'
-import type { ServiceHttp } from '../../../shared/ofetch-client'
+import { HttpService } from '../../../transport/http-service'
 import type { DocumentRenderOps, RenderPdfInput, RenderScreenshotInput, RenderSource } from '../contracts'
 import { defaultRenderKey, putRenderBytes, renderStorageAuthSchema } from '../storage'
 
@@ -49,17 +48,17 @@ function readAuth(ctx: ToolContext): CloudflareBrowserRenderAuth {
 	return parsed.data
 }
 
-function createBrowserService(auth: CloudflareBrowserRenderAuth, ctx: ToolContext): ServiceHttp {
-	return createServiceFetch(
-		{
-			baseURL: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(auth.accountId)}`,
-			headers: {
-				Authorization: `Bearer ${auth.apiToken}`
-			},
-			timeout: 60_000
+function createBrowserService(auth: CloudflareBrowserRenderAuth, ctx: ToolContext): HttpService {
+	return new HttpService({
+		baseURL: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(auth.accountId)}`,
+		headers: {
+			Authorization: `Bearer ${auth.apiToken}`
 		},
-		ctx
-	)
+		timeout: 60_000,
+		label: 'Cloudflare Browser',
+		...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch }),
+		...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+	})
 }
 
 function sourceBody(source: RenderSource): Record<string, unknown> {
@@ -116,8 +115,8 @@ async function renderAndStore(
 
 	const path = kind === 'pdf' ? '/browser-rendering/pdf' : '/browser-rendering/screenshot'
 	const accept = kind === 'pdf' ? 'application/pdf' : 'image/png'
-	const { bytes } = await serviceRequestBytes(http, `Cloudflare Browser ${kind}`, path, {
-		method: 'POST',
+	const { bytes } = await http.bytes('POST', path, {
+		label: `Cloudflare Browser ${kind}`,
 		body,
 		headers: {
 			'Content-Type': 'application/json',

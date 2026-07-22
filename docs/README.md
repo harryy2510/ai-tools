@@ -44,7 +44,7 @@ Documentation hub for the package. Source of truth for architecture and module c
 | Spec: package surface (modules · vendors · messaging) | [package-surface-architecture](./specs/package-surface-architecture.md) |
 | Working: surface delivery board | [package-surface-working](./roadmap/package-surface-working.md) |
 | Spec: provider seam (capability modules) | [provider-seam](./specs/provider-seam.md) |
-| ofetch service clients | [ofetch-services](./reference/ofetch-services.md) |
+| HTTP / AWS transport | [http-and-aws-services](./reference/http-and-aws-services.md) |
 
 ## Mental model
 

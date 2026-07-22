@@ -4,8 +4,8 @@ import { defineProvider } from '../../../core/provider'
 import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
 import { artifactRefSchema } from '../../../shared/artifact'
-import { createServiceFetch, serviceRequestBytes, toArrayBuffer } from '../../../shared/ofetch-client'
-import type { ServiceHttp } from '../../../shared/ofetch-client'
+import { toArrayBuffer } from '../../../shared/bytes'
+import { HttpService } from '../../../transport/http-service'
 import type { DocumentRenderOps, RenderPdfInput, RenderScreenshotInput, RenderSource } from '../contracts'
 import { defaultRenderKey, putRenderBytes, renderStorageAuthSchema } from '../storage'
 
@@ -27,19 +27,19 @@ function readAuth(ctx: ToolContext): GotenbergRenderAuth {
 	return parsed.data
 }
 
-function createGotenbergService(auth: GotenbergRenderAuth, ctx: ToolContext): ServiceHttp {
+function createGotenbergService(auth: GotenbergRenderAuth, ctx: ToolContext): HttpService {
 	const headers: Record<string, string> = {}
 	if (auth.gotenberg_api_username !== undefined && auth.gotenberg_api_password !== undefined) {
 		const token = btoa(`${auth.gotenberg_api_username}:${auth.gotenberg_api_password}`)
 		headers['Authorization'] = `Basic ${token}`
 	}
-	return createServiceFetch(
-		{
-			baseURL: auth.gotenberg_base_url,
-			headers
-		},
-		ctx
-	)
+	return new HttpService({
+		baseURL: auth.gotenberg_base_url,
+		headers,
+		label: 'Gotenberg',
+		...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch }),
+		...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+	})
 }
 
 function appendSource(form: FormData, source: RenderSource): void {
@@ -81,8 +81,8 @@ async function renderAndStore(
 	}
 
 	const path = htmlPath(kind, input.source)
-	const { bytes } = await serviceRequestBytes(http, `Gotenberg ${kind}`, path, {
-		method: 'POST',
+	const { bytes } = await http.bytes('POST', path, {
+		label: `Gotenberg ${kind}`,
 		body: form
 	})
 

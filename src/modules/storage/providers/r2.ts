@@ -4,15 +4,15 @@ import { z } from 'zod'
 import { defineProvider } from '../../../core/provider'
 import { ToolError } from '../../../core/errors'
 import type { ToolContext } from '../../../core/types'
-import { base64ToBytes, bytesToBase64, bytesToUtf8, utf8ToBytes } from '../../../shared/bytes'
 import {
-	createServiceFetch,
+	base64ToBytes,
+	bytesToBase64,
+	bytesToUtf8,
 	encodeObjectKeyPath,
-	serviceRequestBytes,
-	serviceRequestJson,
-	toArrayBuffer
-} from '../../../shared/ofetch-client'
-import type { ServiceHttp } from '../../../shared/ofetch-client'
+	toArrayBuffer,
+	utf8ToBytes
+} from '../../../shared/bytes'
+import { HttpService } from '../../../transport/http-service'
 import { MAX_OBJECT_BYTES } from '../contracts'
 import type {
 	CopyObjectInput,
@@ -55,29 +55,28 @@ function createR2RestService(auth: R2StorageAuth, ctx: ToolContext) {
 	if (auth.jurisdiction !== undefined) {
 		headers['cf-r2-jurisdiction'] = auth.jurisdiction
 	}
-	const http: ServiceHttp = createServiceFetch(
-		{
-			baseURL: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(auth.accountId)}/r2/buckets/${encodeURIComponent(auth.bucket)}`,
-			headers
-		},
-		ctx
-	)
+	const http = new HttpService({
+		baseURL: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(auth.accountId)}/r2/buckets/${encodeURIComponent(auth.bucket)}`,
+		headers,
+		label: 'R2 REST',
+		...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch }),
+		...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+	})
 	const label = 'R2 REST'
 	const objectPath = (key: string) => `/objects/${encodeObjectKeyPath(key)}`
 
 	return {
 		list: (query: Record<string, string | number | boolean | undefined>) =>
-			serviceRequestJson(http, `${label} list`, '/objects', { query }),
-		getObject: (key: string) => serviceRequestBytes(http, `${label} get`, objectPath(key)),
+			http.get('/objects', { label: `${label} list`, query }),
+		getObject: (key: string) => http.bytes('GET', objectPath(key), { label: `${label} get` }),
 		putObject: (key: string, bytes: Uint8Array, contentType: string) =>
-			serviceRequestJson(http, `${label} put`, objectPath(key), {
-				method: 'PUT',
-				body: toArrayBuffer(bytes),
+			http.put(objectPath(key), toArrayBuffer(bytes), {
+				label: `${label} put`,
 				headers: { 'Content-Type': contentType }
 			}),
 		deleteObject: (key: string) =>
-			serviceRequestJson(http, `${label} delete`, objectPath(key), {
-				method: 'DELETE',
+			http.delete(objectPath(key), {
+				label: `${label} delete`,
 				allowStatuses: [404]
 			})
 	}

@@ -9,8 +9,7 @@ import { ToolError } from '../../core/errors'
 import { requireAuth } from '../../core/provider'
 import type { FetchLike, ToolContext } from '../../core/types'
 import { runBatchItems } from '../../shared/batch'
-import { createServiceFetch, serviceRequestJson } from '../../shared/ofetch-client'
-import type { ServiceHttp } from '../../shared/ofetch-client'
+import { HttpService } from '../../transport/http-service'
 import type {
 	CloudflareEmailAuth,
 	CloudflareEmailSendBatchInput,
@@ -27,24 +26,21 @@ export type CloudflareEmailClientOptions = {
 }
 
 function createCloudflareEmailService(auth: CloudflareEmailAuth, ctx: ToolContext) {
-	const http: ServiceHttp = createServiceFetch(
-		{
-			baseURL: 'https://api.cloudflare.com/client/v4',
-			headers: {
-				Authorization: `Bearer ${auth.api_token}`,
-				'Content-Type': 'application/json'
-			}
+	const http = new HttpService({
+		baseURL: 'https://api.cloudflare.com/client/v4',
+		headers: {
+			Authorization: `Bearer ${auth.api_token}`,
+			'Content-Type': 'application/json'
 		},
-		ctx
-	)
+		label: 'Cloudflare Email',
+		...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch }),
+		...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+	})
 	return {
 		sendEmail: (body: Record<string, unknown>) =>
-			serviceRequestJson(
-				http,
-				'Cloudflare Email sendEmail',
-				`/accounts/${encodeURIComponent(auth.account_id)}/email/sending/send`,
-				{ method: 'POST', body }
-			)
+			http.post(`/accounts/${encodeURIComponent(auth.account_id)}/email/sending/send`, body, {
+				label: 'Cloudflare Email sendEmail'
+			})
 	}
 }
 

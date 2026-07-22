@@ -11,11 +11,11 @@ export type BrainPackage = {
 
 /**
  * Public subpaths stay flat (`@harryy/ai-tools/mastra`).
- * Source lives under `src/adapters/*` for adapters; `core`/`http` stay top-level.
+ * Source lives under `src/adapters/*` for adapters; transport public as `./http`.
  */
 export const BRAIN_PACKAGES: readonly BrainPackage[] = [
 	{ exportKey: 'core', entryKey: 'core/index', source: 'src/core/index.ts' },
-	{ exportKey: 'http', entryKey: 'http/index', source: 'src/http/index.ts' },
+	{ exportKey: 'http', entryKey: 'http/index', source: 'src/transport/index.ts' },
 	{ exportKey: 'mastra', entryKey: 'mastra/index', source: 'src/adapters/mastra/index.ts' },
 	{ exportKey: 'ai-sdk', entryKey: 'ai-sdk/index', source: 'src/adapters/ai-sdk/index.ts' },
 	{ exportKey: 'tanstack', entryKey: 'tanstack/index', source: 'src/adapters/tanstack/index.ts' },
@@ -37,6 +37,8 @@ export const NEVER_BUNDLE = [
 	'mime',
 	'mimetext',
 	'ofetch',
+	'p-map',
+	'p-retry',
 	'postal-mime',
 	'zod'
 ] as const
