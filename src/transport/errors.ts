@@ -2,6 +2,7 @@
  * HTTP status / network → ToolError for HttpService and AwsService.
  */
 
+import { isError, isNumber } from 'es-toolkit'
 import { FetchError } from 'ofetch'
 
 import { ToolError } from '../core/errors'
@@ -69,7 +70,7 @@ export function mapTransportNetworkError(error: unknown, label: string): never {
 	if (error instanceof ToolError) throw error
 	if (error instanceof FetchError) {
 		const status = error.statusCode ?? error.response?.status
-		if (typeof status === 'number' && Number.isFinite(status)) {
+		if (isNumber(status) && Number.isFinite(status)) {
 			const retryAfter = retryAfterMsFromHeader(error.response?.headers.get('retry-after') ?? null)
 			throwHttpStatus(label, status, retryAfter)
 		}
@@ -79,7 +80,7 @@ export function mapTransportNetworkError(error: unknown, label: string): never {
 			cause: error
 		})
 	}
-	if (error instanceof Error && error.name === 'AbortError') {
+	if (isError(error) && error.name === 'AbortError') {
 		throw new ToolError(`${label} request was aborted`, {
 			code: 'timeout',
 			retryable: true,

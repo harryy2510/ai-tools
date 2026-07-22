@@ -1,7 +1,8 @@
-import { countBy, isPlainObject, isString } from 'es-toolkit'
+import { flatMap, isPlainObject, isString } from 'es-toolkit'
 import { toJSONSchema } from 'zod'
 
 import type { ModuleDefinition, ToolDefinition } from './types'
+import { duplicatesBy } from './unique'
 
 const FORBIDDEN_MODEL_COPY =
 	/\b(api[_ ]?key|apiKey|bearer token|process\.env|vault|secret key|authorization header|withAuth)\b/i
@@ -86,15 +87,11 @@ export function validateModule(module: ModuleDefinition): ContractResult {
 	const issues: ContractIssue[] = []
 	checkModelCopy(`module.${module.id}.description`, module.description, issues)
 
-	for (const [id, count] of Object.entries(countBy(module.tools, (tool) => tool.id))) {
-		if (count > 1) {
-			issues.push(issue(`module.${module.id}.tools.${id}`, 'duplicate_tool_id', `Duplicate tool id "${id}"`))
-		}
+	for (const id of duplicatesBy(module.tools, (tool) => tool.id)) {
+		issues.push(issue(`module.${module.id}.tools.${id}`, 'duplicate_tool_id', `Duplicate tool id "${id}"`))
 	}
 
-	for (const tool of module.tools) {
-		issues.push(...validateTool(tool, `module.${module.id}.tools.${tool.id}`).issues)
-	}
+	issues.push(...flatMap(module.tools, (tool) => validateTool(tool, `module.${module.id}.tools.${tool.id}`).issues))
 
 	return { ok: issues.length === 0, issues }
 }

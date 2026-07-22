@@ -1,9 +1,7 @@
-import { isArray } from 'es-toolkit/compat'
-
 import type { ToolDefinition, ToolSource } from './types'
 
 export function isToolArray(source: ToolSource): source is readonly ToolDefinition[] {
-	return isArray(source)
+	return Array.isArray(source)
 }
 
 /** Normalize a module or tool list into a flat tool list. */

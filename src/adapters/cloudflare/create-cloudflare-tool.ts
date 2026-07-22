@@ -1,7 +1,9 @@
+import { keyBy, mapValues } from 'es-toolkit'
 import { toJSONSchema } from 'zod'
 
 import { resolveTools } from '../../core/resolve-tools'
 import type { ToolContext, ToolDefinition, ToolSource } from '../../core/types'
+import { assertUniqueBy } from '../../core/unique'
 import { runTool } from '../../core/with-auth'
 
 /**
@@ -40,19 +42,21 @@ export function createCloudflareAiToolDefinition(tool: ToolDefinition): Cloudfla
  */
 export function createCloudflareAiTools(source: ToolSource): CloudflareAiToolset {
 	const tools = resolveTools(source)
-	const definitions: CloudflareAiToolDefinition[] = []
-	const executors: Record<string, (args: unknown, ctx?: ToolContext) => Promise<unknown>> = {}
+	assertUniqueBy(
+		tools,
+		(t) => t.id,
+		(id) => `Duplicate tool id when building Cloudflare tools: ${id}`
+	)
 
-	for (const tool of tools) {
-		if (executors[tool.id]) {
-			throw new Error(`Duplicate tool id when building Cloudflare tools: ${tool.id}`)
-		}
-		definitions.push(createCloudflareAiToolDefinition(tool))
-		executors[tool.id] = async (args, ctx = {}) => runTool(tool, args, ctx)
-	}
+	const executors = mapValues(
+		keyBy(tools, (t) => t.id),
+		(tool) =>
+			(args: unknown, ctx: ToolContext = {}) =>
+				runTool(tool, args, ctx)
+	)
 
 	return {
-		definitions,
+		definitions: tools.map(createCloudflareAiToolDefinition),
 		executors,
 		execute: async (name, args, ctx = {}) => {
 			const run = executors[name]

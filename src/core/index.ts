@@ -21,4 +21,5 @@ export type {
 	ToolSideEffect,
 	ToolSource
 } from './types'
+export { assertUniqueBy, duplicatesBy, firstDuplicateBy } from './unique'
 export { listTools, runTool, withAuth, withAuthTool } from './with-auth'

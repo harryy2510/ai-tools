@@ -1,5 +1,3 @@
-import { countBy } from 'es-toolkit'
-
 import type {
 	AuthDefinition,
 	ModuleDefinition,
@@ -8,6 +6,7 @@ import type {
 	ToolRuntime,
 	ToolSideEffect
 } from './types'
+import { assertUniqueBy } from './unique'
 
 export type DefineToolOptions<TInput, TOutput> = {
 	description: string
@@ -79,10 +78,11 @@ export function defineModule<TAuth = unknown>(options: DefineModuleOptions<TAuth
 		throw new Error(`Module ${options.id} must declare at least one tool`)
 	}
 
-	const duplicateId = Object.entries(countBy(options.tools, (tool) => tool.id)).find(([, count]) => count > 1)?.[0]
-	if (duplicateId) {
-		throw new Error(`Module ${options.id} has duplicate tool id: ${duplicateId}`)
-	}
+	assertUniqueBy(
+		options.tools,
+		(tool) => tool.id,
+		(id) => `Module ${options.id} has duplicate tool id: ${id}`
+	)
 
 	return {
 		id: options.id,

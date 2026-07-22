@@ -1,7 +1,9 @@
 import { createTool } from '@mastra/core/tools'
+import { keyBy, mapValues } from 'es-toolkit'
 
 import { resolveTools } from '../../core/resolve-tools'
 import type { ToolDefinition, ToolSource } from '../../core/types'
+import { assertUniqueBy } from '../../core/unique'
 import { runTool } from '../../core/with-auth'
 
 type MastraTool = ReturnType<typeof createTool>
@@ -30,14 +32,13 @@ export function createMastraTool(tool: ToolDefinition): MastraTool {
 /** Project tools into a Mastra tools record keyed by tool id. */
 export function createMastraTools(source: ToolSource): Record<string, MastraTool> {
 	const tools = resolveTools(source)
-	const record: Record<string, MastraTool> = {}
-
-	for (const tool of tools) {
-		if (record[tool.id]) {
-			throw new Error(`Duplicate tool id when building Mastra tools: ${tool.id}`)
-		}
-		record[tool.id] = createMastraTool(tool)
-	}
-
-	return record
+	assertUniqueBy(
+		tools,
+		(t) => t.id,
+		(id) => `Duplicate tool id when building Mastra tools: ${id}`
+	)
+	return mapValues(
+		keyBy(tools, (t) => t.id),
+		createMastraTool
+	)
 }

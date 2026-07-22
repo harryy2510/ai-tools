@@ -1,8 +1,9 @@
-import { isFunction, isPlainObject, isString } from 'es-toolkit'
+import { isFunction, isPlainObject, isString, keyBy, mapValues } from 'es-toolkit'
 import { toJSONSchema } from 'zod'
 
 import { resolveTools } from '../../core/resolve-tools'
 import type { ToolContext, ToolDefinition, ToolSideEffect, ToolSource } from '../../core/types'
+import { assertUniqueBy } from '../../core/unique'
 import { runTool } from '../../core/with-auth'
 
 /**
@@ -96,19 +97,20 @@ function toCallResult(value: unknown): McpCallToolResult {
  */
 export function createMcpTools(source: ToolSource): McpToolset {
 	const tools = resolveTools(source)
-	const list: McpToolListItem[] = []
-	const executors: Record<string, (args: unknown, ctx?: ToolContext) => Promise<unknown>> = {}
-
-	for (const tool of tools) {
-		if (executors[tool.id]) {
-			throw new Error(`Duplicate tool id when building MCP tools: ${tool.id}`)
-		}
-		list.push(createMcpToolListItem(tool))
-		executors[tool.id] = async (args, ctx = {}) => runTool(tool, args, ctx)
-	}
+	assertUniqueBy(
+		tools,
+		(t) => t.id,
+		(id) => `Duplicate tool id when building MCP tools: ${id}`
+	)
+	const executors = mapValues(
+		keyBy(tools, (t) => t.id),
+		(tool) =>
+			(args: unknown, ctx: ToolContext = {}) =>
+				runTool(tool, args, ctx)
+	)
 
 	return {
-		list,
+		list: tools.map(createMcpToolListItem),
 		executors,
 		call: async (name, args, ctx = {}) => {
 			const run = executors[name]
@@ -150,14 +152,13 @@ export function registerMcpTools(
 	options: RegisterMcpToolsOptions = {}
 ): void {
 	const tools = resolveTools(source)
-	const seen = new Set<string>()
+	assertUniqueBy(
+		tools,
+		(t) => t.id,
+		(id) => `Duplicate tool id when registering MCP tools: ${id}`
+	)
 
 	for (const tool of tools) {
-		if (seen.has(tool.id)) {
-			throw new Error(`Duplicate tool id when registering MCP tools: ${tool.id}`)
-		}
-		seen.add(tool.id)
-
 		server.registerTool(
 			tool.id,
 			{

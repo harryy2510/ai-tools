@@ -1,7 +1,9 @@
 import { dynamicTool } from 'ai'
+import { keyBy, mapValues } from 'es-toolkit'
 
 import { resolveTools } from '../../core/resolve-tools'
 import type { ToolDefinition, ToolSource } from '../../core/types'
+import { assertUniqueBy } from '../../core/unique'
 import { runTool } from '../../core/with-auth'
 
 type AiSdkTool = ReturnType<typeof dynamicTool>
@@ -26,14 +28,13 @@ export function createAiSdkTool(kernelTool: ToolDefinition): AiSdkTool {
 /** Project tools into an AI SDK tools record keyed by tool id. */
 export function createAiSdkTools(source: ToolSource): Record<string, AiSdkTool> {
 	const tools = resolveTools(source)
-	const record: Record<string, AiSdkTool> = {}
-
-	for (const kernelTool of tools) {
-		if (record[kernelTool.id]) {
-			throw new Error(`Duplicate tool id when building AI SDK tools: ${kernelTool.id}`)
-		}
-		record[kernelTool.id] = createAiSdkTool(kernelTool)
-	}
-
-	return record
+	assertUniqueBy(
+		tools,
+		(t) => t.id,
+		(id) => `Duplicate tool id when building AI SDK tools: ${id}`
+	)
+	return mapValues(
+		keyBy(tools, (t) => t.id),
+		createAiSdkTool
+	)
 }

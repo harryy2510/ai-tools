@@ -1,3 +1,4 @@
+import { isError, sumBy } from 'es-toolkit'
 import pMap from 'p-map'
 import pRetry from 'p-retry'
 import { z } from 'zod'
@@ -71,7 +72,7 @@ export async function runBatchItems<TIn, TOut>(
 				const err =
 					error instanceof ToolError
 						? error
-						: new ToolError(error instanceof Error ? error.message : 'Batch item failed', {
+						: new ToolError(isError(error) ? error.message : 'Batch item failed', {
 								code: 'internal',
 								cause: error
 							})
@@ -85,6 +86,6 @@ export async function runBatchItems<TIn, TOut>(
 		{ concurrency, stopOnError: false }
 	)
 
-	const succeeded = results.filter((r) => r.ok).length
+	const succeeded = sumBy(results, (r) => (r.ok ? 1 : 0))
 	return { results, succeeded, failed: results.length - succeeded }
 }
