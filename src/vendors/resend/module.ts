@@ -1,4 +1,5 @@
 import { defineModule, defineTool } from '../../core/define'
+import { ResendClient } from './client'
 import {
 	resendAuthSchema,
 	resendSendBatchInputSchema,
@@ -6,9 +7,9 @@ import {
 	resendSendInputSchema,
 	resendSendOutputSchema
 } from './contracts'
-import { ResendClient } from './client'
 
-const sendTool = defineTool({
+/** Single-email send tool. Host binds auth via withAuth. */
+export const resendSendTool = defineTool({
 	id: 'resend-send',
 	name: 'resendSend',
 	description:
@@ -20,7 +21,8 @@ const sendTool = defineTool({
 	execute: async (input, ctx) => ResendClient.fromContext(ctx).send(input)
 })
 
-const sendBatchTool = defineTool({
+/** Batch send (max 20). Per-message success/error; does not abort the batch. */
+export const resendSendBatchTool = defineTool({
 	id: 'resend-send-batch',
 	name: 'resendSendBatch',
 	description: 'Send up to 20 emails via Resend. Per-message success or error without aborting the batch.',
@@ -35,10 +37,8 @@ export const resendModule = defineModule({
 	id: 'resend',
 	title: 'Resend',
 	description:
-		'Resend vendor pack: send transactional email and expand to the rest of the Resend API over time. Use when the agent should call Resend directly, not a generic multi-provider email seam.',
+		'Resend vendor pack: send transactional email (batch supported). Expand with more Resend APIs over time. Not a multi-provider email seam.',
 	runtime: 'both',
 	auth: { type: 'custom', schema: resendAuthSchema },
-	tools: [sendTool, sendBatchTool]
+	tools: [resendSendTool, resendSendBatchTool]
 })
-
-export { sendBatchTool as resendSendBatchTool, sendTool as resendSendTool }

@@ -1,26 +1,11 @@
 import { z } from 'zod'
 
 import { batchResultSchema } from '../../shared/batch'
+import type { NamedAddress } from '../_email'
+import { attachmentSchema, MAX_BATCH_EMAILS, MAX_EMAIL_BYTES, namedAddressSchema } from '../_email'
 
-export const MAX_EMAIL_BYTES = 5 * 1024 * 1024
-export const MAX_BATCH_EMAILS = 20
-
-const emailAddressSchema = z.email().describe('Email address')
-
-export const namedAddressSchema = z.union([
-	emailAddressSchema,
-	z.object({
-		email: emailAddressSchema,
-		name: z.string().max(200).optional().describe('Display name')
-	})
-])
-
-export const attachmentSchema = z.object({
-	content: z.string().min(1).describe('Base64-encoded file bytes (no data: URL prefix)'),
-	filename: z.string().min(1).max(255).describe('Attachment file name'),
-	type: z.string().min(1).describe('MIME type, for example application/pdf'),
-	disposition: z.enum(['attachment', 'inline']).optional().describe('Content disposition. Defaults to attachment')
-})
+export { MAX_BATCH_EMAILS, MAX_EMAIL_BYTES, namedAddressSchema, attachmentSchema }
+export type { NamedAddress }
 
 export const resendAuthSchema = z.object({
 	api_key: z.string().min(1).describe('Resend API key')
@@ -72,4 +57,3 @@ export type ResendSendInput = z.infer<typeof resendSendInputSchema>
 export type ResendSendOutput = z.infer<typeof resendSendOutputSchema>
 export type ResendSendBatchInput = z.infer<typeof resendSendBatchInputSchema>
 export type ResendSendBatchOutput = z.infer<typeof resendSendBatchOutputSchema>
-export type NamedAddress = z.infer<typeof namedAddressSchema>

@@ -1,6 +1,16 @@
 export { ResendClient } from './client'
 export type { ResendClientOptions } from './client'
-export { resendAuthSchema } from './contracts'
+export {
+	attachmentSchema,
+	MAX_BATCH_EMAILS,
+	MAX_EMAIL_BYTES,
+	namedAddressSchema,
+	resendAuthSchema,
+	resendSendBatchInputSchema,
+	resendSendBatchOutputSchema,
+	resendSendInputSchema,
+	resendSendOutputSchema
+} from './contracts'
 export type {
 	NamedAddress,
 	ResendAuth,

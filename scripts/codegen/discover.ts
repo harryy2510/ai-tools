@@ -178,7 +178,8 @@ async function discoverLane(repoRoot: string, lane: SurfaceLane): Promise<Discov
 	const discovered: DiscoveredModule[] = []
 
 	for (const key of entries.sort()) {
-		if (key.startsWith('.')) continue
+		// Dotfiles and `_vertical` kits (e.g. vendors/_email) are not published surfaces.
+		if (key.startsWith('.') || key.startsWith('_')) continue
 		const dir = path.join(laneRoot, key)
 		const st = await stat(dir)
 		if (!st.isDirectory()) continue

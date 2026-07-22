@@ -1,51 +1,51 @@
-import { isNil, isString } from 'es-toolkit'
-import { castArray } from 'es-toolkit/compat'
+/**
+ * Resend payload shaping + response parse.
+ * Vertical helpers: `vendors/_email`.
+ */
+
+import { isPlainObject, isString, pick } from 'es-toolkit'
 
 import { ToolError } from '../../core/errors'
-import { base64ToBytes, utf8ToBytes } from '../../shared/bytes'
-import { MAX_EMAIL_BYTES } from './contracts'
-import type { NamedAddress, ResendSendInput } from './contracts'
+import { addressList, addressToString, assertEmailSize, assertRecipientLimit } from '../_email'
+import type { ResendSendInput, ResendSendOutput } from './contracts'
 
-export function addressToString(item: NamedAddress): string {
-	if (isString(item)) return item
-	return item.name === undefined ? item.email : `${item.name} <${item.email}>`
-}
-
-export function addressList(value: NamedAddress | NamedAddress[] | undefined): string[] | undefined {
-	if (isNil(value)) return undefined
-	return castArray(value).map(addressToString)
-}
-
-export function recipientCount(value: NamedAddress | NamedAddress[] | undefined): number {
-	if (isNil(value)) return 0
-	return castArray(value).length
-}
-
-export function assertRecipientLimit(input: ResendSendInput): void {
-	const total = recipientCount(input.to) + recipientCount(input.cc) + recipientCount(input.bcc)
-	if (total > 50) {
-		throw new ToolError('Combined to/cc/bcc recipients cannot exceed 50', { code: 'bad_input' })
-	}
-}
-
-export function assertEmailSize(payload: Record<string, unknown>, attachmentsBase64?: string[]): void {
-	let bytes = utf8ToBytes(JSON.stringify(payload)).byteLength
-	if (attachmentsBase64 !== undefined) {
-		for (const content of attachmentsBase64) {
-			try {
-				bytes += base64ToBytes(content).byteLength
-			} catch (error) {
-				throw new ToolError('Attachment content is not valid base64', {
-					code: 'bad_input',
-					cause: error
-				})
-			}
-		}
-	}
-	if (bytes > MAX_EMAIL_BYTES) {
-		throw new ToolError('Email payload exceeds 5 MiB limit', {
-			code: 'too_large',
-			details: { bytes, max_bytes: MAX_EMAIL_BYTES }
+export function buildSendPayload(input: ResendSendInput): Record<string, unknown> {
+	return {
+		...pick(input, ['subject', 'html', 'text', 'headers']),
+		from: addressToString(input.from),
+		to: addressList(input.to),
+		cc: addressList(input.cc),
+		bcc: addressList(input.bcc),
+		...(input.reply_to && { reply_to: addressToString(input.reply_to) }),
+		...(input.attachments && {
+			attachments: input.attachments.map((att) => ({
+				filename: att.filename,
+				content: att.content,
+				content_type: att.type,
+				...(att.disposition && { content_disposition: att.disposition })
+			}))
 		})
+	}
+}
+
+export function preflightSend(input: ResendSendInput): Record<string, unknown> {
+	assertRecipientLimit(input)
+	const payload = buildSendPayload(input)
+	assertEmailSize(
+		payload,
+		input.attachments?.map((a) => a.content)
+	)
+	return payload
+}
+
+/** Map Resend `{ id }` success body to tool output. */
+export function parseSendResult(data: unknown): ResendSendOutput {
+	if (!isPlainObject(data)) {
+		throw new ToolError('Resend returned an unexpected payload', { code: 'upstream' })
+	}
+	const id = data['id']
+	return {
+		success: true,
+		...(isString(id) && id.length > 0 && { id })
 	}
 }
