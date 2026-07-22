@@ -1,25 +1,33 @@
-import path from 'node:path'
-
 import { isString, trimStart } from 'es-toolkit'
 import mime from 'mime'
 
+/** Last path segment after `/`. */
+function baseName(key: string): string {
+	const i = key.lastIndexOf('/')
+	return i === -1 ? key : key.slice(i + 1)
+}
+
+/** Extension including leading `.` (empty if none). Posix object-key semantics. */
+function extName(key: string): string {
+	const base = baseName(key)
+	const i = base.lastIndexOf('.')
+	return i > 0 ? base.slice(i) : ''
+}
+
 /** MIME type for a path or extension, or `undefined` when unknown. */
 export function mediaTypeFromPath(pathOrExtension: string): string | undefined {
-	const type = mime.getType(pathOrExtension)
-	return type === null ? undefined : type
+	return mime.getType(pathOrExtension) ?? undefined
 }
 
 /** Preferred file extension for a MIME type (charset stripped), or `undefined` when unknown. */
 export function extensionFromMediaType(type: string): string | undefined {
-	const ext = mime.getExtension(type)
-	return ext === null ? undefined : ext
+	return mime.getExtension(type) ?? undefined
 }
 
 /** All known extensions for a MIME type. */
 export function allExtensionsFromMediaType(type: string): readonly string[] {
 	const set = mime.getAllExtensions(type)
-	if (set === null) return []
-	return [...set]
+	return [...(set ?? [])]
 }
 
 /**
@@ -34,7 +42,7 @@ export function resolveFileExtension(options: {
 	const fallback = options.fallback ?? 'bin'
 	const filename = options.filename
 	if (isString(filename) && filename.length > 0) {
-		const ext = path.posix.extname(filename)
+		const ext = extName(filename)
 		if (ext.length > 1) return trimStart(ext, '.').toLowerCase()
 	}
 
@@ -42,7 +50,7 @@ export function resolveFileExtension(options: {
 	if (isString(mediaType) && mediaType.length > 0) {
 		if (!mediaType.includes('/')) return mediaType.toLowerCase()
 		const fromMime = extensionFromMediaType(mediaType)
-		if (fromMime !== undefined) return fromMime
+		if (fromMime) return fromMime
 	}
 
 	return fallback
@@ -53,8 +61,10 @@ export function deriveOutputKey(sourceKey: string, outputFormat: string, outputK
 	if (isString(outputKey) && outputKey.length > 0) return outputKey
 
 	const ext = trimStart(outputFormat, '.').toLowerCase()
-	const dir = path.posix.dirname(sourceKey)
-	const base = path.posix.basename(sourceKey, path.posix.extname(sourceKey))
-	const name = `${base}.${ext}`
-	return dir === '.' ? name : path.posix.join(dir, name)
+	const slash = sourceKey.lastIndexOf('/')
+	const dir = slash === -1 ? '' : sourceKey.slice(0, slash + 1)
+	const stem = baseName(sourceKey)
+	const stemExt = extName(stem)
+	const base = stemExt.length > 0 ? stem.slice(0, -stemExt.length) : stem
+	return `${dir}${base}.${ext}`
 }

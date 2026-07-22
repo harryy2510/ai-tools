@@ -22,3 +22,18 @@ export function base64ToBytes(base64: string): Uint8Array {
 	}
 	return out
 }
+
+/** Copy into a standalone ArrayBuffer (Blob/fetch bodies that reject SharedArrayBuffer views). */
+export function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+	const bodyBuffer = new ArrayBuffer(bytes.byteLength)
+	new Uint8Array(bodyBuffer).set(bytes)
+	return bodyBuffer
+}
+
+/** Encode object-key path segments; preserve `/` as path separators. */
+export function encodeObjectKeyPath(key: string): string {
+	return key
+		.split('/')
+		.map((segment) => encodeURIComponent(segment))
+		.join('/')
+}

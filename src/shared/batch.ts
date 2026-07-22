@@ -1,3 +1,5 @@
+import pMap from 'p-map'
+import pRetry from 'p-retry'
 import { z } from 'zod'
 
 import { isToolError, ToolError } from '../core/errors'
@@ -38,44 +40,51 @@ export function batchResultSchema<T extends z.ZodType>(valueSchema: T) {
 	})
 }
 
-/** Run items sequentially; partial failures do not stop the batch. */
+export type RunBatchItemsOptions = {
+	/** Default 1 (sequential). */
+	concurrency?: number
+	/** Extra attempts; only `ToolError.retryable`. Default 0. */
+	retries?: number
+}
+
+/** p-map + optional p-retry. Partial failures do not abort the batch. */
 export async function runBatchItems<TIn, TOut>(
 	items: readonly TIn[],
-	runOne: (item: TIn, index: number) => Promise<TOut>
+	runOne: (item: TIn, index: number) => Promise<TOut>,
+	{ concurrency = 1, retries = 0 }: RunBatchItemsOptions = {}
 ): Promise<BatchResult<TOut>> {
-	const results: Array<BatchItemResult<TOut>> = []
-	let succeeded = 0
-	let failed = 0
-
-	for (let index = 0; index < items.length; index += 1) {
-		const item = items[index]
-		if (item === undefined) continue
-		try {
-			const value = await runOne(item, index)
-			results.push({ index, ok: true, value })
-			succeeded += 1
-		} catch (error) {
-			const toolError =
-				error instanceof ToolError
-					? error
-					: isToolError(error)
+	const results = await pMap(
+		items,
+		async (item, index): Promise<BatchItemResult<TOut>> => {
+			try {
+				const run = () => runOne(item, index)
+				const value =
+					retries === 0
+						? await run()
+						: await pRetry(run, {
+								retries,
+								minTimeout: 250,
+								shouldRetry: ({ error }) => isToolError(error) && error.retryable
+							})
+				return { index, ok: true, value }
+			} catch (error) {
+				const err =
+					error instanceof ToolError
 						? error
 						: new ToolError(error instanceof Error ? error.message : 'Batch item failed', {
 								code: 'internal',
 								cause: error
 							})
-			results.push({
-				index,
-				ok: false,
-				error: {
-					code: toolError.code,
-					message: toolError.message,
-					...(toolError.retryable ? { retryable: true } : {})
+				return {
+					index,
+					ok: false,
+					error: { code: err.code, message: err.message, retryable: err.retryable }
 				}
-			})
-			failed += 1
-		}
-	}
+			}
+		},
+		{ concurrency, stopOnError: false }
+	)
 
-	return { results, succeeded, failed }
+	const succeeded = results.filter((r) => r.ok).length
+	return { results, succeeded, failed: results.length - succeeded }
 }
