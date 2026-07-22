@@ -1,39 +1,37 @@
+/**
+ * Cloudflare Email vendor client (Lane B — full pack, grow API over time).
+ */
+
 import { isPlainObject, isString } from 'es-toolkit'
 import { isArray } from 'es-toolkit/compat'
-import { z } from 'zod'
 
-import { defineProvider } from '../../../core/provider'
-import { ToolError } from '../../../core/errors'
-import type { ToolContext } from '../../../core/types'
-import { runBatchItems } from '../../../shared/batch'
-import { createServiceFetch, serviceRequestJson } from '../../../shared/ofetch-client'
-import type { ServiceHttp } from '../../../shared/ofetch-client'
-import type { EmailOps, SendEmailInput, SendEmailOutput } from '../contracts'
-import { assertEmailSize, assertRecipientLimit, normalizeAddressObject, normalizeAddressObjectList } from '../domain'
+import { ToolError } from '../../core/errors'
+import { requireAuth } from '../../core/provider'
+import type { FetchLike, ToolContext } from '../../core/types'
+import { runBatchItems } from '../../shared/batch'
+import { createServiceFetch, serviceRequestJson } from '../../shared/ofetch-client'
+import type { ServiceHttp } from '../../shared/ofetch-client'
+import type {
+	CloudflareEmailAuth,
+	CloudflareEmailSendBatchInput,
+	CloudflareEmailSendBatchOutput,
+	CloudflareEmailSendInput,
+	CloudflareEmailSendOutput
+} from './contracts'
+import { cloudflareEmailAuthSchema } from './contracts'
+import { assertEmailSize, assertRecipientLimit, normalizeAddressObject, normalizeAddressObjectList } from './domain'
 
-export const cloudflareEmailAuthSchema = z.object({
-	provider: z.literal('cloudflare'),
-	accountId: z.string().min(1).describe('Cloudflare account id'),
-	apiToken: z.string().min(1).describe('Cloudflare API token with Email Sending permission')
-})
-
-export type CloudflareEmailAuth = z.infer<typeof cloudflareEmailAuthSchema>
-
-function readAuth(ctx: ToolContext): CloudflareEmailAuth {
-	const parsed = cloudflareEmailAuthSchema.safeParse(ctx.auth)
-	if (!parsed.success) {
-		throw new ToolError('Cloudflare Email credentials are missing or invalid', { code: 'bad_auth' })
-	}
-	return parsed.data
+export type CloudflareEmailClientOptions = {
+	fetch?: FetchLike
+	signal?: AbortSignal
 }
 
-/** Private ofetch service — endpoint methods only. */
 function createCloudflareEmailService(auth: CloudflareEmailAuth, ctx: ToolContext) {
 	const http: ServiceHttp = createServiceFetch(
 		{
 			baseURL: 'https://api.cloudflare.com/client/v4',
 			headers: {
-				Authorization: `Bearer ${auth.apiToken}`,
+				Authorization: `Bearer ${auth.api_token}`,
 				'Content-Type': 'application/json'
 			}
 		},
@@ -43,8 +41,8 @@ function createCloudflareEmailService(auth: CloudflareEmailAuth, ctx: ToolContex
 		sendEmail: (body: Record<string, unknown>) =>
 			serviceRequestJson(
 				http,
-				'Cloudflare sendEmail',
-				`/accounts/${encodeURIComponent(auth.accountId)}/email/sending/send`,
+				'Cloudflare Email sendEmail',
+				`/accounts/${encodeURIComponent(auth.account_id)}/email/sending/send`,
 				{ method: 'POST', body }
 			)
 	}
@@ -70,9 +68,9 @@ function firstErrorCode(errors: unknown): number | undefined {
 	return typeof code === 'number' && Number.isFinite(code) ? code : undefined
 }
 
-function parseSendResult(data: unknown): SendEmailOutput {
+function parseSendResult(data: unknown): CloudflareEmailSendOutput {
 	if (!isPlainObject(data)) {
-		throw new ToolError('Email provider returned an unexpected payload', { code: 'upstream' })
+		throw new ToolError('Cloudflare Email returned an unexpected payload', { code: 'upstream' })
 	}
 	if (data['success'] === false) {
 		const errors = data['errors']
@@ -100,7 +98,7 @@ function parseSendResult(data: unknown): SendEmailOutput {
 	}
 	const result = data['result']
 	if (!isPlainObject(result)) {
-		throw new ToolError('Email provider returned no result object', { code: 'upstream' })
+		throw new ToolError('Cloudflare Email returned no result object', { code: 'upstream' })
 	}
 	const delivered = stringArray(result['delivered'])
 	const queued = stringArray(result['queued'])
@@ -113,7 +111,7 @@ function parseSendResult(data: unknown): SendEmailOutput {
 	}
 }
 
-function buildPayload(input: SendEmailInput): Record<string, unknown> {
+function buildPayload(input: CloudflareEmailSendInput): Record<string, unknown> {
 	const payload: Record<string, unknown> = {
 		to: normalizeAddressObjectList(input.to),
 		from: normalizeAddressObject(input.from),
@@ -131,25 +129,46 @@ function buildPayload(input: SendEmailInput): Record<string, unknown> {
 	return payload
 }
 
-async function sendOne(input: SendEmailInput, ctx: ToolContext): Promise<SendEmailOutput> {
-	assertRecipientLimit(input)
-	const auth = readAuth(ctx)
-	const payload = buildPayload(input)
-	const attachmentBodies = input.attachments?.map((a) => a.content)
-	assertEmailSize(payload, attachmentBodies)
+export class CloudflareEmailClient {
+	readonly #auth: CloudflareEmailAuth
+	readonly #ctx: ToolContext
 
-	const { data } = await createCloudflareEmailService(auth, ctx).sendEmail(payload)
-	return parseSendResult(data)
+	constructor(auth: CloudflareEmailAuth, options: CloudflareEmailClientOptions = {}) {
+		const parsed = cloudflareEmailAuthSchema.safeParse(auth)
+		if (!parsed.success) {
+			throw new ToolError('Invalid Cloudflare Email auth credentials', {
+				code: 'bad_auth',
+				details: { issues: parsed.error.issues.map((issue) => issue.message) }
+			})
+		}
+		this.#auth = parsed.data
+		this.#ctx = {
+			auth: this.#auth,
+			...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+			...(options.signal === undefined ? {} : { signal: options.signal })
+		}
+	}
+
+	static fromContext(ctx: ToolContext): CloudflareEmailClient {
+		const auth = requireAuth(ctx, cloudflareEmailAuthSchema)
+		return new CloudflareEmailClient(auth, {
+			...(ctx.fetch === undefined ? {} : { fetch: ctx.fetch }),
+			...(ctx.signal === undefined ? {} : { signal: ctx.signal })
+		})
+	}
+
+	async send(input: CloudflareEmailSendInput): Promise<CloudflareEmailSendOutput> {
+		assertRecipientLimit(input)
+		const payload = buildPayload(input)
+		assertEmailSize(
+			payload,
+			input.attachments?.map((a) => a.content)
+		)
+		const { data } = await createCloudflareEmailService(this.#auth, this.#ctx).sendEmail(payload)
+		return parseSendResult(data)
+	}
+
+	async sendBatch(input: CloudflareEmailSendBatchInput): Promise<CloudflareEmailSendBatchOutput> {
+		return runBatchItems(input.messages, async (message) => this.send(message))
+	}
 }
-
-const ops: EmailOps = {
-	send: sendOne,
-	sendBatch: async (input, ctx) => runBatchItems(input.messages, async (message) => sendOne(message, ctx))
-}
-
-export const cloudflareEmailProvider = defineProvider({
-	id: 'cloudflare',
-	title: 'Cloudflare Email',
-	authSchema: cloudflareEmailAuthSchema,
-	ops
-})

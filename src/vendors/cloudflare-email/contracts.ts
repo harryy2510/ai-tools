@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import type { ToolContext } from '../../core/types'
 import { batchResultSchema } from '../../shared/batch'
 
 export const MAX_EMAIL_BYTES = 5 * 1024 * 1024
@@ -23,7 +22,14 @@ export const attachmentSchema = z.object({
 	disposition: z.enum(['attachment', 'inline']).optional().describe('Content disposition. Defaults to attachment')
 })
 
-export const sendEmailInputSchema = z
+export const cloudflareEmailAuthSchema = z.object({
+	account_id: z.string().min(1).describe('Cloudflare account id'),
+	api_token: z.string().min(1).describe('Cloudflare API token with Email Sending permission')
+})
+
+export type CloudflareEmailAuth = z.infer<typeof cloudflareEmailAuthSchema>
+
+export const cloudflareEmailSendInputSchema = z
 	.object({
 		to: z
 			.union([namedAddressSchema, z.array(namedAddressSchema).min(1).max(50)])
@@ -52,26 +58,20 @@ export const sendEmailInputSchema = z
 		message: 'Provide html and/or text body'
 	})
 
-export const sendEmailOutputSchema = z.object({
-	success: z.boolean().describe('Whether the provider accepted the request'),
-	id: z.string().optional().describe('Provider message id when available'),
-	accepted: z.array(z.string()).optional().describe('Addresses accepted (delivered and/or queued)'),
+export const cloudflareEmailSendOutputSchema = z.object({
+	success: z.boolean().describe('Whether Cloudflare accepted the request'),
+	accepted: z.array(z.string()).optional().describe('Addresses delivered and/or queued when known'),
 	rejected: z.array(z.string()).optional().describe('Addresses permanently rejected when known')
 })
 
-export const sendEmailBatchInputSchema = z.object({
-	messages: z.array(sendEmailInputSchema).min(1).max(MAX_BATCH_EMAILS).describe('Messages to send (max 20)')
+export const cloudflareEmailSendBatchInputSchema = z.object({
+	messages: z.array(cloudflareEmailSendInputSchema).min(1).max(MAX_BATCH_EMAILS).describe('Messages to send (max 20)')
 })
 
-export const sendEmailBatchOutputSchema = batchResultSchema(sendEmailOutputSchema)
+export const cloudflareEmailSendBatchOutputSchema = batchResultSchema(cloudflareEmailSendOutputSchema)
 
-export type SendEmailInput = z.infer<typeof sendEmailInputSchema>
-export type SendEmailOutput = z.infer<typeof sendEmailOutputSchema>
-export type SendEmailBatchInput = z.infer<typeof sendEmailBatchInputSchema>
-export type SendEmailBatchOutput = z.infer<typeof sendEmailBatchOutputSchema>
+export type CloudflareEmailSendInput = z.infer<typeof cloudflareEmailSendInputSchema>
+export type CloudflareEmailSendOutput = z.infer<typeof cloudflareEmailSendOutputSchema>
+export type CloudflareEmailSendBatchInput = z.infer<typeof cloudflareEmailSendBatchInputSchema>
+export type CloudflareEmailSendBatchOutput = z.infer<typeof cloudflareEmailSendBatchOutputSchema>
 export type NamedAddress = z.infer<typeof namedAddressSchema>
-
-export type EmailOps = {
-	send: (input: SendEmailInput, ctx: ToolContext) => Promise<SendEmailOutput>
-	sendBatch?: (input: SendEmailBatchInput, ctx: ToolContext) => Promise<SendEmailBatchOutput>
-}

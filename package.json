@@ -45,6 +45,10 @@
 			"types": "./dist/mcp/index.d.ts",
 			"default": "./dist/mcp/index.js"
 		},
+		"./cloudflare-email": {
+			"types": "./dist/vendors/cloudflare-email/index.d.ts",
+			"default": "./dist/vendors/cloudflare-email/index.js"
+		},
 		"./document-extract": {
 			"types": "./dist/modules/document-extract/index.d.ts",
 			"default": "./dist/modules/document-extract/index.js"
@@ -52,10 +56,6 @@
 		"./document-render": {
 			"types": "./dist/modules/document-render/index.d.ts",
 			"default": "./dist/modules/document-render/index.js"
-		},
-		"./email": {
-			"types": "./dist/modules/email/index.d.ts",
-			"default": "./dist/modules/email/index.js"
 		},
 		"./file-convert": {
 			"types": "./dist/modules/file-convert/index.d.ts",
@@ -73,13 +73,17 @@
 			"types": "./dist/modules/mime/index.d.ts",
 			"default": "./dist/modules/mime/index.js"
 		},
+		"./resend": {
+			"types": "./dist/vendors/resend/index.d.ts",
+			"default": "./dist/vendors/resend/index.js"
+		},
 		"./storage": {
 			"types": "./dist/modules/storage/index.d.ts",
 			"default": "./dist/modules/storage/index.js"
 		},
 		"./telegram": {
-			"types": "./dist/channels/telegram/index.d.ts",
-			"default": "./dist/channels/telegram/index.js"
+			"types": "./dist/messaging/telegram/index.d.ts",
+			"default": "./dist/messaging/telegram/index.js"
 		},
 		"./web-fetch": {
 			"types": "./dist/modules/web-fetch/index.d.ts",

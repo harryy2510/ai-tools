@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-22T01:04:41.399Z",
+	"generatedAt": "2026-07-22T01:24:28.316Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -39,6 +39,28 @@
 		}
 	],
 	"modules": [
+		{
+			"key": "cloudflare-email",
+			"lane": "vendors",
+			"entry": "src/vendors/cloudflare-email/index.ts",
+			"entryKey": "vendors/cloudflare-email/index",
+			"exportNames": [
+				"CloudflareEmailAuth",
+				"CloudflareEmailClient",
+				"CloudflareEmailClientOptions",
+				"CloudflareEmailSendBatchInput",
+				"CloudflareEmailSendBatchOutput",
+				"CloudflareEmailSendInput",
+				"CloudflareEmailSendOutput",
+				"NamedAddress",
+				"cloudflareEmailAuthSchema",
+				"cloudflareEmailModule",
+				"cloudflareEmailSendBatchTool",
+				"cloudflareEmailSendTool"
+			],
+			"moduleId": "cloudflare-email",
+			"moduleIdSource": "src/vendors/cloudflare-email/module.ts"
+		},
 		{
 			"key": "document-extract",
 			"lane": "modules",
@@ -88,35 +110,6 @@
 			],
 			"moduleId": "document-render",
 			"moduleIdSource": "src/modules/document-render/module.ts"
-		},
-		{
-			"key": "email",
-			"lane": "modules",
-			"entry": "src/modules/email/index.ts",
-			"entryKey": "modules/email/index",
-			"exportNames": [
-				"CloudflareEmailAuth",
-				"EmailAuth",
-				"EmailClient",
-				"EmailClientOptions",
-				"EmailOps",
-				"ResendEmailAuth",
-				"SendEmailBatchInput",
-				"SendEmailBatchOutput",
-				"SendEmailInput",
-				"SendEmailOutput",
-				"cloudflareEmailAuthSchema",
-				"cloudflareEmailProvider",
-				"emailAuthSchema",
-				"emailModule",
-				"emailProviders",
-				"resendEmailAuthSchema",
-				"resendEmailProvider",
-				"sendEmailBatchTool",
-				"sendEmailTool"
-			],
-			"moduleId": "email",
-			"moduleIdSource": "src/modules/email/module.ts"
 		},
 		{
 			"key": "file-convert",
@@ -192,6 +185,28 @@
 			"moduleIdSource": "src/modules/mime/module.ts"
 		},
 		{
+			"key": "resend",
+			"lane": "vendors",
+			"entry": "src/vendors/resend/index.ts",
+			"entryKey": "vendors/resend/index",
+			"exportNames": [
+				"NamedAddress",
+				"ResendAuth",
+				"ResendClient",
+				"ResendClientOptions",
+				"ResendSendBatchInput",
+				"ResendSendBatchOutput",
+				"ResendSendInput",
+				"ResendSendOutput",
+				"resendAuthSchema",
+				"resendModule",
+				"resendSendBatchTool",
+				"resendSendTool"
+			],
+			"moduleId": "resend",
+			"moduleIdSource": "src/vendors/resend/module.ts"
+		},
+		{
 			"key": "storage",
 			"lane": "modules",
 			"entry": "src/modules/storage/index.ts",
@@ -231,9 +246,9 @@
 		},
 		{
 			"key": "telegram",
-			"lane": "channels",
-			"entry": "src/channels/telegram/index.ts",
-			"entryKey": "channels/telegram/index",
+			"lane": "messaging",
+			"entry": "src/messaging/telegram/index.ts",
+			"entryKey": "messaging/telegram/index",
 			"exportNames": [
 				"ChannelTransport",
 				"LiveMessage",
@@ -271,7 +286,7 @@
 				"verifyTelegramWebhookSecret"
 			],
 			"moduleId": "telegram",
-			"moduleIdSource": "src/channels/telegram/module.ts"
+			"moduleIdSource": "src/messaging/telegram/module.ts"
 		},
 		{
 			"key": "web-fetch",

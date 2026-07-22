@@ -35,14 +35,15 @@ Requires **Bun ≥ 1.3.14** or **Node ≥ 24**.
 
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
-import { emailModule } from '@harryy/ai-tools/email'
+import { resendModule, ResendClient } from '@harryy/ai-tools/resend'
 import { createMastraTools } from '@harryy/ai-tools/mastra'
 
-const bound = withAuth(emailModule, {
-  provider: 'resend',
-  apiKey: process.env.RESEND_API_KEY!,
-})
+// Host DX (class client)
+const resend = new ResendClient({ api_key: process.env.RESEND_API_KEY! })
+await resend.send({ to: 'a@example.com', from: 'b@example.com', subject: 'Hi', text: 'Hello' })
 
+// Agent tools
+const bound = withAuth(resendModule, { api_key: process.env.RESEND_API_KEY! })
 export const tools = createMastraTools(bound)
 ```
 
@@ -73,7 +74,9 @@ export const tools = createAiSdkTools(mimeModule)
 
 | Import | Tools (ids) | Docs |
 | --- | --- | --- |
-| `@harryy/ai-tools/email` | `email-send`, `email-send-batch` (providers: cloudflare, resend) | [docs/modules/email.md](./docs/modules/email.md) |
+| `@harryy/ai-tools/resend` | `resend-send`, `resend-send-batch` (vendor pack) | [docs/modules/resend.md](./docs/modules/resend.md) |
+| `@harryy/ai-tools/cloudflare-email` | `cloudflare-email-send`, `cloudflare-email-send-batch` (vendor pack) | [docs/modules/cloudflare-email.md](./docs/modules/cloudflare-email.md) |
+| `@harryy/ai-tools/telegram` | Telegram messaging pack | [docs/modules/telegram.md](./docs/modules/telegram.md) |
 | `@harryy/ai-tools/storage` | `storage-*` + batch — providers: `s3`, `r2` (CF REST), `supabase` | [docs/modules/storage.md](./docs/modules/storage.md) |
 | `@harryy/ai-tools/mime` | `mime-parse`, `mime-build` (email messages) | [docs/modules/mime.md](./docs/modules/mime.md) |
 | `@harryy/ai-tools/media-type` | `media-type-get`, `media-type-extension`, `media-type-extensions` | [docs/modules/media-type.md](./docs/modules/media-type.md) |

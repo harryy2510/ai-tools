@@ -1,8 +1,0 @@
-export { EmailClient, emailAuthSchema, emailProviders } from './client'
-export type { EmailAuth, EmailClientOptions } from './client'
-export { emailModule, sendEmailBatchTool, sendEmailTool } from './module'
-export type { EmailOps, SendEmailBatchInput, SendEmailBatchOutput, SendEmailInput, SendEmailOutput } from './contracts'
-export { cloudflareEmailAuthSchema, cloudflareEmailProvider } from './providers/cloudflare'
-export type { CloudflareEmailAuth } from './providers/cloudflare'
-export { resendEmailAuthSchema, resendEmailProvider } from './providers/resend'
-export type { ResendEmailAuth } from './providers/resend'

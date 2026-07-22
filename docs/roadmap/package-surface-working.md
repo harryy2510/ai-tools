@@ -26,7 +26,9 @@ This is **not** a second architecture lock. It tracks inventory, migration, open
 | --- | --- | --- |
 | Kernel + adapters | Done | core, ofetch services, Mastra/AI SDK/MCP/… |
 | Provider seam | Done | Lane A modules |
-| `email` | Done | cloudflare, resend |
+| `email` (Lane A multi-provider) | **Removed** | Split to vendor packs |
+| `vendors/resend` | Done | full pack (send surface first) |
+| `vendors/cloudflare-email` | Done | full pack (send surface first) |
 | `storage` | Done | s3 (+ multipart + signed URL), r2 REST, supabase |
 | `document-extract` | Done | textract only |
 | `file-convert` | Done | transmute only |
@@ -35,18 +37,17 @@ This is **not** a second architecture lock. It tracks inventory, migration, open
 | `files` | Done | path root over storage: list/search/stat/get/put/delete/copy/move/mkdir + multipart (S3) |
 | `document-render` | Done | gotenberg + cloudflare-browser |
 | `vector-store` / `rag` | Not started | knowledge tools |
-| `messaging` (thin send) | Not started | optional |
+| thin multi-send messaging seam | Not planned | full messaging packs only |
 | `speech` / `pdf` / `image` / `browser` / `queue` / `webhook` / `crypto` / `calendar` | Not started | |
-| Codegen multi-lane | Done | discovers modules + vendors + channels |
-| `vendors/*` | Not started | layout not scaffolded |
-| `channels/telegram` | Done | full pack + shared method names; live message + webhook helpers |
-| `channels/*` (others) | Not started | slack / imessage / … |
+| Codegen multi-lane | Done | discovers modules + vendors + messaging |
+| `messaging/telegram` | Done | full pack + live message + webhook helpers |
+| `messaging/*` (others) | Not started | slack / imessage / … |
 
 ### B. Five Star host — custom tools (`packages/tools/src/custom`)
 
 | Custom key | Actions (summary) | Future home |
 | --- | --- | --- |
-| `email_sender` | `send_email` | Adapter → `email` module |
+| `email_sender` | `send_email` | Adapter → `resend` or `cloudflare-email` vendor pack |
 | `read_document` / textract | `extract_text` | Adapter → `document-extract` + `files`/storage ArtifactRef |
 | `document_renderer` | `render_pdf`, `render_screenshot` | Adapter → `document-render` |
 | `organization_files` | `list_items`, `search_items`, `get_item` | Adapter → `files` (root_prefix) |
@@ -66,11 +67,11 @@ Logical tools (Gmail, Sheets, Drive, QBO, Zoom, ads, CRMs, …) stay on the **co
 
 | Channel | Product role | Package home |
 | --- | --- | --- |
-| Telegram | P0 production | `channels/telegram` |
-| Slack | P1 | `channels/slack` |
-| iMessage (Photon) | Specced | `channels/imessage` |
-| Teams | Later | `channels/teams` |
-| WhatsApp | Later | `channels/whatsapp` |
+| Telegram | P0 production | `messaging/telegram` |
+| Slack | P1 | `messaging/slack` |
+| iMessage (Photon) | Specced | `messaging/imessage` |
+| Teams | Later | `messaging/teams` |
+| WhatsApp | Later | `messaging/whatsapp` |
 | Email as channel | Delivery + tools | `email` module + host inbound |
 
 Host still owns: webhook HTTP routes, secret storage, chat→org/agent map, durable outbox, accessLevel, audit.
@@ -174,7 +175,8 @@ Slice 3 done when: this capability map is implemented under `src/channels/telegr
 | 0 | Multi-lane codegen (`modules` + `vendors` + `channels`) | Done | `bun run codegen` registers all three |
 | 1 | `document-render` + gotenberg + cloudflare-browser | Done | PDF + screenshot; ArtifactRef out; tests |
 | 2 | `files` (root_prefix + storage auth) | Done | list/search/stat relative keys; tests |
-| 3 | `channels/telegram` | Done | Full pack + shared method names; tools + live message + webhook helpers |
+| 3 | `messaging/telegram` | Done | Full pack; tools + live message + webhook helpers |
+| 3b | `vendors/resend` + `vendors/cloudflare-email` | Done | Lane B email ESPs (no multi-provider email seam) |
 | 4 | `vendors/woocommerce` (first action group) | Pending | orders + products read path |
 | 5 | `vendors/katana` | Pending | sales order query parity |
 | 6 | `vendors/amazon-sp-api` (first action group) | Pending | documented subset live |

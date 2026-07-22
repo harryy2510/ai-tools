@@ -30,7 +30,6 @@ Documentation hub for the package. Source of truth for architecture and module c
 
 | Import | Doc |
 | --- | --- |
-| `@harryy/ai-tools/email` | [email](./modules/email.md) |
 | `@harryy/ai-tools/storage` | [storage](./modules/storage.md) |
 | `@harryy/ai-tools/mime` | [mime](./modules/mime.md) (email parse/build) |
 | `@harryy/ai-tools/media-type` | [media-type](./modules/media-type.md) (MIME type ↔ extension) |
@@ -39,8 +38,10 @@ Documentation hub for the package. Source of truth for architecture and module c
 | `@harryy/ai-tools/file-convert` | [file-convert](./modules/file-convert.md) |
 | `@harryy/ai-tools/document-render` | [document-render](./modules/document-render.md) |
 | `@harryy/ai-tools/files` | [files](./modules/files.md) |
-| `@harryy/ai-tools/telegram` | [telegram](./modules/telegram.md) (channel pack) |
-| Spec: package surface (modules · vendors · channels) | [package-surface-architecture](./specs/package-surface-architecture.md) |
+| `@harryy/ai-tools/resend` | [resend](./modules/resend.md) (vendor) |
+| `@harryy/ai-tools/cloudflare-email` | [cloudflare-email](./modules/cloudflare-email.md) (vendor) |
+| `@harryy/ai-tools/telegram` | [telegram](./modules/telegram.md) (messaging) |
+| Spec: package surface (modules · vendors · messaging) | [package-surface-architecture](./specs/package-surface-architecture.md) |
 | Working: surface delivery board | [package-surface-working](./roadmap/package-surface-working.md) |
 | Spec: provider seam (capability modules) | [provider-seam](./specs/provider-seam.md) |
 | ofetch service clients | [ofetch-services](./reference/ofetch-services.md) |

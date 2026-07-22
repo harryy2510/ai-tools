@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Import** | `@harryy/ai-tools/telegram` |
-| **Lane** | channels |
+| **Kind** | messaging pack (prefer `src/modules/telegram`; may live under `src/messaging/` until moved) |
 | **Module id** | `telegram` |
 | **Auth** | Host: `{ bot_token }` |
 

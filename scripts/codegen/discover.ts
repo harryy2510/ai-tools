@@ -5,7 +5,7 @@ import { isNil, isPlainObject, isString } from 'es-toolkit'
 import { isArray } from 'es-toolkit/compat'
 import { parseSync } from 'oxc-parser'
 
-export type SurfaceLane = 'modules' | 'vendors' | 'channels'
+export type SurfaceLane = 'modules' | 'vendors' | 'messaging'
 
 export type DiscoveredModule = {
 	/** Package export key (folder name); unique across all lanes */
@@ -16,7 +16,7 @@ export type DiscoveredModule = {
 	entryPath: string
 	/** Relative from repo root */
 	entryRelative: string
-	/** Relative source for tsdown: modules|vendors|channels/<key>/index */
+	/** Relative source for tsdown: modules|vendors|messaging/<key>/index */
 	entryKey: string
 	/** Named export bindings found on index.ts */
 	exportNames: string[]
@@ -31,7 +31,7 @@ export type DiscoveredModule = {
 
 const DEFINE_CALLEES = new Set(['defineModule', 'defineHttpApi'])
 
-const SURFACE_LANES: readonly SurfaceLane[] = ['modules', 'vendors', 'channels']
+const SURFACE_LANES: readonly SurfaceLane[] = ['modules', 'vendors', 'messaging']
 
 type UnknownRecord = Record<string, unknown>
 
@@ -246,7 +246,7 @@ async function discoverLane(repoRoot: string, lane: SurfaceLane): Promise<Discov
 }
 
 /**
- * Discover product surfaces under src/{modules,vendors,channels}/<key>/index.ts.
+ * Discover product surfaces under src/{modules,vendors,messaging}/<key>/index.ts.
  * Export keys must be unique across all lanes (flat public imports).
  */
 export async function discoverModules(repoRoot: string): Promise<DiscoveredModule[]> {

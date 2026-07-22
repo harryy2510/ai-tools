@@ -2,12 +2,13 @@
 
 **Status: hard rule.** Agents must not invent a second HTTP style.  
 **Gold clones:**  
-- Client DX: `src/modules/email/client.ts`  
-- Provider ofetch: `src/modules/email/providers/resend.ts`, `src/modules/storage/providers/supabase.ts`  
+- Vendor client: `src/vendors/resend/client.ts`  
+- Messaging pack: `src/messaging/telegram/client.ts`  
+- Lane A ofetch provider: `src/modules/storage/providers/supabase.ts`  
 
 **Package lock:** `AGENTS.md` → HARD RULES (R0–R7).
 
-## Mandatory pattern (modules · vendors · channels)
+## Mandatory pattern (modules · vendors · messaging)
 
 ```ts
 function createXService(auth: XAuth, ctx: ToolContext) {
@@ -69,13 +70,13 @@ function createXService(auth: XAuth, ctx: ToolContext) {
 
 | Surface | Client | Service pattern |
 | --- | --- | --- |
-| email / cloudflare | ofetch | `createCloudflareEmailService` |
-| email / resend | ofetch | `createResendService` ← **gold** |
+| vendors / resend | ofetch | `ResendClient` + private service ← **gold vendor** |
+| vendors / cloudflare-email | ofetch | `CloudflareEmailClient` + private service |
 | storage / r2 | ofetch | `createR2RestService` |
-| storage / supabase | ofetch | `createSupabaseStorageService` ← **gold** |
+| storage / supabase | ofetch | `createSupabaseStorageService` ← **gold Lane A** |
 | file-convert / transmute | ofetch | `createTransmuteService` |
 | web-fetch | ofetch | free-form + `throwOnError: false` |
-| channels / telegram | ofetch | must match gold (same endpoint style) |
+| messaging / telegram | ofetch | `createTelegramClient` / pack client |
 | storage / s3 | aws4fetch | SigV4 |
 | document-extract / textract | aws4fetch | SigV4 |
 
