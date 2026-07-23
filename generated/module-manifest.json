@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-23T22:45:30.219Z",
+	"generatedAt": "2026-07-23T22:57:55.240Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -602,7 +602,6 @@
 				"MAX_TOP_K",
 				"MAX_VECTOR_BATCH",
 				"MAX_VECTOR_DIMENSIONS",
-				"MastraPgVectorLike",
 				"MastraVectorAuth",
 				"MastraVectorClient",
 				"MastraVectorClientOptions",
