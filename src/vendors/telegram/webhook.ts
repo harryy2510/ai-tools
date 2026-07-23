@@ -5,7 +5,7 @@ import { isPlainObject, isString } from 'es-toolkit'
  * Exact string match; constant-time comparison when lengths match.
  */
 export function verifyTelegramWebhookSecret(headerValue: string | null | undefined, expectedSecret: string): boolean {
-	if (headerValue === null || headerValue === undefined) return false
+	if (!headerValue) return false
 	if (expectedSecret.length === 0) return false
 	if (headerValue.length !== expectedSecret.length) return false
 
@@ -69,8 +69,8 @@ export function parseTelegramUpdate(
 	const allowGroups = options?.allow_group_chats ?? false
 
 	const message = asMessage(update['message']) ?? asMessage(update['edited_message'])
-	if (message !== undefined) {
-		return parseMessageUpdate(updateId, message, receivedAt, allowGroups, update['edited_message'] !== undefined)
+	if (message) {
+		return parseMessageUpdate(updateId, message, receivedAt, allowGroups, Boolean(update['edited_message']))
 	}
 
 	const callback = update['callback_query']
@@ -93,7 +93,7 @@ function parseMessageUpdate(
 		return { ok: false, reason: 'missing_chat' }
 	}
 	const chatType = isString(chat['type']) ? chat['type'] : undefined
-	if (!allowGroups && chatType !== undefined && chatType !== 'private') {
+	if (!allowGroups && chatType && chatType !== 'private') {
 		return { ok: false, reason: 'non_private_chat' }
 	}
 
@@ -109,7 +109,7 @@ function parseMessageUpdate(
 			: undefined
 	const mediaGroupId = isString(message['media_group_id']) ? message['media_group_id'] : undefined
 
-	if (text === undefined && media.length === 0) {
+	if (!text && media.length === 0) {
 		return { ok: false, reason: 'empty_message' }
 	}
 
@@ -119,14 +119,14 @@ function parseMessageUpdate(
 		chat_id: String(chat['id']),
 		raw_type: edited ? 'edited_message' : 'message',
 		received_at: receivedAt,
-		...(userId === undefined ? {} : { user_id: userId }),
-		...(username === undefined ? {} : { username }),
-		...(messageId === undefined ? {} : { message_id: messageId }),
-		...(text === undefined ? {} : { text }),
-		...(media.length === 0 ? {} : { media }),
-		...(replyTo === undefined ? {} : { reply_to: replyTo }),
-		...(mediaGroupId === undefined ? {} : { media_group_id: mediaGroupId }),
-		...(chatType === undefined ? {} : { chat_type: chatType })
+		...(userId && { user_id: userId }),
+		...(username && { username }),
+		...(messageId && { message_id: messageId }),
+		...(text && { text }),
+		...(media.length > 0 && { media }),
+		...(replyTo && { reply_to: replyTo }),
+		...(mediaGroupId && { media_group_id: mediaGroupId }),
+		...(chatType && { chat_type: chatType })
 	}
 	return { ok: true, event }
 }
@@ -138,12 +138,12 @@ function parseCallbackUpdate(
 	allowGroups: boolean
 ): ParseTelegramUpdateResult {
 	const message = asMessage(callback['message'])
-	const chat = message !== undefined ? message['chat'] : undefined
+	const chat = message ? message['chat'] : undefined
 	if (!isPlainObject(chat) || typeof chat['id'] !== 'number') {
 		return { ok: false, reason: 'callback_missing_chat' }
 	}
 	const chatType = isString(chat['type']) ? chat['type'] : undefined
-	if (!allowGroups && chatType !== undefined && chatType !== 'private') {
+	if (!allowGroups && chatType && chatType !== 'private') {
 		return { ok: false, reason: 'non_private_chat' }
 	}
 
@@ -151,12 +151,11 @@ function parseCallbackUpdate(
 	const userId = isPlainObject(from) && typeof from['id'] === 'number' ? String(from['id']) : undefined
 	const username = isPlainObject(from) && isString(from['username']) ? from['username'] : undefined
 	const callbackQueryId = isString(callback['id']) ? callback['id'] : undefined
-	if (callbackQueryId === undefined) {
+	if (!callbackQueryId) {
 		return { ok: false, reason: 'callback_missing_id' }
 	}
 	const callbackData = isString(callback['data']) ? callback['data'] : undefined
-	const messageId =
-		message !== undefined && typeof message['message_id'] === 'number' ? String(message['message_id']) : undefined
+	const messageId = message && typeof message['message_id'] === 'number' ? String(message['message_id']) : undefined
 
 	const event: TelegramInboundEvent = {
 		channel: 'telegram',
@@ -165,11 +164,11 @@ function parseCallbackUpdate(
 		raw_type: 'callback_query',
 		received_at: receivedAt,
 		callback_query_id: callbackQueryId,
-		...(userId === undefined ? {} : { user_id: userId }),
-		...(username === undefined ? {} : { username }),
-		...(messageId === undefined ? {} : { message_id: messageId }),
-		...(callbackData === undefined ? {} : { callback_data: callbackData }),
-		...(chatType === undefined ? {} : { chat_type: chatType })
+		...(userId && { user_id: userId }),
+		...(username && { username }),
+		...(messageId && { message_id: messageId }),
+		...(callbackData && { callback_data: callbackData }),
+		...(chatType && { chat_type: chatType })
 	}
 	return { ok: true, event }
 }

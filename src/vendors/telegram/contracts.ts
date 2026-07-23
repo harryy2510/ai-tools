@@ -1,19 +1,6 @@
 import { z } from 'zod'
 
-import type {
-	ChannelAnswerCallbackInput,
-	ChannelChatAction,
-	ChannelClearReactionInput,
-	ChannelDownloadFileInput,
-	ChannelDownloadFileResult,
-	ChannelEditTextInput,
-	ChannelMessageRef,
-	ChannelSendChatActionInput,
-	ChannelSendMediaInput,
-	ChannelSendTextInput,
-	ChannelSetReactionInput,
-	ChannelTransport
-} from '../channel-transport'
+export const MAX_MEDIA_BYTES = 20 * 1024 * 1024
 
 export const telegramChatActionSchema = z.enum([
 	'typing',
@@ -30,7 +17,7 @@ export const telegramChatActionSchema = z.enum([
 ])
 
 export const telegramAuthSchema = z.object({
-	bot_token: z.string().min(1).describe('Telegram bot token from BotFather (host-bound; never from model input)')
+	bot_token: z.string().min(1).describe('Telegram bot token from BotFather')
 })
 
 export type TelegramAuth = z.infer<typeof telegramAuthSchema>
@@ -76,7 +63,7 @@ export const telegramSendMediaInputSchema = z.object({
 	file_name: z.string().min(1).describe('File name including extension'),
 	caption: z.string().max(1024).optional().describe('Optional caption (max 1024 characters)'),
 	reply_to_message_id: z.string().min(1).optional().describe('Optional message id to reply to'),
-	content_type: z.string().optional().describe('Optional MIME type for the upload')
+	content_type: z.string().optional().describe('Optional content type for the upload')
 })
 
 export const telegramDownloadFileInputSchema = z.object({
@@ -101,7 +88,7 @@ export const telegramSendMediaGroupItemSchema = z.object({
 	body_base64: z.string().min(1).describe('File body as base64'),
 	file_name: z.string().min(1).describe('File name including extension'),
 	caption: z.string().max(1024).optional().describe('Optional caption on this item'),
-	content_type: z.string().optional().describe('Optional MIME type')
+	content_type: z.string().optional().describe('Optional content type')
 })
 
 export const telegramSendMediaGroupInputSchema = z.object({
@@ -129,26 +116,15 @@ export const telegramOkOutputSchema = z.object({
 })
 
 export type TelegramSendTextInput = z.infer<typeof telegramSendTextInputSchema>
+export type TelegramMessageOutput = z.infer<typeof telegramMessageOutputSchema>
 export type TelegramEditTextInput = z.infer<typeof telegramEditTextInputSchema>
 export type TelegramSendChatActionInput = z.infer<typeof telegramSendChatActionInputSchema>
 export type TelegramSetReactionInput = z.infer<typeof telegramSetReactionInputSchema>
 export type TelegramClearReactionInput = z.infer<typeof telegramClearReactionInputSchema>
 export type TelegramSendMediaInput = z.infer<typeof telegramSendMediaInputSchema>
 export type TelegramDownloadFileInput = z.infer<typeof telegramDownloadFileInputSchema>
+export type TelegramDownloadFileOutput = z.infer<typeof telegramDownloadFileOutputSchema>
 export type TelegramAnswerCallbackInput = z.infer<typeof telegramAnswerCallbackInputSchema>
 export type TelegramSendMediaGroupInput = z.infer<typeof telegramSendMediaGroupInputSchema>
-
-export type {
-	ChannelAnswerCallbackInput,
-	ChannelChatAction,
-	ChannelClearReactionInput,
-	ChannelDownloadFileInput,
-	ChannelDownloadFileResult,
-	ChannelEditTextInput,
-	ChannelMessageRef,
-	ChannelSendChatActionInput,
-	ChannelSendMediaInput,
-	ChannelSendTextInput,
-	ChannelSetReactionInput,
-	ChannelTransport
-}
+export type TelegramSendMediaGroupOutput = z.infer<typeof telegramSendMediaGroupOutputSchema>
+export type TelegramGetBotOutput = z.infer<typeof telegramGetBotOutputSchema>

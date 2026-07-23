@@ -2,16 +2,16 @@ import { describe, expect, test } from 'bun:test'
 import { isPlainObject } from 'es-toolkit'
 
 import { runTool, validateModule, withAuth } from '../../src/core'
+import { bytesToBase64 } from '../../src/shared/bytes'
 import {
 	createLiveMessage,
-	createTelegramClient,
 	isTelegramDefiniteRejection,
 	isTelegramOutcomeUnknown,
 	parseTelegramUpdate,
+	TelegramClient,
 	telegramModule,
 	verifyTelegramWebhookSecret
 } from '../../src/vendors/telegram'
-import { bytesToBase64 } from '../../src/shared/bytes'
 
 function asRecord(value: unknown): Record<string, unknown> {
 	if (!isPlainObject(value)) throw new Error('expected object')
@@ -101,7 +101,6 @@ describe('telegram live message', () => {
 
 		await live.start('hello')
 		await live.update('hello world')
-		// allow pump microtask
 		await new Promise((r) => setTimeout(r, 5))
 		const final = await live.finalize('hello world final')
 		expect(final.message_id).toBe('m1')
@@ -201,7 +200,7 @@ describe('telegram module', () => {
 		}) as typeof globalThis.fetch
 
 		try {
-			const client = createTelegramClient({ botToken: 't' })
+			const client = new TelegramClient({ bot_token: 't' })
 			const one = await client.sendMedia({
 				chat_id: '1',
 				kind: 'photo',
@@ -241,7 +240,7 @@ describe('telegram module', () => {
 			})) as unknown as typeof globalThis.fetch
 
 		try {
-			const client = createTelegramClient({ botToken: 't' })
+			const client = new TelegramClient({ bot_token: 't' })
 			let caught: unknown
 			try {
 				await client.sendText({ chat_id: '1', text: 'x' })
