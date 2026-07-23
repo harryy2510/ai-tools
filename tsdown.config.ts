@@ -23,6 +23,7 @@ export default defineConfig({
 		'vendors/gotenberg/index': 'src/vendors/gotenberg/index.ts',
 		'vendors/katana/index': 'src/vendors/katana/index.ts',
 		'modules/messaging/index': 'src/modules/messaging/index.ts',
+		'modules/mime/index': 'src/modules/mime/index.ts',
 		'vendors/r2/index': 'src/vendors/r2/index.ts',
 		'vendors/resend/index': 'src/vendors/resend/index.ts',
 		'vendors/s3/index': 'src/vendors/s3/index.ts',

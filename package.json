@@ -97,6 +97,10 @@
 			"types": "./dist/modules/messaging/index.d.ts",
 			"default": "./dist/modules/messaging/index.js"
 		},
+		"./mime": {
+			"types": "./dist/modules/mime/index.d.ts",
+			"default": "./dist/modules/mime/index.js"
+		},
 		"./r2": {
 			"types": "./dist/vendors/r2/index.d.ts",
 			"default": "./dist/vendors/r2/index.js"

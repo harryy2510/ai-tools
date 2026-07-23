@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-23T03:43:56.802Z",
+	"generatedAt": "2026-07-23T12:44:34.741Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -586,6 +586,15 @@
 			],
 			"moduleId": "messaging",
 			"moduleIdSource": "src/modules/messaging/module.ts"
+		},
+		{
+			"key": "mime",
+			"lane": "modules",
+			"entry": "src/modules/mime/index.ts",
+			"entryKey": "modules/mime/index",
+			"exportNames": ["mimeModule", "mimePingTool"],
+			"moduleId": "mime",
+			"moduleIdSource": "src/modules/mime/module.ts"
 		},
 		{
 			"key": "r2",

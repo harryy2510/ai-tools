@@ -14,6 +14,7 @@ export const moduleKeys = [
 	'gotenberg',
 	'katana',
 	'messaging',
+	'mime',
 	'r2',
 	'resend',
 	's3',
