@@ -3,44 +3,84 @@
 | | |
 | --- | --- |
 | **Import** | `@harryy/ai-tools/cloudflare-email` |
-| **Kind** | **vendor** (3rd party; under `src/vendors/cloudflare-email`) |
+| **Kind** | **vendor** (`src/vendors/cloudflare-email`) — not an email multi-provider seam |
 | **Module id** | `cloudflare-email` |
-| **Client** | `CloudflareEmailClient` (class) |
+| **Client** | `CloudflareEmailClient` |
 | **Tools** | `cloudflare-email-send`, `cloudflare-email-send-batch` |
 
-Full **Cloudflare Email Sending vendor pack**. Not a multi-provider email seam. Start surface is send; expand to the full CF email API as product needs.
+Full **Cloudflare Email Sending** pack: host class client + agent tools on the same implementation.
 
-## Host (client)
+## Host (class client)
 
 ```ts
 import { CloudflareEmailClient } from '@harryy/ai-tools/cloudflare-email'
 
 const email = new CloudflareEmailClient({
-  account_id: '…',
-  api_token: '…',
+  account_id: process.env.CF_ACCOUNT_ID!,
+  api_token: process.env.CF_API_TOKEN!,
 })
-await email.send({ to, from, subject, text })
-await email.sendBatch({ messages: […] })
+
+await email.send({
+  to: 'user@example.com',
+  from: { email: 'noreply@yourdomain.com', name: 'App' },
+  subject: 'Hello',
+  text: 'Plain body',
+  html: '<p>HTML body</p>',
+  reply_to: 'support@yourdomain.com',
+})
+
+await email.sendBatch({ messages: [/* up to 20 */] })
 ```
 
-## Agent (tools)
+Optional injectables: `new CloudflareEmailClient(auth, { fetch, signal })`.
+
+## Agent (module + tools)
 
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
-import { cloudflareEmailModule } from '@harryy/ai-tools/cloudflare-email'
+import { cloudflareEmailModule, cloudflareEmailSendTool } from '@harryy/ai-tools/cloudflare-email'
+import { createMastraTools } from '@harryy/ai-tools/mastra'
 
 const bound = withAuth(cloudflareEmailModule, {
   account_id: '…',
   api_token: '…',
 })
+
+// Full module surface
+const tools = createMastraTools(bound)
+
+// Or a single tool
+// withAuthTool(cloudflareEmailSendTool, auth)
 ```
 
-Tools call `CloudflareEmailClient.fromContext(ctx)` only.
+Tools only call `CloudflareEmailClient.fromContext(ctx)` — no HTTP in `module.ts`.
 
-## Auth
+## Auth (host-bound)
 
-`{ account_id, api_token }` — host-bound only.
+```ts
+{ account_id: string, api_token: string }
+```
 
-## Layout (vendor gold twin of resend)
+Never on tool inputs.
 
-`contracts` · `domain` · `client` (class + private ofetch `sendEmail`) · `module` (tools → client) · `index`
+## API
+
+| Client method | HTTP |
+| --- | --- |
+| `send` | `POST /accounts/{account_id}/email/sending/send` |
+| `sendBatch` | N × `send` via `runBatchItems` (partial failure OK) |
+
+Payload uses Cloudflare REST field names (`replyTo` camelCase, attachments `{ content, filename, type, disposition }`). Domain input stays snake_case (`reply_to`) for host/tool consistency with other email packs.
+
+## Email vertical (`vendors/_email`)
+
+Address schemas, size/recipient limits, and address formatting live in **`src/vendors/_email/`** (not published; skipped by codegen). Any email vendor pack reuses it. Not in `shared/`.
+
+## Layout
+
+```text
+vendors/_email/              # vertical kit (underscore = not a pack)
+  schemas.ts · address.ts · limits.ts · index.ts
+vendors/cloudflare-email/
+  contracts.ts · domain.ts · client.ts · module.ts · index.ts
+```

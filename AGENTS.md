@@ -74,8 +74,8 @@ If TypeScript complains about `undefined` on an optional prop, fix the **type** 
 - **Seams → modules.** Multi-provider only when 2+ backends share the same verbs (`defineProvider` + auth `{ provider, … }`).
 - **3rd party → vendors.** Including email ESPs **and** chat platforms (Telegram, Slack, …). Not a thin multi-provider “messaging” or “email” seam that shrinks the real API.
 - Do **not** put fat single-vendor APIs under `modules/` as fake multi-provider seams.
-- Vendor **vertical kits** (not packs): `src/vendors/_email/`, later `_document`, `_commerce`, … Underscore prefix = skipped by codegen. Shared by packs in that category only.
-- Cross-channel chat helpers: `src/vendors/channel-transport.ts` (or fold into `vendors/_chat` later).
+- Vendor **vertical kits** (not packs): `src/vendors/_email/`, `_storage/`, `_messaging/`, … Underscore prefix = skipped by codegen. Shared by packs in that category only.
+- Cross-channel chat helpers: `src/vendors/_messaging` (codegen-skipped kit; not a pack).
 
 ### R3 — Exports: flat; tree keeps module vs vendor
 
