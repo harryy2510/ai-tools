@@ -1,21 +1,21 @@
 # @harryy/ai-tools
 
-Reusable **AI tools** with strict Zod schemas and model-facing contracts. Define once in the kernel; project to **Mastra**, **Vercel AI SDK**, **TanStack AI**, **Cloudflare Workers AI**, **MCP**, or call directly.
+Reusable **AI tools** with strict Zod schemas and model-facing contracts. Define once in the kernel; project to **Mastra**, **Vercel AI SDK**, **TanStack AI**, **Cloudflare Workers AI**, **MCP**, or call via class clients / `runTool`.
 
 [![ci](https://github.com/harryy2510/ai-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/harryy2510/ai-tools/actions/workflows/ci.yml)
 [![release](https://github.com/harryy2510/ai-tools/actions/workflows/release.yml/badge.svg)](https://github.com/harryy2510/ai-tools/actions/workflows/release.yml)
 
-**Docs wiki:** [docs/README.md](./docs/README.md) · **Changelog:** [CHANGELOG.md](./CHANGELOG.md) · **Release:** [docs/versioning.md](./docs/versioning.md)
+**Docs:** [docs/README.md](./docs/README.md) · **Changelog:** [CHANGELOG.md](./CHANGELOG.md) · **Release:** [docs/versioning.md](./docs/versioning.md)
 
 ## Why
 
 - **One authoring path** — `defineTool` / `defineModule` only; adapters never re-implement business logic.
 - **Host-owned secrets** — auth schemas + `withAuth`; model inputs never carry API keys.
+- **Two product roots** — `modules/` (our seams) vs `vendors/` (3rd-party packs); flat public imports.
+- **Class clients + tools** — host uses `new ResendClient(auth)`; agents use the same implementation via tools.
 - **Subpath imports** — tree-shake friendly; no root mega-barrel.
 - **Honest runtimes** — `node` | `edge` | `both`.
-- **Stable tool ids** — kebab-case ids safe for agents and MCP names.
-- **Capability modules + provider seam** — generic tools (`email`, `storage`, …); host picks provider via auth union.
-- **Product modules included** — email, storage, document extract, file convert, MIME, content-type, web-fetch.
+- **Stable tool ids** — kebab-case, vendor- or capability-prefixed.
 
 ## Install
 
@@ -42,12 +42,24 @@ import { createMastraTools } from '@harryy/ai-tools/mastra'
 const resend = new ResendClient({ api_key: process.env.RESEND_API_KEY! })
 await resend.send({ to: 'a@example.com', from: 'b@example.com', subject: 'Hi', text: 'Hello' })
 
-// Agent tools
+// Agent tools (same implementation)
 const bound = withAuth(resendModule, { api_key: process.env.RESEND_API_KEY! })
 export const tools = createMastraTools(bound)
 ```
 
-No-auth module (MIME):
+Multi-provider **seam** (host picks provider on auth):
+
+```ts
+import { withAuth } from '@harryy/ai-tools/core'
+import { emailModule } from '@harryy/ai-tools/email'
+
+const bound = withAuth(emailModule, {
+  provider: 'resend',
+  api_key: process.env.RESEND_API_KEY!,
+})
+```
+
+No-auth pure helpers:
 
 ```ts
 import { emailMessageModule } from '@harryy/ai-tools/email-message'
@@ -56,49 +68,92 @@ import { createAiSdkTools } from '@harryy/ai-tools/ai-sdk'
 export const tools = createAiSdkTools(emailMessageModule)
 ```
 
+## Architecture
+
+```text
+src/
+  core/          kernel (defineTool, withAuth, runTool, …)
+  transport/     HttpService / AwsService  →  @harryy/ai-tools/http
+  adapters/      mastra · ai-sdk · tanstack · cloudflare · mcp
+  modules/       our seams (storage, email, files, …)
+  vendors/       3rd-party packs (resend, telegram, s3, …)
+                 + vertical kits: _email · _storage · _messaging (not published)
+  shared/        bytes, batch, artifact, content-type, pagination
+```
+
+| Root | Role |
+| --- | --- |
+| **`modules/`** | Capability seams we own; multi-provider when 2+ backends share verbs |
+| **`vendors/`** | Full first-party API of one product; grow tools over time |
+| **`vendors/_…`** | Vertical kits (codegen-skipped); shared by packs in that category |
+
+Public imports are **flat**: `@harryy/ai-tools/resend`, not `@harryy/ai-tools/vendors/resend`.
+
+```text
+defineTool / defineModule
+        │
+        ├─► Host:   Class client  (new ResendClient(auth).send(…))
+        ├─► Agent:  withAuth(module) → tools → adapters
+        └─► Direct: runTool(tool, input, ctx)
+```
+
 ## Subpaths
 
 ### Brain
 
 | Import | Role | Docs |
 | --- | --- | --- |
-| `@harryy/ai-tools/core` | Kernel, contracts, `withAuth`, `runTool` | [docs/packages/core.md](./docs/packages/core.md) |
-| `@harryy/ai-tools/http` | Fixed-origin HTTP factory | [docs/packages/http.md](./docs/packages/http.md) |
-| `@harryy/ai-tools/mastra` | Mastra projector | [docs/packages/mastra.md](./docs/packages/mastra.md) |
-| `@harryy/ai-tools/ai-sdk` | Vercel AI SDK projector | [docs/packages/ai-sdk.md](./docs/packages/ai-sdk.md) |
-| `@harryy/ai-tools/tanstack` | TanStack AI projector | [docs/packages/tanstack.md](./docs/packages/tanstack.md) |
-| `@harryy/ai-tools/cloudflare` | Workers AI tool defs | [docs/packages/cloudflare.md](./docs/packages/cloudflare.md) |
-| `@harryy/ai-tools/mcp` | MCP list/call + register | [docs/packages/mcp.md](./docs/packages/mcp.md) |
+| `@harryy/ai-tools/core` | Kernel, contracts, `withAuth`, `runTool` | [core](./docs/packages/core.md) |
+| `@harryy/ai-tools/http` | `HttpService` / `AwsService` | [http transport](./docs/reference/http-and-aws-services.md) |
+| `@harryy/ai-tools/mastra` | Mastra projector | [mastra](./docs/packages/mastra.md) |
+| `@harryy/ai-tools/ai-sdk` | Vercel AI SDK projector | [ai-sdk](./docs/packages/ai-sdk.md) |
+| `@harryy/ai-tools/tanstack` | TanStack AI projector | [tanstack](./docs/packages/tanstack.md) |
+| `@harryy/ai-tools/cloudflare` | Workers AI tool defs | [cloudflare](./docs/packages/cloudflare.md) |
+| `@harryy/ai-tools/mcp` | MCP list/call + register | [mcp](./docs/packages/mcp.md) |
 
-### Product modules
+### Seams (`modules/`)
+
+| Import | Kind | Tools (ids) | Docs |
+| --- | --- | --- | --- |
+| `@harryy/ai-tools/email` | multi-provider | `email-send`, `email-send-batch` | [email](./docs/modules/email.md) |
+| `@harryy/ai-tools/storage` | multi-provider | `storage-*` (+ batch, multipart, signed URL) | [storage](./docs/modules/storage.md) |
+| `@harryy/ai-tools/files` | path root over storage | `files-*` | [files](./docs/modules/files.md) |
+| `@harryy/ai-tools/document-extract` | multi-provider | `document-extract-text`, `-status`, `-text-batch` | [document-extract](./docs/modules/document-extract.md) |
+| `@harryy/ai-tools/document-render` | multi-provider | `document-render-pdf`, `-screenshot`, batches | [document-render](./docs/modules/document-render.md) |
+| `@harryy/ai-tools/file-convert` | multi-provider | `file-convert`, `file-convert-batch` | [file-convert](./docs/modules/file-convert.md) |
+| `@harryy/ai-tools/web-fetch` | host policy | `web-fetch-get`, `web-fetch-request` | [web-fetch](./docs/modules/web-fetch.md) |
+| `@harryy/ai-tools/email-message` | pure (no auth) | `email-message-parse`, `email-message-build` | [email-message](./docs/modules/email-message.md) |
+| `@harryy/ai-tools/content-type` | pure (no auth) | `content-type-get`, `-extension`, `-extensions` | [content-type](./docs/modules/content-type.md) |
+
+### Vendors (`vendors/`)
 
 | Import | Tools (ids) | Docs |
 | --- | --- | --- |
-| `@harryy/ai-tools/resend` | `resend-send`, `resend-send-batch` (vendor pack) | [docs/modules/resend.md](./docs/modules/resend.md) |
-| `@harryy/ai-tools/cloudflare-email` | `cloudflare-email-send`, `cloudflare-email-send-batch` (vendor pack) | [docs/modules/cloudflare-email.md](./docs/modules/cloudflare-email.md) |
-| `@harryy/ai-tools/telegram` | Telegram messaging pack | [docs/modules/telegram.md](./docs/modules/telegram.md) |
-| `@harryy/ai-tools/storage` | `storage-*` + batch — providers: `s3`, `r2` (CF REST), `supabase` | [docs/modules/storage.md](./docs/modules/storage.md) |
-| `@harryy/ai-tools/email-message` | `email-message-parse`, `email-message-build` | [docs/modules/email-message.md](./docs/modules/email-message.md) |
-| `@harryy/ai-tools/content-type` | `content-type-get`, `content-type-extension`, `content-type-extensions` | [docs/modules/content-type.md](./docs/modules/content-type.md) |
-| `@harryy/ai-tools/web-fetch` | `web-fetch-get` (read), `web-fetch-request` (write) | [docs/modules/web-fetch.md](./docs/modules/web-fetch.md) |
-| `@harryy/ai-tools/document-extract` | `document-extract-text`, `document-extract-status`, `document-extract-text-batch` | [docs/modules/document-extract.md](./docs/modules/document-extract.md) |
-| `@harryy/ai-tools/file-convert` | `file-convert`, `file-convert-batch` | [docs/modules/file-convert.md](./docs/modules/file-convert.md) |
+| `@harryy/ai-tools/resend` | `resend-send`, `resend-send-batch` | [resend](./docs/vendors/resend.md) |
+| `@harryy/ai-tools/cloudflare-email` | `cloudflare-email-send`, `-send-batch` | [cloudflare-email](./docs/vendors/cloudflare-email.md) |
+| `@harryy/ai-tools/telegram` | `telegram-send-text`, `-edit-text`, media, reactions, … | [telegram](./docs/vendors/telegram.md) |
+| `@harryy/ai-tools/s3` | `s3-*` (+ signed URL, multipart) | [s3](./docs/vendors/s3.md) |
+| `@harryy/ai-tools/r2` | `r2-*` (Cloudflare REST) | [r2](./docs/vendors/r2.md) |
+| `@harryy/ai-tools/supabase-storage` | `supabase-storage-*` | [supabase-storage](./docs/vendors/supabase-storage.md) |
+| `@harryy/ai-tools/textract` | `textract-extract-text`, `-get-status`, `-extract-text-batch` | [textract](./docs/vendors/textract.md) |
+| `@harryy/ai-tools/transmute` | `transmute-convert`, `-convert-batch` | [transmute](./docs/vendors/transmute.md) |
+| `@harryy/ai-tools/gotenberg` | `gotenberg-render-pdf`, `-render-screenshot` | [gotenberg](./docs/vendors/gotenberg.md) |
+| `@harryy/ai-tools/cloudflare-browser` | `cloudflare-browser-render-pdf`, `-render-screenshot` | [cloudflare-browser](./docs/vendors/cloudflare-browser.md) |
 
-## Architecture
+Auth fields are **snake_case** (`api_key`, `bot_token`, `access_key_id`, …).
 
-```text
-defineTool / defineModule / defineProvider
-        │
-   withAuth(module, { provider, … })  ← host closes credentials
-        │
-   resolveProvider → ops (type class)
-        │
-   adapters (Mastra · AI SDK · TanStack · CF · MCP · runTool)
-```
+## Guides
 
-Provider seam: [docs/specs/provider-seam.md](./docs/specs/provider-seam.md).
-
-Full guides: [Getting started](./docs/guides/getting-started.md) · [Auth](./docs/guides/auth-and-binding.md) · [Adapters](./docs/guides/adapters.md) · [Authoring](./docs/guides/authoring-modules.md) · [Errors](./docs/guides/errors.md)
+| Guide | Purpose |
+| --- | --- |
+| [Getting started](./docs/guides/getting-started.md) | Install, import map, first bind |
+| [Auth and binding](./docs/guides/auth-and-binding.md) | Host-owned secrets, `withAuth` |
+| [Adapters](./docs/guides/adapters.md) | Project kernel tools into frameworks |
+| [Authoring packs](./docs/guides/authoring-modules.md) | modules vs vendors, layout, codegen |
+| [Errors](./docs/guides/errors.md) | `ToolError` codes and retry |
+| [HTTP / AWS transport](./docs/reference/http-and-aws-services.md) | `HttpService` / `AwsService` |
+| [Package surface](./docs/specs/package-surface-architecture.md) | modules · vendors architecture |
+| [Provider seam](./docs/specs/provider-seam.md) | Multi-provider capability modules |
 
 ## Develop
 
@@ -110,14 +165,16 @@ bun run check          # format:check + lint + codegen:check + test
 bun run codegen
 bun run new-module <kebab-key> [--title …] [--description …] [--auth none|custom]
 bun run build
-bun run typecheck
 ```
 
-## Document extract & convert (self-host)
+Codegen owns `package.json` exports for packs under `src/modules|vendors/<key>/` with `index.ts`. Underscore kits (`_email`, `_storage`, `_messaging`) are skipped.
 
-- **Artifacts** are S3 keys (`ArtifactRef`), not base64 in the model. Spec: [docs/specs/artifacts-extract-convert.md](./docs/specs/artifacts-extract-convert.md).
-- **Extract:** Amazon Textract (sync poll inside the tool; `pending` + `job_id` if wait budget expires, then `document-extract-status`). Object must live in **AWS S3** (Textract `S3Object`).
-- **Convert:** Self-host **[Transmute](https://github.com/transmute-app/transmute)** (private, offline relative to SaaS converters, REST API). `file-convert` uploads → converts → writes result back to S3.
+## Artifacts (extract · convert · render)
+
+- Objects are **S3 keys** (`ArtifactRef`), not base64 in the model. Spec: [artifacts-extract-convert](./docs/specs/artifacts-extract-convert.md).
+- **Extract:** Amazon Textract (object must live in AWS S3 Textract can read).
+- **Convert:** self-host [Transmute](https://github.com/transmute-app/transmute).
+- **Render:** Gotenberg or Cloudflare Browser Rendering → storage `ArtifactRef`.
 
 ## Release
 
@@ -129,11 +186,7 @@ bun run typecheck
 | `fix:` / `perf:` | patch |
 | `BREAKING CHANGE` / `type!:` | major |
 
-Merge to `main` → `release.yml` runs check/build → tags → npm via **OIDC Trusted Publisher** (workflow file must be **`release.yml`**). Details: [docs/versioning.md](./docs/versioning.md).
-
-```bash
-bun run release:dry   # local dry-run only
-```
+Details: [docs/versioning.md](./docs/versioning.md).
 
 ## License
 

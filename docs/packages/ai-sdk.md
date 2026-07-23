@@ -28,9 +28,9 @@ import { createAiSdkTools } from '@harryy/ai-tools/ai-sdk'
 
 const tools = createAiSdkTools(
   withAuth(emailModule, {
-  provider: 'cloudflare',
-    accountId: '…',
-    apiToken: '…',
+    provider: 'cloudflare',
+    account_id: '…',
+    api_token: '…',
   }),
 )
 // pass into generateText / streamText tools option per AI SDK docs

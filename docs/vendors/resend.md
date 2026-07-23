@@ -3,12 +3,12 @@
 | | |
 | --- | --- |
 | **Import** | `@harryy/ai-tools/resend` |
-| **Kind** | **vendor** (3rd party; under `src/vendors/resend`) |
+| **Kind** | **vendor** (`src/vendors/resend`) |
 | **Module id** | `resend` |
-| **Client** | `ResendClient` (class) |
+| **Client** | `ResendClient` |
 | **Tools** | `resend-send`, `resend-send-batch` |
 
-Full **Resend vendor pack**. Not a multi-provider email seam. Start surface is send; grow the rest of the Resend API here over time.
+Full **Resend vendor pack**. Not a multi-provider email seam. Start surface is send; grow more Resend APIs here over time.
 
 ## Host (client)
 
@@ -25,7 +25,7 @@ await resend.sendBatch({ messages: […] })
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
 import { resendModule } from '@harryy/ai-tools/resend'
-import { createMastraTools } from '@harryy/ai-tools/mastra' // or ai-sdk / mcp / …
+import { createMastraTools } from '@harryy/ai-tools/mastra'
 
 const bound = withAuth(resendModule, { api_key: '…' })
 const tools = createMastraTools(bound)
@@ -39,4 +39,8 @@ Tools only call `ResendClient.fromContext(ctx)` — same implementation as the h
 
 ## Layout (gold vendor)
 
-`contracts` · `domain` · `client` (class + private ofetch `sendEmail`) · `module` (tools → client) · `index`
+```text
+contracts.ts · domain.ts · client.ts · module.ts · index.ts
+```
+
+Email vertical kit: `src/vendors/_email/`. Multi-provider seam: [email](../modules/email.md).

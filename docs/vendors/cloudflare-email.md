@@ -46,10 +46,7 @@ const bound = withAuth(cloudflareEmailModule, {
   api_token: '…',
 })
 
-// Full module surface
 const tools = createMastraTools(bound)
-
-// Or a single tool
 // withAuthTool(cloudflareEmailSendTool, auth)
 ```
 
@@ -84,3 +81,5 @@ vendors/_email/              # vertical kit (underscore = not a pack)
 vendors/cloudflare-email/
   contracts.ts · domain.ts · client.ts · module.ts · index.ts
 ```
+
+Seam: [email](../modules/email.md).

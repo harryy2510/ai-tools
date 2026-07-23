@@ -9,7 +9,7 @@
 | `errors.ts` | Status / network → `ToolError` |
 | `index.ts` | Public `@harryy/ai-tools/http` re-exports |
 
-Auth is just **headers** on the client:
+Auth is just **headers** on the client (or SigV4 on AwsService):
 
 ```ts
 new HttpService({
@@ -38,8 +38,34 @@ await aws.put(url, body)
 await aws.sign(url, { signQuery: true })
 ```
 
+| API | Role |
+| --- | --- |
+| `query` | Parsed body; throws `ToolError` on non-2xx by default |
+| `bytes` | Binary body |
+| `get` / `post` / `put` / `patch` / `delete` / `head` | Sugar |
+| `noThrow` / `allowStatuses` | Opt out of default throw |
+| `AwsService.sign` | Presigned URLs |
+
+Product clients **own** the transport instance in the constructor. Tools never call HttpService.
+
+## Directory ownership
+
 | Dir | Owns |
 | --- | --- |
 | `src/transport/` | HTTP only |
-| `src/shared/` | `artifact`, `batch`, `bytes`, `content-type`, list `pagination` |
-| `src/vendors/` | 3rd-party packs; `vendors/_messaging` for chat contracts |
+| `src/shared/` | `artifact`, `batch`, `bytes`, `content-type`, `pagination` |
+| `src/vendors/` | 3rd-party packs |
+| `src/vendors/_email/` | Email vertical kit (address, limits, schemas) |
+| `src/vendors/_storage/` | Storage I/O schemas (shared by s3/r2/supabase + seams) |
+| `src/vendors/_messaging/` | Chat helpers (`createLiveMessage`, `createTypingPulse`) |
+| `src/modules/` | Capability seams |
+
+## Gold client shape
+
+See `src/vendors/resend/client.ts` and `src/vendors/cloudflare-email/client.ts`:
+
+1. Parse auth with Zod → `ToolError` `bad_auth` on failure.
+2. Construct one `HttpService` with fixed `baseURL` (+ headers).
+3. Methods: domain preflight → `http.post` / `bytes` → domain parse.
+4. `static fromContext(ctx)` via `requireAuth`.
+5. Tools: `Client.fromContext(ctx).method(input)`.

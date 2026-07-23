@@ -34,9 +34,9 @@ src/modules/<capability>/
 ## Auth
 
 - Discriminated union on `provider`.
-- Host-only: `withAuth(module, { provider: 'resend', apiKey })`.
-- Nested host credentials allowed (e.g. file-convert `storage: { provider: 's3', … }`).
-- Pure modules (`mime`, `content-type`) use `auth: { type: 'none' }`.
+- Host-only: `withAuth(module, { provider: 'resend', api_key: '…' })` (snake_case auth fields).
+- Nested host credentials allowed (e.g. file-convert `storage: { access_key_id, secret_access_key, region, bucket, … }` — nested storage is S3 auth, not a second provider union).
+- Pure modules (`email-message`, `content-type`) use `auth: { type: 'none' }`.
 
 ## ArtifactRef
 
@@ -51,8 +51,10 @@ src/modules/<capability>/
 | Module | Providers |
 | --- | --- |
 | `email` | `cloudflare`, `resend` |
-| `storage` | `s3` (aws4fetch S3-compatible), `r2` (Cloudflare REST ofetch), `supabase` (Storage REST ofetch) |
+| `storage` | `s3` (SigV4), `r2` (Cloudflare REST), `supabase` (Storage REST) |
 | `document-extract` | `textract` |
-| `file-convert` | `transmute` (+ nested `storage`) |
+| `document-render` | `gotenberg`, `cloudflare-browser` |
+| `file-convert` | `transmute` (+ nested S3 `storage`) |
+| `files` | nested `storage` union (`s3` \| `r2` \| `supabase`) + `root_prefix` |
 
 Adding a provider: new file under `providers/`, register in module array, extend auth union, docs row. Model tool catalog stays stable.

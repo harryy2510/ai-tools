@@ -4,10 +4,26 @@
 
 1. **Hosts own secrets.** This package never stores, vaults, or encrypts credentials.
 2. **Auth schemas are host-facing** (forms, env loaders, validation). Field `.describe()` text may name the credential purpose for humans configuring the host.
-3. **Model-facing tool inputs never include auth.** Agents must not see API keys, tokens, account ids-as-secrets, or “pass your X-Api-Key” language in tool `description` / input field descriptions.
+3. **Model-facing tool inputs never include auth.** Agents must not see API keys, tokens, or “pass your X-Api-Key” language in tool `description` / input field descriptions.
 4. **Bind once, project many times.** Call `withAuth(module, credentials)` then pass the bound module into any adapter.
+5. **snake_case** for host auth fields that mirror APIs (`api_key`, `bot_token`, `access_key_id`, `account_id`).
 
-## `withAuth`
+## Vendor pack
+
+```ts
+import { withAuth } from '@harryy/ai-tools/core'
+import { telegramModule, TelegramClient } from '@harryy/ai-tools/telegram'
+
+// Host client
+const client = new TelegramClient({ bot_token: '…' })
+
+// Agent tools
+const bound = withAuth(telegramModule, { bot_token: '…' })
+```
+
+## Multi-provider seam
+
+Capability modules use a **provider** discriminator on auth. Nested vendor fields stay snake_case.
 
 ```ts
 import { withAuth } from '@harryy/ai-tools/core'
@@ -15,19 +31,28 @@ import { storageModule } from '@harryy/ai-tools/storage'
 
 const bound = withAuth(storageModule, {
   provider: 's3',
-  accessKeyId: '…',
-  secretAccessKey: '…',
+  access_key_id: '…',
+  secret_access_key: '…',
   region: 'auto',
   bucket: 'my-bucket',
   endpoint: 'https://….r2.cloudflarestorage.com', // optional S3-compatible
 })
 ```
 
-Capability modules use a **provider** discriminator on auth. Tool inputs never include credentials.
+```ts
+import { emailModule } from '@harryy/ai-tools/email'
+
+withAuth(emailModule, { provider: 'resend', api_key: '…' })
+withAuth(emailModule, {
+  provider: 'cloudflare',
+  account_id: '…',
+  api_token: '…',
+})
+```
 
 - Validates credentials against the module’s auth Zod schema.
 - Returns a **bound module** whose tools close over auth in `ToolContext`.
-- Invalid credentials fail at bind time (or at execute time if tools re-parse `ctx.auth` — modules use both patterns safely).
+- Tool inputs never include credentials.
 
 ## `withAuthTool`
 
@@ -37,7 +62,7 @@ Bind a single tool when you do not want the whole module surface.
 
 | `auth.type` | Meaning |
 | --- | --- |
-| `none` | No credentials (e.g. MIME). |
+| `none` | No credentials (e.g. content-type, email-message). |
 | `custom` | Zod schema of host fields; client turns them into headers / AwsService credentials. |
 
 ## Tool context
@@ -54,11 +79,11 @@ type ToolContext = {
 
 Hosts/tests inject `fetch` and `signal` without changing tool schemas.
 
-## Security checklist for module authors
+## Security checklist for pack authors
 
 - [ ] No secrets on `inputSchema`.
 - [ ] Model `description` talks about capability, bounds, side effects, result shape only.
 - [ ] Errors never echo tokens or full request signing material.
 - [ ] Size/rate limits fail with stable `ToolError` codes (`too_large`, `rate_limited`, …).
 
-See [Errors](./errors.md) and [Authoring modules](./authoring-modules.md).
+See [Errors](./errors.md) and [Authoring packs](./authoring-modules.md).

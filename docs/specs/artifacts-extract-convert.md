@@ -100,11 +100,11 @@ One `GetDocumentTextDetection` call (paginate tokens if needed for full text). *
 
 ```ts
 {
-  accessKeyId: string
-  secretAccessKey: string
+  access_key_id: string
+  secret_access_key: string
   region: string              // Textract + S3 region
   bucket: string              // S3 bucket for DocumentLocation
-  sessionToken?: string
+  session_token?: string
   poll_timeout_ms?: number    // default 60000
   poll_interval_ms?: number   // default 2000, cap reasonable
 }
@@ -144,13 +144,14 @@ If Transmute is slow, the tool still awaits the HTTP call (host/Worker timeout a
 {
   transmute_base_url: string   // e.g. https://convert.internal:3313
   transmute_token: string      // Bearer (JWT or API key)
-  // S3 for artifact IO
-  accessKeyId: string
-  secretAccessKey: string
-  region: string
-  bucket: string
-  endpoint?: string            // R2/MinIO OK for convert storage
-  sessionToken?: string
+  storage: {
+    access_key_id: string
+    secret_access_key: string
+    region: string
+    bucket: string
+    endpoint?: string            // R2/MinIO OK for convert storage
+    session_token?: string
+  }
 }
 ```
 

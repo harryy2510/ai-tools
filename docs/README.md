@@ -1,67 +1,100 @@
 # @harryy/ai-tools wiki
 
-Documentation hub for the package. Source of truth for architecture and module contracts; the root [README](../README.md) is the short entry point.
+Documentation hub. Root [README](../README.md) is the short entry point; this tree is the full map.
 
 ## Start here
 
 | Page | Purpose |
 | --- | --- |
-| [Getting started](./guides/getting-started.md) | Install, import map, first bound module |
+| [Getting started](./guides/getting-started.md) | Install, import map, first bound pack |
 | [Auth and binding](./guides/auth-and-binding.md) | Host-owned secrets, `withAuth`, model-facing rules |
 | [Adapters](./guides/adapters.md) | Project kernel tools into frameworks |
-| [Authoring modules](./guides/authoring-modules.md) | `defineModule` / scaffold / codegen |
+| [Authoring packs](./guides/authoring-modules.md) | modules vs vendors, layout, scaffold, codegen |
 | [Errors](./guides/errors.md) | `ToolError` codes and retry signals |
 | [Versioning](./versioning.md) | semantic-release + conventional commits |
 | [Changelog](../CHANGELOG.md) | Released notes |
 
-## Brain packages
+## Brain
 
 | Import | Doc |
 | --- | --- |
 | `@harryy/ai-tools/core` | [core](./packages/core.md) |
-| `@harryy/ai-tools/http` | [http](./packages/http.md) |
+| `@harryy/ai-tools/http` | [HttpService / AwsService](./reference/http-and-aws-services.md) |
 | `@harryy/ai-tools/mastra` | [mastra](./packages/mastra.md) |
 | `@harryy/ai-tools/ai-sdk` | [ai-sdk](./packages/ai-sdk.md) |
 | `@harryy/ai-tools/tanstack` | [tanstack](./packages/tanstack.md) |
 | `@harryy/ai-tools/cloudflare` | [cloudflare](./packages/cloudflare.md) |
 | `@harryy/ai-tools/mcp` | [mcp](./packages/mcp.md) |
 
-## Product modules
+## Seams (`src/modules/`)
+
+Capability modules we own. Multi-provider seams take `{ provider, … }` on host auth.
 
 | Import | Doc |
 | --- | --- |
-| `@harryy/ai-tools/storage` | [storage](./modules/storage.md) |
-| `@harryy/ai-tools/email-message` | [email-message](./modules/email-message.md) (email parse/build) |
-| `@harryy/ai-tools/content-type` | [content-type](./modules/content-type.md) (content type ↔ extension) |
+| `@harryy/ai-tools/email` | [email](./modules/email.md) — providers: `resend`, `cloudflare` |
+| `@harryy/ai-tools/storage` | [storage](./modules/storage.md) — providers: `s3`, `r2`, `supabase` |
+| `@harryy/ai-tools/files` | [files](./modules/files.md) — path root over storage |
+| `@harryy/ai-tools/document-extract` | [document-extract](./modules/document-extract.md) — `textract` |
+| `@harryy/ai-tools/document-render` | [document-render](./modules/document-render.md) — `gotenberg`, `cloudflare-browser` |
+| `@harryy/ai-tools/file-convert` | [file-convert](./modules/file-convert.md) — `transmute` |
 | `@harryy/ai-tools/web-fetch` | [web-fetch](./modules/web-fetch.md) |
-| `@harryy/ai-tools/document-extract` | [document-extract](./modules/document-extract.md) |
-| `@harryy/ai-tools/file-convert` | [file-convert](./modules/file-convert.md) |
-| `@harryy/ai-tools/document-render` | [document-render](./modules/document-render.md) |
-| `@harryy/ai-tools/files` | [files](./modules/files.md) |
-| `@harryy/ai-tools/resend` | [resend](./modules/resend.md) (vendor) |
-| `@harryy/ai-tools/cloudflare-email` | [cloudflare-email](./modules/cloudflare-email.md) (vendor) |
-| `@harryy/ai-tools/telegram` | [telegram](./modules/telegram.md) (vendor / chat) |
-| Spec: package surface (modules · vendors) | [package-surface-architecture](./specs/package-surface-architecture.md) |
-| Working: surface delivery board | [package-surface-working](./roadmap/package-surface-working.md) |
-| Spec: provider seam (capability modules) | [provider-seam](./specs/provider-seam.md) |
-| HTTP / AWS transport | [http-and-aws-services](./reference/http-and-aws-services.md) |
+| `@harryy/ai-tools/email-message` | [email-message](./modules/email-message.md) — pure MIME |
+| `@harryy/ai-tools/content-type` | [content-type](./modules/content-type.md) — pure type ↔ extension |
+
+## Vendors (`src/vendors/`)
+
+3rd-party packs. Full product API; class client + tools. Flat import (no `/vendors/` in path).
+
+| Import | Doc |
+| --- | --- |
+| `@harryy/ai-tools/resend` | [resend](./vendors/resend.md) |
+| `@harryy/ai-tools/cloudflare-email` | [cloudflare-email](./vendors/cloudflare-email.md) |
+| `@harryy/ai-tools/telegram` | [telegram](./vendors/telegram.md) |
+| `@harryy/ai-tools/s3` | [s3](./vendors/s3.md) |
+| `@harryy/ai-tools/r2` | [r2](./vendors/r2.md) |
+| `@harryy/ai-tools/supabase-storage` | [supabase-storage](./vendors/supabase-storage.md) |
+| `@harryy/ai-tools/textract` | [textract](./vendors/textract.md) |
+| `@harryy/ai-tools/transmute` | [transmute](./vendors/transmute.md) |
+| `@harryy/ai-tools/gotenberg` | [gotenberg](./vendors/gotenberg.md) |
+| `@harryy/ai-tools/cloudflare-browser` | [cloudflare-browser](./vendors/cloudflare-browser.md) |
+
+### Vertical kits (not published)
+
+| Dir | Used by |
+| --- | --- |
+| `vendors/_email/` | resend, cloudflare-email (+ email seam) |
+| `vendors/_storage/` | s3, r2, supabase-storage (+ storage/files seams) |
+| `vendors/_messaging/` | telegram (live message / typing pulse helpers) |
+
+## Specs and reference
+
+| Doc | Purpose |
+| --- | --- |
+| [package-surface-architecture](./specs/package-surface-architecture.md) | modules vs vendors layout and import rules |
+| [provider-seam](./specs/provider-seam.md) | Multi-provider capability modules |
+| [artifacts-extract-convert](./specs/artifacts-extract-convert.md) | ArtifactRef extract / convert / render |
+| [http-and-aws-services](./reference/http-and-aws-services.md) | Transport classes |
+| [package-surface-working](./roadmap/package-surface-working.md) | Delivery board (working) |
 
 ## Mental model
 
 ```text
 Host app
   ├── owns secrets / vaults
+  ├── new VendorClient(auth)          // host DX
   ├── withAuth(module, credentials)   // closes auth into tools
   └── adapter projector               // Mastra | AI SDK | TanStack | CF | MCP | runTool
-        └── kernel ToolDefinition     // id, schemas, execute, meta
-              └── product module or custom defineTool
+        └── kernel ToolDefinition     // id, schemas, execute
+              └── pack client.fromContext(ctx)
 ```
 
 - **Kernel** is the only place tools are authored.
 - **Adapters** only project; they never re-implement vendor calls.
-- **Auth schemas** are host-facing; model-facing tool inputs never include keys or tokens.
-- **Codegen** owns package exports for product modules under `src/modules/<key>/`.
+- **Auth schemas** are host-facing; model-facing tool inputs never include keys.
+- **Codegen** owns package exports for packs under `src/modules|vendors/<key>/` with `index.ts`.
+- Auth and domain fields that mirror APIs use **snake_case**.
 
-## Contributing notes
+## Contributing
 
-Agent/contributor rules live in [AGENTS.md](../AGENTS.md). Prefer changing docs in the same PR as behavior when public contracts move.
+Agent rules: [AGENTS.md](../AGENTS.md). Update docs in the same change as public contract moves.

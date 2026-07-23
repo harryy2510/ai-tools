@@ -3,19 +3,20 @@
 | | |
 | --- | --- |
 | **Import** | `@harryy/ai-tools/storage` |
+| **Kind** | multi-provider **seam** (`src/modules/storage`) |
 | **Module id** | `storage` |
 | **Runtime** | `both` |
 | **Auth** | Host union: `provider: 's3' \| 'r2' \| 'supabase'` |
 
 Object storage capability: list (cursor pagination), get/put/delete/head/copy, signed URL and multipart when supported, and batch get/put/delete (max 25).
 
-## Three ways in (host chooses)
+## Providers
 
 | provider | Transport | Auth | When |
 | --- | --- | --- | --- |
-| `s3` | **aws4fetch** (S3 API / SigV4) | access key + secret + region + bucket (+ optional endpoint) | AWS S3, **R2 S3 endpoint**, MinIO, other S3-compatible |
-| `r2` | **ofetch** → Cloudflare REST API | account id + API token + bucket | R2 via `api.cloudflare.com` object routes ([docs](https://developers.cloudflare.com/api/resources/r2/subresources/buckets/subresources/objects/)) |
-| `supabase` | **ofetch** → Supabase Storage REST | project URL + service role key + bucket | Native Supabase Storage API |
+| `s3` | SigV4 (S3 API) | `access_key_id`, `secret_access_key`, `region`, `bucket`, optional `endpoint` / `session_token` | AWS S3, **R2 S3 endpoint**, MinIO |
+| `r2` | Cloudflare REST | `account_id`, `api_token`, `bucket`, optional `jurisdiction` | R2 via `api.cloudflare.com` |
+| `supabase` | Supabase Storage REST | `url`, `service_role_key`, `bucket` | Native Supabase Storage |
 
 Not supported: Workers `env.R2` bindings. Use `s3` + R2 endpoint or `r2` REST.
 
@@ -24,32 +25,27 @@ Not supported: Workers `env.R2` bindings. Use `s3` + R2 endpoint or `r2` REST.
 ```ts
 withAuth(storageModule, {
   provider: 's3',
-  accessKeyId: '…',
-  secretAccessKey: '…',
+  access_key_id: '…',
+  secret_access_key: '…',
   region: 'auto',
   bucket: 'my-bucket',
-  endpoint: 'https://<account_id>.r2.cloudflarestorage.com', // R2 S3 API
+  endpoint: 'https://<account_id>.r2.cloudflarestorage.com',
 })
 ```
 
-### `r2` (Cloudflare REST, not binding)
+### `r2` (Cloudflare REST)
 
 ```ts
 withAuth(storageModule, {
   provider: 'r2',
-  accountId: '…',
-  apiToken: '…', // R2 object permissions
+  account_id: '…',
+  api_token: '…',
   bucket: 'my-bucket',
-  // jurisdiction: 'eu', // optional cf-r2-jurisdiction
+  // jurisdiction: 'eu',
 })
 ```
 
-Object routes:
-
-- `GET /accounts/{account_id}/r2/buckets/{bucket}/objects`
-- `GET|PUT|DELETE …/objects/{key}`
-
-Signed URLs and multipart are **unsupported** on this path (use `s3` for presign and multipart). Copy is get+put (same bucket only).
+Signed URLs and multipart are **unsupported** on this path (use `s3` for presign and multipart).
 
 ### `supabase`
 
@@ -57,7 +53,7 @@ Signed URLs and multipart are **unsupported** on this path (use `s3` for presign
 withAuth(storageModule, {
   provider: 'supabase',
   url: 'https://….supabase.co',
-  serviceRoleKey: '…',
+  service_role_key: '…',
   bucket: 'media',
 })
 ```
@@ -72,7 +68,9 @@ withAuth(storageModule, {
 | --- | --- |
 | `storage-create-multipart-upload` | Returns `upload_id` |
 | `storage-upload-part` | Part body ≤ 25 MiB; S3 min 5 MiB except last part |
-| `storage-complete-multipart-upload` | `{ part_number, etag }[]` (any order) |
+| `storage-complete-multipart-upload` | `{ part_number, etag }[]` |
 | `storage-abort-multipart-upload` | Discard in-progress upload |
 
 Providers `r2` (REST) and `supabase` throw `unsupported` for multipart tools.
+
+Vendor packs: [s3](../vendors/s3.md), [r2](../vendors/r2.md), [supabase-storage](../vendors/supabase-storage.md).

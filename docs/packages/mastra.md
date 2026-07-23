@@ -30,8 +30,9 @@ import { createMastraTools } from '@harryy/ai-tools/mastra'
 
 const tools = createMastraTools(
   withAuth(storageModule, {
-    accessKeyId: '…',
-    secretAccessKey: '…',
+    provider: 's3',
+    access_key_id: '…',
+    secret_access_key: '…',
     region: 'auto',
     bucket: 'my-bucket',
   }),

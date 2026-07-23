@@ -15,27 +15,62 @@ bun add @tanstack/ai          # /tanstack
 bun add @modelcontextprotocol/sdk   # registerMcpTools only
 ```
 
-Runtime engines: **Bun ≥ 1.3.14** or **Node ≥ 24**. Edge runtimes work for modules marked `runtime: 'both'` or `'edge'`.
+Runtime engines: **Bun ≥ 1.3.14** or **Node ≥ 24**. Edge runtimes work for packs marked `runtime: 'both'` or `'edge'`.
 
 ## Import map
 
-There is **no root barrel**. Import by subpath:
+There is **no root barrel**. Import by subpath. Full tables: [root README](../../README.md#subpaths) and [docs hub](../README.md).
 
-| Subpath | Role |
+| Kind | Examples |
 | --- | --- |
-| `@harryy/ai-tools/core` | Kernel |
-| `@harryy/ai-tools/http` | HTTP factory |
-| `@harryy/ai-tools/mastra` | Mastra projector |
-| `@harryy/ai-tools/ai-sdk` | AI SDK projector |
-| `@harryy/ai-tools/tanstack` | TanStack AI projector |
-| `@harryy/ai-tools/cloudflare` | Workers AI tool definitions |
-| `@harryy/ai-tools/mcp` | MCP list/call + register |
-| `@harryy/ai-tools/email` | Product module (providers: cloudflare, resend) |
-| `@harryy/ai-tools/storage` | Product module (providers: s3, r2 REST, supabase) |
-| `@harryy/ai-tools/email-message` | Product module (email MIME) |
-| `@harryy/ai-tools/content-type` | Product module (type ↔ extension via `mime`) |
+| Brain | `@harryy/ai-tools/core`, `/http`, `/mastra`, `/ai-sdk`, … |
+| Seams | `@harryy/ai-tools/email`, `/storage`, `/files`, … |
+| Vendors | `@harryy/ai-tools/resend`, `/telegram`, `/s3`, … |
 
-## Minimal kernel tool
+## Vendor pack (class client + tools)
+
+```ts
+import { withAuth } from '@harryy/ai-tools/core'
+import { ResendClient, resendModule } from '@harryy/ai-tools/resend'
+import { createMastraTools } from '@harryy/ai-tools/mastra'
+
+// Host
+const resend = new ResendClient({ api_key: process.env.RESEND_API_KEY! })
+await resend.send({ to: 'a@example.com', from: 'b@example.com', subject: 'Hi', text: 'Hello' })
+
+// Agent
+const bound = withAuth(resendModule, { api_key: process.env.RESEND_API_KEY! })
+export const tools = createMastraTools(bound)
+```
+
+## Multi-provider seam
+
+```ts
+import { withAuth } from '@harryy/ai-tools/core'
+import { emailModule } from '@harryy/ai-tools/email'
+import { createMastraTools } from '@harryy/ai-tools/mastra'
+
+const bound = withAuth(emailModule, {
+  provider: 'cloudflare',
+  account_id: process.env.CF_ACCOUNT_ID!,
+  api_token: process.env.CF_API_TOKEN!,
+})
+
+export const tools = createMastraTools(bound)
+```
+
+Host chooses the backend with `provider` on auth. Tool inputs never include credentials.
+
+## Pure packs (no auth)
+
+```ts
+import { emailMessageModule } from '@harryy/ai-tools/email-message'
+import { createAiSdkTools } from '@harryy/ai-tools/ai-sdk'
+
+export const tools = createAiSdkTools(emailMessageModule)
+```
+
+## Minimal custom tool
 
 ```ts
 import { z } from 'zod'
@@ -61,39 +96,17 @@ await runTool(ping, {})
 // { ok: true }
 ```
 
-## Bind auth then project
-
-Product modules with credentials use `withAuth` **before** adapters:
-
-```ts
-import { withAuth } from '@harryy/ai-tools/core'
-import { emailModule } from '@harryy/ai-tools/email'
-import { createMastraTools } from '@harryy/ai-tools/mastra'
-
-const bound = withAuth(emailModule, {
-  provider: 'cloudflare',
-  accountId: process.env.CF_ACCOUNT_ID!,
-  apiToken: process.env.CF_API_TOKEN!,
-})
-
-const tools = createMastraTools(bound)
-// pass `tools` into your Mastra agent
-```
-
-MIME has `auth: { type: 'none' }` — project the module directly without `withAuth`.
-
 ## Direct execution (tests / scripts)
 
 ```ts
 import { runTool, withAuth } from '@harryy/ai-tools/core'
-import { sendEmailTool, emailModule } from '@harryy/ai-tools/email'
+import { emailModule, emailSendTool } from '@harryy/ai-tools/email'
 
 const bound = withAuth(emailModule, {
-  provider: 'cloudflare',
-  accountId: '…',
-  apiToken: '…',
+  provider: 'resend',
+  api_key: '…',
 })
-const tool = bound.tools.find((t) => t.id === sendEmailTool.id)!
+const tool = bound.tools.find((t) => t.id === emailSendTool.id)!
 
 await runTool(
   tool,
@@ -111,4 +124,5 @@ await runTool(
 
 - [Auth and binding](./auth-and-binding.md)
 - [Adapters](./adapters.md)
-- [Product modules](../README.md#product-modules)
+- [Authoring packs](./authoring-modules.md)
+- [Docs hub](../README.md)
