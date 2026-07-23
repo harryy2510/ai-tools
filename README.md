@@ -139,6 +139,9 @@ defineTool / defineModule
 | `@harryy/ai-tools/transmute` | `transmute-convert`, `-convert-batch` | [transmute](./docs/vendors/transmute.md) |
 | `@harryy/ai-tools/gotenberg` | `gotenberg-render-pdf`, `-render-screenshot` | [gotenberg](./docs/vendors/gotenberg.md) |
 | `@harryy/ai-tools/cloudflare-browser` | `cloudflare-browser-render-pdf`, `-render-screenshot` | [cloudflare-browser](./docs/vendors/cloudflare-browser.md) |
+| `@harryy/ai-tools/woocommerce` | `woocommerce-list-orders`, `-get-order`, products | [woocommerce](./docs/vendors/woocommerce.md) |
+| `@harryy/ai-tools/katana` | `katana-list-sales-orders`, `-get-sales-order` | [katana](./docs/vendors/katana.md) |
+| `@harryy/ai-tools/amazon-sp-api` | `amazon-sp-api-list-orders`, `-get-order`, inventory | [amazon-sp-api](./docs/vendors/amazon-sp-api.md) |
 
 Auth fields are **snake_case** (`api_key`, `bot_token`, `access_key_id`, …).
 

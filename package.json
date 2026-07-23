@@ -45,6 +45,10 @@
 			"types": "./dist/mcp/index.d.ts",
 			"default": "./dist/mcp/index.js"
 		},
+		"./amazon-sp-api": {
+			"types": "./dist/vendors/amazon-sp-api/index.d.ts",
+			"default": "./dist/vendors/amazon-sp-api/index.js"
+		},
 		"./cloudflare-browser": {
 			"types": "./dist/vendors/cloudflare-browser/index.d.ts",
 			"default": "./dist/vendors/cloudflare-browser/index.js"
@@ -85,6 +89,10 @@
 			"types": "./dist/vendors/gotenberg/index.d.ts",
 			"default": "./dist/vendors/gotenberg/index.js"
 		},
+		"./katana": {
+			"types": "./dist/vendors/katana/index.d.ts",
+			"default": "./dist/vendors/katana/index.js"
+		},
 		"./r2": {
 			"types": "./dist/vendors/r2/index.d.ts",
 			"default": "./dist/vendors/r2/index.js"
@@ -120,6 +128,10 @@
 		"./web-fetch": {
 			"types": "./dist/modules/web-fetch/index.d.ts",
 			"default": "./dist/modules/web-fetch/index.js"
+		},
+		"./woocommerce": {
+			"types": "./dist/vendors/woocommerce/index.d.ts",
+			"default": "./dist/vendors/woocommerce/index.js"
 		}
 	},
 	"publishConfig": {

@@ -58,6 +58,9 @@ Capability modules we own. Multi-provider seams take `{ provider, … }` on host
 | `@harryy/ai-tools/transmute` | [transmute](./vendors/transmute.md) |
 | `@harryy/ai-tools/gotenberg` | [gotenberg](./vendors/gotenberg.md) |
 | `@harryy/ai-tools/cloudflare-browser` | [cloudflare-browser](./vendors/cloudflare-browser.md) |
+| `@harryy/ai-tools/woocommerce` | [woocommerce](./vendors/woocommerce.md) |
+| `@harryy/ai-tools/katana` | [katana](./vendors/katana.md) |
+| `@harryy/ai-tools/amazon-sp-api` | [amazon-sp-api](./vendors/amazon-sp-api.md) |
 
 ### Vertical kits (not published)
 

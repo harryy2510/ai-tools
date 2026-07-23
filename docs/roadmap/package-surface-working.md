@@ -177,9 +177,9 @@ Slice 3 done when: this capability map is implemented under `src/channels/telegr
 | 2 | `files` (root_prefix + storage auth) | Done | list/search/stat relative keys; tests |
 | 3 | `vendors/telegram` | Done | Full pack; tools + live message + webhook helpers |
 | 3b | `vendors/resend` + `vendors/cloudflare-email` | Done | Lane B email ESPs (no multi-provider email seam) |
-| 4 | `vendors/woocommerce` (first action group) | Pending | orders + products read path |
-| 5 | `vendors/katana` | Pending | sales order query parity |
-| 6 | `vendors/amazon-sp-api` (first action group) | Pending | documented subset live |
+| 4 | `vendors/woocommerce` (first action group) | Done | orders + products list/get |
+| 5 | `vendors/katana` | Done | sales order list/get |
+| 6 | `vendors/amazon-sp-api` (first action group) | Done | orders + FBA inventory summaries |
 | 7 | `vector-store` + `rag` | Pending | upsert/query + ingest/retrieve |
 | 8 | `channels/slack` | Pending | same checklist as Telegram |
 | 9 | `channels/imessage` (Photon) | Pending | aligned with host imessage spec |

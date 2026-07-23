@@ -10,6 +10,7 @@ export default defineConfig({
 		'tanstack/index': 'src/adapters/tanstack/index.ts',
 		'cloudflare/index': 'src/adapters/cloudflare/index.ts',
 		'mcp/index': 'src/adapters/mcp/index.ts',
+		'vendors/amazon-sp-api/index': 'src/vendors/amazon-sp-api/index.ts',
 		'vendors/cloudflare-browser/index': 'src/vendors/cloudflare-browser/index.ts',
 		'vendors/cloudflare-email/index': 'src/vendors/cloudflare-email/index.ts',
 		'modules/content-type/index': 'src/modules/content-type/index.ts',
@@ -20,6 +21,7 @@ export default defineConfig({
 		'modules/file-convert/index': 'src/modules/file-convert/index.ts',
 		'modules/files/index': 'src/modules/files/index.ts',
 		'vendors/gotenberg/index': 'src/vendors/gotenberg/index.ts',
+		'vendors/katana/index': 'src/vendors/katana/index.ts',
 		'vendors/r2/index': 'src/vendors/r2/index.ts',
 		'vendors/resend/index': 'src/vendors/resend/index.ts',
 		'vendors/s3/index': 'src/vendors/s3/index.ts',
@@ -28,7 +30,8 @@ export default defineConfig({
 		'vendors/telegram/index': 'src/vendors/telegram/index.ts',
 		'vendors/textract/index': 'src/vendors/textract/index.ts',
 		'vendors/transmute/index': 'src/vendors/transmute/index.ts',
-		'modules/web-fetch/index': 'src/modules/web-fetch/index.ts'
+		'modules/web-fetch/index': 'src/modules/web-fetch/index.ts',
+		'vendors/woocommerce/index': 'src/vendors/woocommerce/index.ts'
 	},
 	format: ['esm'],
 	// package.json is "type": "module" — emit .js / .d.ts (not .mjs / .d.mts)
