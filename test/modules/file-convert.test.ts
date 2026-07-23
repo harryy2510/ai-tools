@@ -23,9 +23,8 @@ describe('file-convert', () => {
 			transmute_base_url: 'https://transmute.example',
 			transmute_token: 'tok',
 			storage: {
-				provider: 's3',
-				accessKeyId: 'AKIAtest',
-				secretAccessKey: 'secret',
+				access_key_id: 'AKIAtest',
+				secret_access_key: 'secret',
 				region: 'auto',
 				bucket: 'artifacts',
 				endpoint: 'https://example.r2.cloudflarestorage.com'

@@ -1,7 +1,11 @@
+/**
+ * Email seam contracts — vendor I/O + provider auth union.
+ */
+
 import { z } from 'zod'
 
 import { batchResultSchema } from '../../shared/batch'
-import { cloudflareEmailAuthSchema as cloudflareVendorAuthSchema } from '../../vendors/cloudflare-email'
+import { cloudflareEmailAuthSchema as cloudflareEmailVendorAuthSchema } from '../../vendors/cloudflare-email'
 import {
 	attachmentSchema,
 	MAX_BATCH_EMAILS,
@@ -15,19 +19,19 @@ import type { NamedAddress, ResendSendInput } from '../../vendors/resend'
 export { attachmentSchema, MAX_BATCH_EMAILS, MAX_EMAIL_BYTES, namedAddressSchema }
 export type { NamedAddress }
 
-/** Per-provider host auth (vendor credentials + discriminator). */
+/** Host auth: vendor credentials + provider discriminator. */
 export const resendEmailAuthSchema = resendAuthSchema.extend({
 	provider: z.literal('resend')
 })
 
-export const cloudflareEmailAuthSchema = cloudflareVendorAuthSchema.extend({
+export const cloudflareEmailSeamAuthSchema = cloudflareEmailVendorAuthSchema.extend({
 	provider: z.literal('cloudflare')
 })
 
 export type ResendEmailAuth = z.infer<typeof resendEmailAuthSchema>
-export type CloudflareEmailAuth = z.infer<typeof cloudflareEmailAuthSchema>
+export type CloudflareEmailSeamAuth = z.infer<typeof cloudflareEmailSeamAuthSchema>
 
-export const emailAuthSchema = z.discriminatedUnion('provider', [resendEmailAuthSchema, cloudflareEmailAuthSchema])
+export const emailAuthSchema = z.discriminatedUnion('provider', [resendEmailAuthSchema, cloudflareEmailSeamAuthSchema])
 
 export type EmailAuth = z.infer<typeof emailAuthSchema>
 
@@ -35,7 +39,10 @@ export type EmailAuth = z.infer<typeof emailAuthSchema>
 export const emailSendInputSchema = resendSendInputSchema
 export type EmailSendInput = ResendSendInput
 
-/** Unified result; each provider fills what it has. */
+/**
+ * Unified result; each provider fills what it has.
+ * Resend → id; Cloudflare → accepted/rejected.
+ */
 export const emailSendOutputSchema = z.object({
 	success: z.boolean().describe('Whether the provider accepted the request'),
 	id: z.string().optional().describe('Provider message id when available'),
@@ -53,7 +60,7 @@ export type EmailSendOutput = z.infer<typeof emailSendOutputSchema>
 export type EmailSendBatchInput = z.infer<typeof emailSendBatchInputSchema>
 export type EmailSendBatchOutput = z.infer<typeof emailSendBatchOutputSchema>
 
-/** Shared seam surface — both provider classes implement this. */
+/** Shared seam surface — provider classes implement this. */
 export type EmailOps = {
 	send: (input: EmailSendInput) => Promise<EmailSendOutput>
 	sendBatch: (input: EmailSendBatchInput) => Promise<EmailSendBatchOutput>

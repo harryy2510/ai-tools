@@ -1,16 +1,14 @@
 /**
- * Cloudflare Email provider for the email seam.
- * Wraps `CloudflareEmailClient` — no ESP HTTP of its own.
+ * Cloudflare Email provider for the email seam. Wraps `CloudflareEmailClient`.
  */
 
 import { runBatchItems } from '../../../shared/batch'
 import type { HttpServiceOptions } from '../../../transport/http-service'
 import { CloudflareEmailClient } from '../../../vendors/cloudflare-email'
 import type {
-	CloudflareEmailAuth,
+	CloudflareEmailSeamAuth,
 	EmailOps,
 	EmailSendBatchInput,
-	EmailSendBatchOutput,
 	EmailSendInput,
 	EmailSendOutput
 } from '../contracts'
@@ -20,8 +18,9 @@ export type CloudflareEmailProviderOptions = Pick<HttpServiceOptions, 'fetch' | 
 export class CloudflareEmailProvider implements EmailOps {
 	readonly #client: CloudflareEmailClient
 
-	constructor(auth: CloudflareEmailAuth, options: CloudflareEmailProviderOptions = {}) {
-		this.#client = new CloudflareEmailClient({ account_id: auth.account_id, api_token: auth.api_token }, options)
+	constructor(auth: CloudflareEmailSeamAuth, options: CloudflareEmailProviderOptions = {}) {
+		const { provider: _p, ...vendorAuth } = auth
+		this.#client = new CloudflareEmailClient(vendorAuth, options)
 	}
 
 	async send(input: EmailSendInput): Promise<EmailSendOutput> {
@@ -33,7 +32,7 @@ export class CloudflareEmailProvider implements EmailOps {
 		}
 	}
 
-	async sendBatch(input: EmailSendBatchInput): Promise<EmailSendBatchOutput> {
+	sendBatch(input: EmailSendBatchInput) {
 		return runBatchItems(input.messages, (message) => this.send(message))
 	}
 }

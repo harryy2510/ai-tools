@@ -1,3 +1,9 @@
+/**
+ * Public storage seam surface.
+ * Internals (providers/*) stay private.
+ */
+
+export { StorageClient } from './client'
 export {
 	abortMultipartUploadTool,
 	completeMultipartUploadTool,
@@ -14,14 +20,36 @@ export {
 	putObjectsTool,
 	storageAuthSchema,
 	storageModule,
-	storageProviders,
 	uploadPartTool
 } from './module'
 export type { StorageAuth } from './module'
 export type { StorageOps } from './contracts'
-export { s3StorageProvider, s3StorageAuthSchema } from './providers/s3'
-export type { S3StorageAuth } from './providers/s3'
-export { r2StorageProvider, r2StorageAuthSchema } from './providers/r2'
-export type { R2StorageAuth } from './providers/r2'
-export { supabaseStorageProvider, supabaseStorageAuthSchema } from './providers/supabase'
-export type { SupabaseStorageAuth } from './providers/supabase'
+export {
+	abortMultipartUploadInputSchema,
+	abortMultipartUploadOutputSchema,
+	completeMultipartUploadInputSchema,
+	completeMultipartUploadOutputSchema,
+	copyObjectInputSchema,
+	copyObjectOutputSchema,
+	createMultipartUploadInputSchema,
+	createMultipartUploadOutputSchema,
+	deleteObjectInputSchema,
+	deleteObjectOutputSchema,
+	getObjectInputSchema,
+	getObjectOutputSchema,
+	headObjectInputSchema,
+	headObjectOutputSchema,
+	listObjectsInputSchema,
+	listObjectsOutputSchema,
+	MAX_OBJECT_BYTES,
+	putObjectInputSchema,
+	putObjectOutputSchema,
+	r2StorageAuthSchema,
+	signedUrlInputSchema,
+	signedUrlOutputSchema,
+	s3StorageAuthSchema,
+	supabaseStorageSeamAuthSchema,
+	uploadPartInputSchema,
+	uploadPartOutputSchema
+} from './contracts'
+export type { R2StorageAuth, S3StorageAuth, SupabaseStorageSeamAuth } from './contracts'

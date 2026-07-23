@@ -1,31 +1,18 @@
-import { z } from 'zod'
-
 import { defineModule, defineTool } from '../../core/define'
-import { requireAuth, resolveProvider } from '../../core/provider'
-import type { ToolContext } from '../../core/types'
-import { runBatchItems } from '../../shared/batch'
+import { DocumentExtractClient } from './client'
 import {
+	documentExtractAuthSchema,
 	extractResultSchema,
 	extractTextBatchInputSchema,
 	extractTextBatchOutputSchema,
 	extractTextInputSchema,
 	statusInputSchema
 } from './contracts'
-import type { DocumentExtractOps } from './contracts'
-import { textractExtractAuthSchema, textractExtractProvider } from './providers/textract'
 
-export const documentExtractProviders = [textractExtractProvider] as const
+export type { DocumentExtractAuth } from './contracts'
+export { documentExtractAuthSchema }
 
-export const documentExtractAuthSchema = z.discriminatedUnion('provider', [textractExtractAuthSchema])
-
-export type DocumentExtractAuth = z.infer<typeof documentExtractAuthSchema>
-
-function resolveOps(ctx: ToolContext): DocumentExtractOps {
-	const auth = requireAuth(ctx, documentExtractAuthSchema)
-	return resolveProvider(documentExtractProviders, auth).ops
-}
-
-const documentExtractTextTool = defineTool({
+export const documentExtractTextTool = defineTool({
 	id: 'document-extract-text',
 	name: 'extractDocumentText',
 	description:
@@ -34,10 +21,10 @@ const documentExtractTextTool = defineTool({
 	outputSchema: extractResultSchema,
 	sideEffect: 'read',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).extractText(input, ctx)
+	execute: async (input, ctx) => DocumentExtractClient.fromContext(ctx).extractText(input)
 })
 
-const documentExtractStatusTool = defineTool({
+export const documentExtractStatusTool = defineTool({
 	id: 'document-extract-status',
 	name: 'getDocumentExtractStatus',
 	description:
@@ -46,10 +33,10 @@ const documentExtractStatusTool = defineTool({
 	outputSchema: extractResultSchema,
 	sideEffect: 'read',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).getStatus(input, ctx)
+	execute: async (input, ctx) => DocumentExtractClient.fromContext(ctx).getStatus(input)
 })
 
-const documentExtractTextBatchTool = defineTool({
+export const documentExtractTextBatchTool = defineTool({
 	id: 'document-extract-text-batch',
 	name: 'extractDocumentTextBatch',
 	description:
@@ -58,23 +45,15 @@ const documentExtractTextBatchTool = defineTool({
 	outputSchema: extractTextBatchOutputSchema,
 	sideEffect: 'read',
 	runtime: 'both',
-	execute: async (input, ctx) => {
-		const ops = resolveOps(ctx)
-		if (ops.extractTextBatch !== undefined) {
-			return ops.extractTextBatch(input, ctx)
-		}
-		return runBatchItems(input.sources, async (source) => ops.extractText({ source }, ctx))
-	}
+	execute: async (input, ctx) => DocumentExtractClient.fromContext(ctx).extractTextBatch(input)
 })
 
 export const documentExtractModule = defineModule({
 	id: 'document-extract',
 	title: 'Document Extract',
 	description:
-		'Extract text from documents in object storage via a bound provider (Amazon Textract or future providers). Polls inside extract; use status tool with job_id if the wait budget expires.',
+		'Extract text from documents in object storage via the host-bound provider. Polls inside extract; use status tool with job_id if the wait budget expires.',
 	runtime: 'both',
 	auth: { type: 'custom', schema: documentExtractAuthSchema },
 	tools: [documentExtractTextTool, documentExtractStatusTool, documentExtractTextBatchTool]
 })
-
-export { documentExtractStatusTool, documentExtractTextBatchTool, documentExtractTextTool }

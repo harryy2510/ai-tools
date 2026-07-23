@@ -1,48 +1,50 @@
 import { z } from 'zod'
 
-import type { ToolContext } from '../../core/types'
-import { artifactRefSchema } from '../../shared/artifact'
 import { batchResultSchema } from '../../shared/batch'
+import {
+	MAX_BATCH_EXTRACT,
+	textractAuthSchema,
+	textractExtractResultSchema,
+	textractExtractTextBatchInputSchema,
+	textractExtractTextInputSchema,
+	textractStatusInputSchema
+} from '../../vendors/textract'
+import type {
+	TextractExtractResult,
+	TextractExtractTextBatchInput,
+	TextractExtractTextInput,
+	TextractStatusInput
+} from '../../vendors/textract'
 
-export const MAX_BATCH_EXTRACT = 10
+export { MAX_BATCH_EXTRACT }
 
-export const extractResultSchema = z.object({
-	status: z.enum(['succeeded', 'pending', 'failed']),
-	job_id: z.string().optional(),
-	text: z.string().optional(),
-	page_count: z.int().optional(),
-	error: z.string().optional(),
-	source: artifactRefSchema.optional()
+/** Host auth: vendor credentials + provider discriminator. */
+export const textractDocumentExtractAuthSchema = textractAuthSchema.extend({
+	provider: z.literal('textract')
 })
 
-export const extractTextInputSchema = z.object({
-	source: artifactRefSchema.describe('Document ArtifactRef in object storage (store must be object)')
-})
+export type TextractDocumentExtractAuth = z.infer<typeof textractDocumentExtractAuthSchema>
 
-export const extractTextBatchInputSchema = z.object({
-	sources: z
-		.array(artifactRefSchema)
-		.min(1)
-		.max(MAX_BATCH_EXTRACT)
-		.describe('Document ArtifactRefs to extract (max 10)')
-})
+export const documentExtractAuthSchema = z.discriminatedUnion('provider', [textractDocumentExtractAuthSchema])
 
-export const statusInputSchema = z.object({
-	job_id: z.string().min(1).describe('Job id from a prior extract call')
-})
+export type DocumentExtractAuth = z.infer<typeof documentExtractAuthSchema>
 
+/** Capability I/O — same shapes as Textract today. */
+export const extractResultSchema = textractExtractResultSchema
+export const extractTextInputSchema = textractExtractTextInputSchema
+export const extractTextBatchInputSchema = textractExtractTextBatchInputSchema
+export const statusInputSchema = textractStatusInputSchema
 export const extractTextBatchOutputSchema = batchResultSchema(extractResultSchema)
 
-export type ExtractResult = z.infer<typeof extractResultSchema>
-export type ExtractTextInput = z.infer<typeof extractTextInputSchema>
-export type ExtractTextBatchInput = z.infer<typeof extractTextBatchInputSchema>
-export type StatusInput = z.infer<typeof statusInputSchema>
+export type ExtractResult = TextractExtractResult
+export type ExtractTextInput = TextractExtractTextInput
+export type ExtractTextBatchInput = TextractExtractTextBatchInput
+export type StatusInput = TextractStatusInput
+export type ExtractTextBatchOutput = z.infer<typeof extractTextBatchOutputSchema>
 
+/** Shared seam surface — provider classes implement this. */
 export type DocumentExtractOps = {
-	extractText: (input: ExtractTextInput, ctx: ToolContext) => Promise<ExtractResult>
-	getStatus: (input: StatusInput, ctx: ToolContext) => Promise<ExtractResult>
-	extractTextBatch?: (
-		input: ExtractTextBatchInput,
-		ctx: ToolContext
-	) => Promise<z.infer<typeof extractTextBatchOutputSchema>>
+	extractText: (input: ExtractTextInput) => Promise<ExtractResult>
+	getStatus: (input: StatusInput) => Promise<ExtractResult>
+	extractTextBatch: (input: ExtractTextBatchInput) => Promise<ExtractTextBatchOutput>
 }

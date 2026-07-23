@@ -1,25 +1,17 @@
-import { z } from 'zod'
-
 import { defineModule, defineTool } from '../../core/define'
-import { requireAuth, resolveProvider } from '../../core/provider'
-import type { ToolContext } from '../../core/types'
-import { runBatchItems } from '../../shared/batch'
-import { convertBatchInputSchema, convertBatchOutputSchema, convertInputSchema, convertOutputSchema } from './contracts'
-import type { FileConvertOps } from './contracts'
-import { transmuteConvertAuthSchema, transmuteConvertProvider } from './providers/transmute'
+import { FileConvertClient } from './client'
+import {
+	convertBatchInputSchema,
+	convertBatchOutputSchema,
+	convertInputSchema,
+	convertOutputSchema,
+	fileConvertAuthSchema
+} from './contracts'
 
-export const fileConvertProviders = [transmuteConvertProvider] as const
+export type { FileConvertAuth } from './contracts'
+export { fileConvertAuthSchema }
 
-export const fileConvertAuthSchema = z.discriminatedUnion('provider', [transmuteConvertAuthSchema])
-
-export type FileConvertAuth = z.infer<typeof fileConvertAuthSchema>
-
-function resolveOps(ctx: ToolContext): FileConvertOps {
-	const auth = requireAuth(ctx, fileConvertAuthSchema)
-	return resolveProvider(fileConvertProviders, auth).ops
-}
-
-const fileConvertTool = defineTool({
+export const fileConvertTool = defineTool({
 	id: 'file-convert',
 	name: 'convertFile',
 	description:
@@ -28,10 +20,10 @@ const fileConvertTool = defineTool({
 	outputSchema: convertOutputSchema,
 	sideEffect: 'write',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).convert(input, ctx)
+	execute: async (input, ctx) => FileConvertClient.fromContext(ctx).convert(input)
 })
 
-const fileConvertBatchTool = defineTool({
+export const fileConvertBatchTool = defineTool({
 	id: 'file-convert-batch',
 	name: 'convertFiles',
 	description:
@@ -40,23 +32,14 @@ const fileConvertBatchTool = defineTool({
 	outputSchema: convertBatchOutputSchema,
 	sideEffect: 'write',
 	runtime: 'both',
-	execute: async (input, ctx) => {
-		const ops = resolveOps(ctx)
-		if (ops.convertBatch !== undefined) {
-			return ops.convertBatch(input, ctx)
-		}
-		return runBatchItems(input.items, async (item) => ops.convert(item, ctx))
-	}
+	execute: async (input, ctx) => FileConvertClient.fromContext(ctx).convertBatch(input)
 })
 
 export const fileConvertModule = defineModule({
 	id: 'file-convert',
 	title: 'File Convert',
-	description:
-		'Convert ArtifactRef objects via a bound provider (Transmute or future providers) and write results back to object storage.',
+	description: 'Convert ArtifactRef objects via the host-bound provider and write results back to object storage.',
 	runtime: 'both',
 	auth: { type: 'custom', schema: fileConvertAuthSchema },
 	tools: [fileConvertTool, fileConvertBatchTool]
 })
-
-export { fileConvertBatchTool, fileConvertTool }

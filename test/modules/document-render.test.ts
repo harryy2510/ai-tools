@@ -10,9 +10,8 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 const storageAuth = {
-	provider: 's3' as const,
-	accessKeyId: 'AKIAtest',
-	secretAccessKey: 'secret',
+	access_key_id: 'AKIAtest',
+	secret_access_key: 'secret',
 	region: 'auto',
 	bucket: 'artifacts',
 	endpoint: 'https://example.r2.cloudflarestorage.com'
@@ -77,8 +76,8 @@ describe('document-render', () => {
 	test('cloudflare-browser provider captures screenshot', async () => {
 		const bound = withAuth(documentRenderModule, {
 			provider: 'cloudflare-browser',
-			accountId: 'acc',
-			apiToken: 'tok',
+			account_id: 'acc',
+			api_token: 'tok',
 			storage: storageAuth
 		})
 		const tool = bound.tools.find((t) => t.id === 'document-render-screenshot')

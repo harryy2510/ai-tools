@@ -21,8 +21,8 @@ describe('storage', () => {
 	test('s3 provider lists and gets objects (S3-compatible / R2 S3 endpoint)', async () => {
 		const bound = withAuth(storageModule, {
 			provider: 's3',
-			accessKeyId: 'AKIAtest',
-			secretAccessKey: 'secret',
+			access_key_id: 'AKIAtest',
+			secret_access_key: 'secret',
 			region: 'auto',
 			bucket: 'artifacts',
 			endpoint: 'https://example.r2.cloudflarestorage.com'
@@ -70,8 +70,8 @@ describe('storage', () => {
 	test('r2 REST provider lists objects via api.cloudflare.com', async () => {
 		const bound = withAuth(storageModule, {
 			provider: 'r2',
-			accountId: 'acc123',
-			apiToken: 'cf_token',
+			account_id: 'acc123',
+			api_token: 'cf_token',
 			bucket: 'media'
 		})
 		const listTool = bound.tools.find((t) => t.id === 'storage-list-objects')

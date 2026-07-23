@@ -1,10 +1,8 @@
-import { z } from 'zod'
-
 import { defineModule, defineTool } from '../../core/define'
-import { requireAuth, resolveProvider } from '../../core/provider'
 import { ToolError } from '../../core/errors'
 import type { ToolContext } from '../../core/types'
 import { runBatchItems } from '../../shared/batch'
+import { StorageClient } from './client'
 import {
 	abortMultipartUploadInputSchema,
 	abortMultipartUploadOutputSchema,
@@ -32,30 +30,43 @@ import {
 	putObjectsOutputSchema,
 	signedUrlInputSchema,
 	signedUrlOutputSchema,
+	storageAuthSchema,
 	uploadPartInputSchema,
 	uploadPartOutputSchema
 } from './contracts'
 import type { StorageOps } from './contracts'
-import { r2StorageAuthSchema, r2StorageProvider } from './providers/r2'
-import { s3StorageAuthSchema, s3StorageProvider } from './providers/s3'
-import { supabaseStorageAuthSchema, supabaseStorageProvider } from './providers/supabase'
 
-export const storageProviders = [s3StorageProvider, r2StorageProvider, supabaseStorageProvider] as const
+export type { StorageAuth } from './contracts'
+export { storageAuthSchema }
 
-export const storageAuthSchema = z.discriminatedUnion('provider', [
-	s3StorageAuthSchema,
-	r2StorageAuthSchema,
-	supabaseStorageAuthSchema
-])
-
-export type StorageAuth = z.infer<typeof storageAuthSchema>
-
-function resolveOps(ctx: ToolContext): StorageOps {
-	const auth = requireAuth(ctx, storageAuthSchema)
-	return resolveProvider(storageProviders, auth).ops
+function client(ctx: ToolContext): StorageClient {
+	return StorageClient.fromContext(ctx)
 }
 
-const listObjectsTool = defineTool({
+function requireMultipartOps(ops: StorageOps): {
+	createMultipartUpload: NonNullable<StorageOps['createMultipartUpload']>
+	uploadPart: NonNullable<StorageOps['uploadPart']>
+	completeMultipartUpload: NonNullable<StorageOps['completeMultipartUpload']>
+	abortMultipartUpload: NonNullable<StorageOps['abortMultipartUpload']>
+} {
+	const createMultipartUpload = ops.createMultipartUpload
+	const uploadPart = ops.uploadPart
+	const completeMultipartUpload = ops.completeMultipartUpload
+	const abortMultipartUpload = ops.abortMultipartUpload
+	if (!createMultipartUpload || !uploadPart || !completeMultipartUpload || !abortMultipartUpload) {
+		throw new ToolError('Multipart upload is not supported by the bound storage provider', {
+			code: 'unsupported'
+		})
+	}
+	return {
+		createMultipartUpload: (input) => createMultipartUpload.call(ops, input),
+		uploadPart: (input) => uploadPart.call(ops, input),
+		completeMultipartUpload: (input) => completeMultipartUpload.call(ops, input),
+		abortMultipartUpload: (input) => abortMultipartUpload.call(ops, input)
+	}
+}
+
+export const listObjectsTool = defineTool({
 	id: 'storage-list-objects',
 	name: 'listObjects',
 	description:
@@ -64,10 +75,10 @@ const listObjectsTool = defineTool({
 	outputSchema: listObjectsOutputSchema,
 	sideEffect: 'read',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).list(input, ctx)
+	execute: async (input, ctx) => client(ctx).list(input)
 })
 
-const getObjectTool = defineTool({
+export const getObjectTool = defineTool({
 	id: 'storage-get-object',
 	name: 'getObject',
 	description:
@@ -76,10 +87,10 @@ const getObjectTool = defineTool({
 	outputSchema: getObjectOutputSchema,
 	sideEffect: 'read',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).get(input, ctx)
+	execute: async (input, ctx) => client(ctx).get(input)
 })
 
-const putObjectTool = defineTool({
+export const putObjectTool = defineTool({
 	id: 'storage-put-object',
 	name: 'putObject',
 	description: 'Upload or replace one object by key. Provide utf8 text or base64 body. Bodies larger than 5 MiB fail.',
@@ -87,10 +98,10 @@ const putObjectTool = defineTool({
 	outputSchema: putObjectOutputSchema,
 	sideEffect: 'write',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).put(input, ctx)
+	execute: async (input, ctx) => client(ctx).put(input)
 })
 
-const deleteObjectTool = defineTool({
+export const deleteObjectTool = defineTool({
 	id: 'storage-delete-object',
 	name: 'deleteObject',
 	description: 'Delete one object by key. Idempotent for missing keys when the store returns success.',
@@ -98,10 +109,10 @@ const deleteObjectTool = defineTool({
 	outputSchema: deleteObjectOutputSchema,
 	sideEffect: 'delete',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).delete(input, ctx)
+	execute: async (input, ctx) => client(ctx).delete(input)
 })
 
-const headObjectTool = defineTool({
+export const headObjectTool = defineTool({
 	id: 'storage-head-object',
 	name: 'headObject',
 	description:
@@ -110,10 +121,10 @@ const headObjectTool = defineTool({
 	outputSchema: headObjectOutputSchema,
 	sideEffect: 'read',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).head(input, ctx)
+	execute: async (input, ctx) => client(ctx).head(input)
 })
 
-const copyObjectTool = defineTool({
+export const copyObjectTool = defineTool({
 	id: 'storage-copy-object',
 	name: 'copyObject',
 	description:
@@ -122,10 +133,10 @@ const copyObjectTool = defineTool({
 	outputSchema: copyObjectOutputSchema,
 	sideEffect: 'write',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).copy(input, ctx)
+	execute: async (input, ctx) => client(ctx).copy(input)
 })
 
-const createSignedUrlTool = defineTool({
+export const createSignedUrlTool = defineTool({
 	id: 'storage-create-signed-url',
 	name: 'createSignedUrl',
 	description:
@@ -135,42 +146,17 @@ const createSignedUrlTool = defineTool({
 	sideEffect: 'none',
 	runtime: 'both',
 	execute: async (input, ctx) => {
-		const ops = resolveOps(ctx)
-		if (ops.createSignedUrl === undefined) {
+		const ops = client(ctx).ops
+		if (!ops.createSignedUrl) {
 			throw new ToolError('Signed URLs are not supported by the bound storage provider', {
 				code: 'unsupported'
 			})
 		}
-		return ops.createSignedUrl(input, ctx)
+		return ops.createSignedUrl(input)
 	}
 })
 
-function requireMultipartOps(ctx: ToolContext): {
-	createMultipartUpload: NonNullable<StorageOps['createMultipartUpload']>
-	uploadPart: NonNullable<StorageOps['uploadPart']>
-	completeMultipartUpload: NonNullable<StorageOps['completeMultipartUpload']>
-	abortMultipartUpload: NonNullable<StorageOps['abortMultipartUpload']>
-} {
-	const ops = resolveOps(ctx)
-	if (
-		ops.createMultipartUpload === undefined ||
-		ops.uploadPart === undefined ||
-		ops.completeMultipartUpload === undefined ||
-		ops.abortMultipartUpload === undefined
-	) {
-		throw new ToolError('Multipart upload is not supported by the bound storage provider', {
-			code: 'unsupported'
-		})
-	}
-	return {
-		createMultipartUpload: ops.createMultipartUpload,
-		uploadPart: ops.uploadPart,
-		completeMultipartUpload: ops.completeMultipartUpload,
-		abortMultipartUpload: ops.abortMultipartUpload
-	}
-}
-
-const createMultipartUploadTool = defineTool({
+export const createMultipartUploadTool = defineTool({
 	id: 'storage-create-multipart-upload',
 	name: 'createMultipartUpload',
 	description:
@@ -179,10 +165,10 @@ const createMultipartUploadTool = defineTool({
 	outputSchema: createMultipartUploadOutputSchema,
 	sideEffect: 'write',
 	runtime: 'both',
-	execute: async (input, ctx) => requireMultipartOps(ctx).createMultipartUpload(input, ctx)
+	execute: async (input, ctx) => requireMultipartOps(client(ctx).ops).createMultipartUpload(input)
 })
 
-const uploadPartTool = defineTool({
+export const uploadPartTool = defineTool({
 	id: 'storage-upload-part',
 	name: 'uploadPart',
 	description:
@@ -191,10 +177,10 @@ const uploadPartTool = defineTool({
 	outputSchema: uploadPartOutputSchema,
 	sideEffect: 'write',
 	runtime: 'both',
-	execute: async (input, ctx) => requireMultipartOps(ctx).uploadPart(input, ctx)
+	execute: async (input, ctx) => requireMultipartOps(client(ctx).ops).uploadPart(input)
 })
 
-const completeMultipartUploadTool = defineTool({
+export const completeMultipartUploadTool = defineTool({
 	id: 'storage-complete-multipart-upload',
 	name: 'completeMultipartUpload',
 	description:
@@ -203,10 +189,10 @@ const completeMultipartUploadTool = defineTool({
 	outputSchema: completeMultipartUploadOutputSchema,
 	sideEffect: 'write',
 	runtime: 'both',
-	execute: async (input, ctx) => requireMultipartOps(ctx).completeMultipartUpload(input, ctx)
+	execute: async (input, ctx) => requireMultipartOps(client(ctx).ops).completeMultipartUpload(input)
 })
 
-const abortMultipartUploadTool = defineTool({
+export const abortMultipartUploadTool = defineTool({
 	id: 'storage-abort-multipart-upload',
 	name: 'abortMultipartUpload',
 	description: 'Abort an in-progress multipart upload and discard uploaded parts for that upload_id.',
@@ -214,10 +200,10 @@ const abortMultipartUploadTool = defineTool({
 	outputSchema: abortMultipartUploadOutputSchema,
 	sideEffect: 'delete',
 	runtime: 'both',
-	execute: async (input, ctx) => requireMultipartOps(ctx).abortMultipartUpload(input, ctx)
+	execute: async (input, ctx) => requireMultipartOps(client(ctx).ops).abortMultipartUpload(input)
 })
 
-const getObjectsTool = defineTool({
+export const getObjectsTool = defineTool({
 	id: 'storage-get-objects',
 	name: 'getObjects',
 	description:
@@ -227,15 +213,13 @@ const getObjectsTool = defineTool({
 	sideEffect: 'read',
 	runtime: 'both',
 	execute: async (input, ctx) => {
-		const ops = resolveOps(ctx)
+		const c = client(ctx)
 		const encoding = input.encoding
-		return runBatchItems(input.keys, async (key) =>
-			ops.get({ key, ...(encoding === undefined ? {} : { encoding }) }, ctx)
-		)
+		return runBatchItems(input.keys, async (key) => c.get({ key, ...(encoding && { encoding }) }))
 	}
 })
 
-const putObjectsTool = defineTool({
+export const putObjectsTool = defineTool({
 	id: 'storage-put-objects',
 	name: 'putObjects',
 	description: 'Upload multiple objects (max 25). Returns per-item success or error without aborting the whole batch.',
@@ -244,12 +228,12 @@ const putObjectsTool = defineTool({
 	sideEffect: 'write',
 	runtime: 'both',
 	execute: async (input, ctx) => {
-		const ops = resolveOps(ctx)
-		return runBatchItems(input.objects, async (object) => ops.put(object, ctx))
+		const c = client(ctx)
+		return runBatchItems(input.objects, async (object) => c.put(object))
 	}
 })
 
-const deleteObjectsTool = defineTool({
+export const deleteObjectsTool = defineTool({
 	id: 'storage-delete-objects',
 	name: 'deleteObjects',
 	description:
@@ -259,8 +243,8 @@ const deleteObjectsTool = defineTool({
 	sideEffect: 'delete',
 	runtime: 'both',
 	execute: async (input, ctx) => {
-		const ops = resolveOps(ctx)
-		return runBatchItems(input.keys, async (key) => ops.delete({ key }, ctx))
+		const c = client(ctx)
+		return runBatchItems(input.keys, async (key) => c.delete({ key }))
 	}
 })
 
@@ -268,7 +252,7 @@ export const storageModule = defineModule({
 	id: 'storage',
 	title: 'Object Storage',
 	description:
-		'Object storage with provider seam: s3 (S3-compatible via aws4fetch), r2 (Cloudflare REST API via ofetch), supabase (Storage REST via ofetch). List, get, put, delete, head, copy, signed URLs and multipart when supported, and batch variants.',
+		'Object storage via the host-bound provider. List, get, put, delete, head, copy, signed URLs and multipart when supported, and batch variants.',
 	runtime: 'both',
 	auth: { type: 'custom', schema: storageAuthSchema },
 	tools: [
@@ -288,20 +272,3 @@ export const storageModule = defineModule({
 		deleteObjectsTool
 	]
 })
-
-export {
-	abortMultipartUploadTool,
-	completeMultipartUploadTool,
-	copyObjectTool,
-	createMultipartUploadTool,
-	createSignedUrlTool,
-	deleteObjectTool,
-	deleteObjectsTool,
-	getObjectTool,
-	getObjectsTool,
-	headObjectTool,
-	listObjectsTool,
-	putObjectTool,
-	putObjectsTool,
-	uploadPartTool
-}

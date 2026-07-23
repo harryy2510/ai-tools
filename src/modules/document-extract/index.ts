@@ -1,12 +1,29 @@
+/**
+ * Public document-extract seam surface.
+ * Internals (providers/*) stay private.
+ */
+
+export { DocumentExtractClient } from './client'
 export {
 	documentExtractAuthSchema,
 	documentExtractModule,
-	documentExtractProviders,
 	documentExtractStatusTool,
 	documentExtractTextBatchTool,
 	documentExtractTextTool
 } from './module'
 export type { DocumentExtractAuth } from './module'
-export type { DocumentExtractOps, ExtractResult } from './contracts'
-export { textractExtractAuthSchema, textractExtractProvider } from './providers/textract'
-export type { TextractExtractAuth } from './providers/textract'
+export type {
+	ExtractResult,
+	ExtractTextBatchInput,
+	ExtractTextBatchOutput,
+	ExtractTextInput,
+	StatusInput
+} from './contracts'
+export {
+	extractResultSchema,
+	extractTextBatchInputSchema,
+	extractTextBatchOutputSchema,
+	extractTextInputSchema,
+	MAX_BATCH_EXTRACT,
+	statusInputSchema
+} from './contracts'

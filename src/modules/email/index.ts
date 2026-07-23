@@ -1,11 +1,11 @@
 /**
  * Public email seam surface.
- * Internals (providers/*, EmailOps) stay private to this folder.
+ * Internals (providers/*) stay private.
  */
 
 export { EmailClient } from './client'
 export { emailAuthSchema, emailModule, emailSendBatchTool, emailSendTool } from './module'
-export type { EmailAuth } from './contracts'
+export type { EmailAuth } from './module'
 export type {
 	EmailSendBatchInput,
 	EmailSendBatchOutput,

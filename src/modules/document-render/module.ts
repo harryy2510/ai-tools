@@ -1,10 +1,8 @@
-import { z } from 'zod'
-
 import { defineModule, defineTool } from '../../core/define'
-import { requireAuth, resolveProvider } from '../../core/provider'
-import type { ToolContext } from '../../core/types'
 import { runBatchItems } from '../../shared/batch'
+import { DocumentRenderClient } from './client'
 import {
+	documentRenderAuthSchema,
 	renderOutputSchema,
 	renderPdfBatchInputSchema,
 	renderPdfBatchOutputSchema,
@@ -13,25 +11,11 @@ import {
 	renderScreenshotBatchOutputSchema,
 	renderScreenshotInputSchema
 } from './contracts'
-import type { DocumentRenderOps } from './contracts'
-import { cloudflareBrowserRenderAuthSchema, cloudflareBrowserRenderProvider } from './providers/cloudflare-browser'
-import { gotenbergRenderAuthSchema, gotenbergRenderProvider } from './providers/gotenberg'
 
-export const documentRenderProviders = [gotenbergRenderProvider, cloudflareBrowserRenderProvider] as const
+export type { DocumentRenderAuth } from './contracts'
+export { documentRenderAuthSchema }
 
-export const documentRenderAuthSchema = z.discriminatedUnion('provider', [
-	gotenbergRenderAuthSchema,
-	cloudflareBrowserRenderAuthSchema
-])
-
-export type DocumentRenderAuth = z.infer<typeof documentRenderAuthSchema>
-
-function resolveOps(ctx: ToolContext): DocumentRenderOps {
-	const auth = requireAuth(ctx, documentRenderAuthSchema)
-	return resolveProvider(documentRenderProviders, auth).ops
-}
-
-const documentRenderPdfTool = defineTool({
+export const documentRenderPdfTool = defineTool({
 	id: 'document-render-pdf',
 	name: 'renderDocumentPdf',
 	description:
@@ -40,10 +24,10 @@ const documentRenderPdfTool = defineTool({
 	outputSchema: renderOutputSchema,
 	sideEffect: 'write',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).renderPdf(input, ctx)
+	execute: async (input, ctx) => DocumentRenderClient.fromContext(ctx).renderPdf(input)
 })
 
-const documentRenderScreenshotTool = defineTool({
+export const documentRenderScreenshotTool = defineTool({
 	id: 'document-render-screenshot',
 	name: 'renderDocumentScreenshot',
 	description:
@@ -52,10 +36,10 @@ const documentRenderScreenshotTool = defineTool({
 	outputSchema: renderOutputSchema,
 	sideEffect: 'write',
 	runtime: 'both',
-	execute: async (input, ctx) => resolveOps(ctx).renderScreenshot(input, ctx)
+	execute: async (input, ctx) => DocumentRenderClient.fromContext(ctx).renderScreenshot(input)
 })
 
-const documentRenderPdfBatchTool = defineTool({
+export const documentRenderPdfBatchTool = defineTool({
 	id: 'document-render-pdf-batch',
 	name: 'renderDocumentPdfBatch',
 	description: 'Render up to 10 HTML/URL sources to PDF. Per-item success or error without aborting the batch.',
@@ -64,12 +48,12 @@ const documentRenderPdfBatchTool = defineTool({
 	sideEffect: 'write',
 	runtime: 'both',
 	execute: async (input, ctx) => {
-		const ops = resolveOps(ctx)
-		return runBatchItems(input.items, async (item) => ops.renderPdf(item, ctx))
+		const client = DocumentRenderClient.fromContext(ctx)
+		return runBatchItems(input.items, async (item) => client.renderPdf(item))
 	}
 })
 
-const documentRenderScreenshotBatchTool = defineTool({
+export const documentRenderScreenshotBatchTool = defineTool({
 	id: 'document-render-screenshot-batch',
 	name: 'renderDocumentScreenshotBatch',
 	description: 'Capture up to 10 HTML/URL screenshots as PNG. Per-item success or error without aborting the batch.',
@@ -78,8 +62,8 @@ const documentRenderScreenshotBatchTool = defineTool({
 	sideEffect: 'write',
 	runtime: 'both',
 	execute: async (input, ctx) => {
-		const ops = resolveOps(ctx)
-		return runBatchItems(input.items, async (item) => ops.renderScreenshot(item, ctx))
+		const client = DocumentRenderClient.fromContext(ctx)
+		return runBatchItems(input.items, async (item) => client.renderScreenshot(item))
 	}
 })
 
@@ -87,7 +71,7 @@ export const documentRenderModule = defineModule({
 	id: 'document-render',
 	title: 'Document Render',
 	description:
-		'HTML/URL to PDF or screenshot via a bound provider (Gotenberg self-host or Cloudflare Browser Rendering). Distinct from file-convert (format conversion).',
+		'HTML/URL to PDF or screenshot via the host-bound provider. Distinct from file-convert (format conversion).',
 	runtime: 'both',
 	auth: { type: 'custom', schema: documentRenderAuthSchema },
 	tools: [
@@ -97,10 +81,3 @@ export const documentRenderModule = defineModule({
 		documentRenderScreenshotBatchTool
 	]
 })
-
-export {
-	documentRenderPdfBatchTool,
-	documentRenderPdfTool,
-	documentRenderScreenshotBatchTool,
-	documentRenderScreenshotTool
-}
