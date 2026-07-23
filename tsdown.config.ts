@@ -21,6 +21,7 @@ export default defineConfig({
 		'modules/file-convert/index': 'src/modules/file-convert/index.ts',
 		'modules/files/index': 'src/modules/files/index.ts',
 		'vendors/gotenberg/index': 'src/vendors/gotenberg/index.ts',
+		'vendors/imessage/index': 'src/vendors/imessage/index.ts',
 		'vendors/katana/index': 'src/vendors/katana/index.ts',
 		'modules/messaging/index': 'src/modules/messaging/index.ts',
 		'modules/mime/index': 'src/modules/mime/index.ts',

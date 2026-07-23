@@ -12,6 +12,7 @@ export const moduleKeys = [
 	'file-convert',
 	'files',
 	'gotenberg',
+	'imessage',
 	'katana',
 	'messaging',
 	'mime',

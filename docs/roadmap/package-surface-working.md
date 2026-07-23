@@ -189,7 +189,7 @@ Slice 3 done when: this capability map is implemented under `src/channels/telegr
 | 7 | `vector-store` + `rag` | Pending | upsert/query + ingest/retrieve |
 | 8 | `vendors/slack` + messaging seam | Done | Web API pack + multi-provider messaging |
 | 8b | `vendors/teams` | Done | Bot Framework pack in messaging seam |
-| 9 | `channels/imessage` (Photon) | Pending | aligned with host imessage spec |
+| 9 | `vendors/imessage` (photon-rest-proxy) | Done | HTTP pack; gRPC only in hosted proxy |
 | 10 | Remaining platform (speech, browser, pdf, image, queue, webhook, crypto, calendar, messaging) | Backlog | product-driven |
 
 ### FSS adapter work (host repo — track here for visibility)

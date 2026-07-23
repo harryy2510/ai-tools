@@ -1,5 +1,5 @@
 /**
- * Messaging seam client — picks telegram / slack / teams from host auth.
+ * Messaging seam client — picks telegram / slack / teams / imessage from host auth.
  */
 
 import { requireAuth } from '../../core/provider'
@@ -19,6 +19,7 @@ import type {
 	MessagingSetReactionInput
 } from './contracts'
 import { messagingAuthSchema } from './contracts'
+import { ImessageMessagingProvider } from './providers/imessage'
 import { SlackMessagingProvider } from './providers/slack'
 import { TeamsMessagingProvider } from './providers/teams'
 import { TelegramMessagingProvider } from './providers/telegram'
@@ -39,6 +40,8 @@ function providerFor(auth: MessagingAuth, ctx: ToolContext): MessagingOps {
 			return new SlackMessagingProvider(auth, options)
 		case 'teams':
 			return new TeamsMessagingProvider(auth, options)
+		case 'imessage':
+			return new ImessageMessagingProvider(auth, options)
 	}
 }
 

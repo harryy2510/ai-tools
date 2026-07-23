@@ -5,9 +5,9 @@
 | **Import** | `@harryy/ai-tools/messaging` |
 | **Kind** | multi-provider **seam** (`src/modules/messaging`) |
 | **Module id** | `messaging` |
-| **Providers** | `telegram`, `slack`, `teams` |
+| **Providers** | `telegram`, `slack`, `teams`, `imessage` |
 
-Shared channel verbs over full vendor packs. Native-only APIs stay on the vendor packs ([telegram](../vendors/telegram.md), [slack](../vendors/slack.md), [teams](../vendors/teams.md)).
+Shared channel verbs over full vendor packs. Native-only APIs stay on the vendor packs ([telegram](../vendors/telegram.md), [slack](../vendors/slack.md), [teams](../vendors/teams.md), [imessage](../vendors/imessage.md)).
 
 ## Bind
 
@@ -21,15 +21,20 @@ withAuth(messagingModule, {
   provider: 'teams',
   app_id: '…',
   app_password: '…',
-  // tenant_id?: '…',
+})
+withAuth(messagingModule, {
+  provider: 'imessage',
+  base_url: 'https://photon-proxy.example.com',
+  project_id: '…',
+  project_secret: '…',
 })
 
-// Host client
 const client = MessagingClient.fromAuth({ provider: 'slack', bot_token: '…' })
 await client.sendText({ chat_id: 'C…', text: 'hi' })
 ```
 
-Teams connector calls require `service_url` on method inputs (from the inbound activity).
+Teams connector calls require `service_url` on method inputs (from the inbound activity).  
+iMessage `chat_id` is the Spectrum **space id**; outbound goes through photon-rest-proxy (Workers-safe HTTP).
 
 ## Tools
 
@@ -59,4 +64,4 @@ const live = createLiveMessage({
 })
 ```
 
-Use the matching vendor failure helpers for Slack / Teams when bound to those providers.
+Use the matching vendor failure helpers for Slack / Teams / iMessage when bound to those providers.

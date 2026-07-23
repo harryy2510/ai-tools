@@ -125,7 +125,7 @@ export const messagingModule = defineModule({
 	id: 'messaging',
 	title: 'Messaging',
 	description:
-		'Multi-channel messaging seam: send and edit text, media, chat actions, reactions, file download, and callback answers via the host-bound channel provider (telegram, slack, or teams).',
+		'Multi-channel messaging seam: send and edit text, media, chat actions, reactions, file download, and callback answers via the host-bound channel provider (telegram, slack, teams, or imessage).',
 	runtime: 'both',
 	auth: { type: 'custom', schema: messagingAuthSchema },
 	tools: [

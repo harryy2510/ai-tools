@@ -4,6 +4,7 @@
 
 import { z } from 'zod'
 
+import { imessageAuthSchema } from '../../vendors/imessage'
 import { slackAuthSchema } from '../../vendors/slack'
 import { teamsAuthSchema } from '../../vendors/teams'
 import { telegramAuthSchema } from '../../vendors/telegram'
@@ -35,14 +36,20 @@ export const teamsMessagingAuthSchema = teamsAuthSchema.extend({
 	provider: z.literal('teams')
 })
 
+export const imessageMessagingAuthSchema = imessageAuthSchema.extend({
+	provider: z.literal('imessage')
+})
+
 export type TelegramMessagingAuth = z.infer<typeof telegramMessagingAuthSchema>
 export type SlackMessagingAuth = z.infer<typeof slackMessagingAuthSchema>
 export type TeamsMessagingAuth = z.infer<typeof teamsMessagingAuthSchema>
+export type ImessageMessagingAuth = z.infer<typeof imessageMessagingAuthSchema>
 
 export const messagingAuthSchema = z.discriminatedUnion('provider', [
 	telegramMessagingAuthSchema,
 	slackMessagingAuthSchema,
-	teamsMessagingAuthSchema
+	teamsMessagingAuthSchema,
+	imessageMessagingAuthSchema
 ])
 
 export type MessagingAuth = z.infer<typeof messagingAuthSchema>

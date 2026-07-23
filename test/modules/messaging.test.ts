@@ -84,6 +84,29 @@ describe('messaging seam', () => {
 		expect(code).toBe('bad_input')
 	})
 
+	test('imessage provider sendText via proxy', async () => {
+		const restore = mockFetch((url, init) => {
+			expect(url).toBe('https://proxy.example.com/v1/send')
+			const headers = new Headers(init?.headers)
+			expect(headers.get('x-spectrum-project-id')).toBe('p')
+			return new Response(JSON.stringify({ ok: true, message_id: 'im1', space_id: 'space-1' }), {
+				status: 200
+			})
+		})
+		try {
+			const client = MessagingClient.fromAuth({
+				provider: 'imessage',
+				base_url: 'https://proxy.example.com',
+				project_id: 'p',
+				project_secret: 's'
+			})
+			const result = await client.sendText({ chat_id: 'space-1', text: 'hi' })
+			expect(result.message_id).toBe('im1')
+		} finally {
+			restore()
+		}
+	})
+
 	test('teams provider sendText after token', async () => {
 		const restore = mockFetch((url, init) => {
 			if (url.includes('login.microsoftonline.com')) {

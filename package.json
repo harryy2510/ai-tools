@@ -89,6 +89,10 @@
 			"types": "./dist/vendors/gotenberg/index.d.ts",
 			"default": "./dist/vendors/gotenberg/index.js"
 		},
+		"./imessage": {
+			"types": "./dist/vendors/imessage/index.d.ts",
+			"default": "./dist/vendors/imessage/index.js"
+		},
 		"./katana": {
 			"types": "./dist/vendors/katana/index.d.ts",
 			"default": "./dist/vendors/katana/index.js"

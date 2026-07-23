@@ -1,5 +1,5 @@
 {
-	"generatedAt": "2026-07-23T13:40:40.216Z",
+	"generatedAt": "2026-07-23T21:09:42.716Z",
 	"generator": "scripts/codegen",
 	"brain": [
 		{
@@ -363,6 +363,51 @@
 			"moduleIdSource": "src/vendors/gotenberg/module.ts"
 		},
 		{
+			"key": "imessage",
+			"lane": "vendors",
+			"entry": "src/vendors/imessage/index.ts",
+			"entryKey": "vendors/imessage/index",
+			"exportNames": [
+				"ImessageAuth",
+				"ImessageClient",
+				"ImessageClientError",
+				"ImessageClientOptions",
+				"ImessageEditTextInput",
+				"ImessageMessageOutput",
+				"ImessageReadInput",
+				"ImessageSendChatActionInput",
+				"ImessageSendTextInput",
+				"ImessageSetReactionInput",
+				"ImessageUnsendInput",
+				"LiveMessage",
+				"LiveMessageDeps",
+				"TypingPulse",
+				"TypingPulseDeps",
+				"createLiveMessage",
+				"createTypingPulse",
+				"imessageAuthSchema",
+				"imessageEditTextInputSchema",
+				"imessageEditTextTool",
+				"imessageMessageOutputSchema",
+				"imessageModule",
+				"imessageOkOutputSchema",
+				"imessageReadInputSchema",
+				"imessageReadTool",
+				"imessageSendChatActionInputSchema",
+				"imessageSendChatActionTool",
+				"imessageSendTextInputSchema",
+				"imessageSendTextTool",
+				"imessageSetReactionInputSchema",
+				"imessageSetReactionTool",
+				"imessageUnsendInputSchema",
+				"imessageUnsendTool",
+				"isImessageDefiniteRejection",
+				"isImessageOutcomeUnknown"
+			],
+			"moduleId": "imessage",
+			"moduleIdSource": "src/vendors/imessage/module.ts"
+		},
+		{
 			"key": "katana",
 			"lane": "vendors",
 			"entry": "src/vendors/katana/index.ts",
@@ -540,6 +585,7 @@
 			"entry": "src/modules/messaging/index.ts",
 			"entryKey": "modules/messaging/index",
 			"exportNames": [
+				"ImessageMessagingAuth",
 				"LiveMessage",
 				"LiveMessageDeps",
 				"MessagingAnswerCallbackInput",

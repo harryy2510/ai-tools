@@ -78,3 +78,4 @@ jobs:
           test -f dist/vendors/telegram/index.js
           test -f dist/vendors/slack/index.js
           test -f dist/vendors/teams/index.js
+          test -f dist/vendors/imessage/index.js

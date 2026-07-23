@@ -28,6 +28,7 @@ export type {
 	MessagingSendMediaInput,
 	MessagingSendTextInput,
 	MessagingSetReactionInput,
+	ImessageMessagingAuth,
 	SlackMessagingAuth,
 	TeamsMessagingAuth,
 	TelegramMessagingAuth

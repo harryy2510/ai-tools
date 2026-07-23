@@ -1,0 +1,123 @@
+/**
+ * photon-rest-proxy response parse + failure helpers (no HTTP).
+ */
+
+import { isPlainObject, isString } from 'es-toolkit'
+
+import { ToolError } from '../../core/errors'
+import type { ImessageMessageOutput } from './contracts'
+
+export type ImessageFailureKind = 'definite_rejection' | 'outcome_unknown'
+
+export class ImessageClientError extends ToolError {
+	readonly failureKind: ImessageFailureKind
+
+	constructor(input: {
+		message: string
+		failureKind: ImessageFailureKind
+		status?: number
+		code?: string
+		cause?: unknown
+	}) {
+		super(input.message, {
+			code: mapStatusToToolCode(input.status, input.code),
+			retryable: input.failureKind === 'outcome_unknown',
+			cause: input.cause,
+			details: {
+				failure_kind: input.failureKind,
+				status: input.status,
+				proxy_error: input.code
+			}
+		})
+		this.name = 'ImessageClientError'
+		this.failureKind = input.failureKind
+	}
+}
+
+export function isImessageDefiniteRejection(error: unknown): boolean {
+	return error instanceof ImessageClientError && error.failureKind === 'definite_rejection'
+}
+
+export function isImessageOutcomeUnknown(error: unknown): boolean {
+	return error instanceof ImessageClientError && error.failureKind === 'outcome_unknown'
+}
+
+function mapStatusToToolCode(status: number | undefined, proxyCode: string | undefined): ToolError['code'] {
+	if (status === 401) return 'bad_auth'
+	if (status === 403) return 'forbidden'
+	if (status === 404) return 'not_found'
+	if (status === 400) return 'bad_input'
+	if (status === 429) return 'rate_limited'
+	if (proxyCode === 'unauthorized') return 'bad_auth'
+	if (proxyCode === 'message_not_found' || proxyCode === 'not_found') return 'not_found'
+	return 'upstream'
+}
+
+function isDefiniteStatus(status: number): boolean {
+	return status === 400 || status === 401 || status === 403 || status === 404
+}
+
+/** Parse photon-rest-proxy JSON error body or throw on non-2xx. */
+export function assertProxyOk(label: string, status: number, data: unknown): void {
+	if (status >= 200 && status < 300) return
+
+	let message = `${label} failed with HTTP ${status}`
+	let code: string | undefined
+	if (isPlainObject(data)) {
+		const err = data['error']
+		const detail = data['detail']
+		if (isString(err) && err.length > 0) {
+			code = err
+			message = isString(detail) && detail.length > 0 ? `${err}: ${detail}` : err
+		} else if (isString(detail) && detail.length > 0) {
+			message = detail
+		}
+	}
+
+	throw new ImessageClientError({
+		message,
+		failureKind: isDefiniteStatus(status) ? 'definite_rejection' : 'outcome_unknown',
+		status,
+		...(code && { code })
+	})
+}
+
+export function parseMessageResult(data: unknown): ImessageMessageOutput {
+	if (!isPlainObject(data) || data['ok'] !== true) {
+		throw new ToolError('iMessage proxy returned an unexpected send payload', { code: 'upstream' })
+	}
+	const spaceId = data['space_id']
+	if (!isString(spaceId) || spaceId.length === 0) {
+		throw new ToolError('iMessage proxy response missing space_id', { code: 'upstream' })
+	}
+	const messageId = data['message_id']
+	return {
+		space_id: spaceId,
+		...(isString(messageId) && messageId.length > 0 && { message_id: messageId })
+	}
+}
+
+export function parseOkResult(data: unknown): { ok: true; space_id?: string } {
+	if (!isPlainObject(data) || data['ok'] !== true) {
+		throw new ToolError('iMessage proxy returned an unexpected ok payload', { code: 'upstream' })
+	}
+	const spaceId = data['space_id']
+	return {
+		ok: true,
+		...(isString(spaceId) && spaceId.length > 0 && { space_id: spaceId })
+	}
+}
+
+/** Map messaging-style chat_id to proxy space_id body fields. */
+export function spaceBody(
+	chatId: string,
+	phone: string | undefined,
+	extra: Record<string, unknown> = {}
+): Record<string, unknown> {
+	return {
+		space_id: chatId,
+		platform: 'imessage',
+		...extra,
+		...(phone && { phone })
+	}
+}
