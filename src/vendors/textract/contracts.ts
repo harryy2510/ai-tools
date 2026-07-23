@@ -1,0 +1,65 @@
+import { z } from 'zod'
+
+import { artifactRefSchema } from '../../shared/artifact'
+import { batchResultSchema } from '../../shared/batch'
+
+export const MAX_BATCH_EXTRACT = 10
+export const DEFAULT_POLL_TIMEOUT_MS = 60_000
+export const DEFAULT_POLL_INTERVAL_MS = 2_000
+export const MAX_POLL_TIMEOUT_MS = 900_000
+export const MAX_POLL_INTERVAL_MS = 30_000
+
+export const textractAuthSchema = z.object({
+	access_key_id: z.string().min(1).describe('AWS access key id'),
+	secret_access_key: z.string().min(1).describe('AWS secret access key'),
+	region: z.string().min(1).describe('AWS region for Textract and the source S3 bucket'),
+	bucket: z.string().min(1).describe('AWS S3 bucket containing source documents'),
+	session_token: z.string().min(1).optional().describe('Optional session token'),
+	poll_timeout_ms: z
+		.int()
+		.min(1_000)
+		.max(MAX_POLL_TIMEOUT_MS)
+		.optional()
+		.describe('Max time to wait for Textract before returning pending plus job_id (default 60000)'),
+	poll_interval_ms: z
+		.int()
+		.min(200)
+		.max(MAX_POLL_INTERVAL_MS)
+		.optional()
+		.describe('Delay between GetDocumentTextDetection polls (default 2000)')
+})
+
+export type TextractAuth = z.infer<typeof textractAuthSchema>
+
+export const textractExtractResultSchema = z.object({
+	status: z.enum(['succeeded', 'pending', 'failed']).describe('Job status'),
+	job_id: z.string().optional().describe('Textract job id when started or polled'),
+	text: z.string().optional().describe('Extracted LINE text when succeeded'),
+	page_count: z.int().optional().describe('Document page count when known'),
+	error: z.string().optional().describe('Failure message when status is failed'),
+	source: artifactRefSchema.optional().describe('Source ArtifactRef when known')
+})
+
+export const textractExtractTextInputSchema = z.object({
+	source: artifactRefSchema.describe('Document ArtifactRef in object storage (store must be object)')
+})
+
+export const textractExtractTextBatchInputSchema = z.object({
+	sources: z
+		.array(artifactRefSchema)
+		.min(1)
+		.max(MAX_BATCH_EXTRACT)
+		.describe('Document ArtifactRefs to extract (max 10)')
+})
+
+export const textractStatusInputSchema = z.object({
+	job_id: z.string().min(1).describe('Job id from a prior extract call')
+})
+
+export const textractExtractTextBatchOutputSchema = batchResultSchema(textractExtractResultSchema)
+
+export type TextractExtractResult = z.infer<typeof textractExtractResultSchema>
+export type TextractExtractTextInput = z.infer<typeof textractExtractTextInputSchema>
+export type TextractExtractTextBatchInput = z.infer<typeof textractExtractTextBatchInputSchema>
+export type TextractStatusInput = z.infer<typeof textractStatusInputSchema>
+export type TextractExtractTextBatchOutput = z.infer<typeof textractExtractTextBatchOutputSchema>
