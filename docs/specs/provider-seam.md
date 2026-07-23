@@ -56,5 +56,7 @@ src/modules/<capability>/
 | `document-render` | `gotenberg`, `cloudflare-browser` |
 | `file-convert` | `transmute` (+ nested S3 `storage`) |
 | `files` | nested `storage` union (`s3` \| `r2` \| `supabase`) + `root_prefix` |
+| `vector-store` | `qdrant`, `pinecone`, `supabase`, `mastra` (wrap vendor packs) |
+| `rag` | nested `vector_store` + OpenAI-compatible `embed` auth |
 
 Adding a provider: new file under `providers/`, register in module array, extend auth union, docs row. Model tool catalog stays stable.

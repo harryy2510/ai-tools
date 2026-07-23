@@ -36,7 +36,7 @@ This is **not** a second architecture lock. It tracks inventory, migration, open
 | `mime` / `content-type` | Done | pure |
 | `files` | Done | path root over storage: list/search/stat/get/put/delete/copy/move/mkdir + multipart (S3) |
 | `document-render` | Done | gotenberg + cloudflare-browser |
-| `vector-store` / `rag` | Not started | knowledge tools |
+| `vector-store` / `rag` | Done | qdrant+pinecone+supabase; chunk/embed/retrieve |
 | thin multi-send messaging seam | Not planned | full messaging packs only |
 | `speech` / `pdf` / `image` / `browser` / `queue` / `webhook` / `crypto` / `calendar` | Not started | |
 | Codegen multi-lane | Done | discovers modules + vendors |
@@ -186,7 +186,7 @@ Slice 3 done when: this capability map is implemented under `src/channels/telegr
 | 4 | `vendors/woocommerce` (first action group) | Done | orders + products list/get |
 | 5 | `vendors/katana` | Done | sales order list/get |
 | 6 | `vendors/amazon-sp-api` (first action group) | Done | orders + FBA inventory summaries |
-| 7 | `vector-store` + `rag` | Pending | upsert/query + ingest/retrieve |
+| 7 | `vector-store` + `rag` | Done | qdrant+pinecone+supabase; ingest/retrieve via host embed |
 | 8 | `vendors/slack` + messaging seam | Done | Web API pack + multi-provider messaging |
 | 8b | `vendors/teams` | Done | Bot Framework pack in messaging seam |
 | 9 | `vendors/imessage` (photon-rest-proxy) | Done | HTTP pack; gRPC only in hosted proxy |

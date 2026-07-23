@@ -25,6 +25,9 @@ Releases are cut by semantic-release from conventional commits. See [docs/versio
 
 ### Added
 
+- **`vector-store` module** — seam over vendor packs; providers `qdrant`, `pinecone`, `supabase`, `mastra`.
+- **`vendors/qdrant`**, **`vendors/pinecone`**, **`vendors/supabase-vector`**, **`vendors/mastra-vector`** — vector backends (shared I/O in `vendors/_vector`; mastra = `@mastra/pg` PgVector, optional peer).
+- **`rag` module** — chunk + OpenAI-compatible embed route + nested vector-store (ingest / retrieve / delete).
 - Docs wiki under `docs/` (guides, brain packages, product modules).
 - Module scaffold writes `docs/modules/<key>.md` stub.
 - **semantic-release** on `main` (conventional commits → version, changelog, tag, npm OIDC).

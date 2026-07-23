@@ -77,7 +77,7 @@ src/
   adapters/      mastra · ai-sdk · tanstack · cloudflare · mcp
   modules/       our seams (storage, email, files, …)
   vendors/       3rd-party packs (resend, telegram, s3, …)
-                 + vertical kits: _email · _storage · _messaging (not published)
+                 + vertical kits: _email · _storage · _messaging · _vector (not published)
   shared/        bytes, batch, artifact, content-type, pagination
 ```
 
@@ -119,6 +119,8 @@ defineTool / defineModule
 | `@harryy/ai-tools/messaging` | multi-provider | `messaging-send-text`, edit, media, reactions, … (telegram/slack/teams/imessage) | [messaging](./docs/modules/messaging.md) |
 | `@harryy/ai-tools/storage` | multi-provider | `storage-*` (+ batch, multipart, signed URL) | [storage](./docs/modules/storage.md) |
 | `@harryy/ai-tools/files` | path root over storage | `files-*` | [files](./docs/modules/files.md) |
+| `@harryy/ai-tools/vector-store` | qdrant, pinecone, supabase, mastra | `vector-store-*` | [vector-store](./docs/modules/vector-store.md) |
+| `@harryy/ai-tools/rag` | embed + nested vector-store | `rag-*` | [rag](./docs/modules/rag.md) |
 | `@harryy/ai-tools/document-extract` | multi-provider | `document-extract-text`, `-status`, `-text-batch` | [document-extract](./docs/modules/document-extract.md) |
 | `@harryy/ai-tools/document-render` | multi-provider | `document-render-pdf`, `-screenshot`, batches | [document-render](./docs/modules/document-render.md) |
 | `@harryy/ai-tools/file-convert` | multi-provider | `file-convert`, `file-convert-batch` | [file-convert](./docs/modules/file-convert.md) |
@@ -139,6 +141,10 @@ defineTool / defineModule
 | `@harryy/ai-tools/s3` | `s3-*` (+ signed URL, multipart) | [s3](./docs/vendors/s3.md) |
 | `@harryy/ai-tools/r2` | `r2-*` (Cloudflare REST) | [r2](./docs/vendors/r2.md) |
 | `@harryy/ai-tools/supabase-storage` | `supabase-storage-*` | [supabase-storage](./docs/vendors/supabase-storage.md) |
+| `@harryy/ai-tools/qdrant` | `qdrant-upsert`, `-query`, `-delete` | [qdrant](./docs/vendors/qdrant.md) |
+| `@harryy/ai-tools/pinecone` | `pinecone-upsert`, `-query`, `-delete` | [pinecone](./docs/vendors/pinecone.md) |
+| `@harryy/ai-tools/supabase-vector` | `supabase-vector-*` (pgvector/PostgREST) | [supabase-vector](./docs/vendors/supabase-vector.md) |
+| `@harryy/ai-tools/mastra-vector` | `mastra-vector-*` (PgVector, node) | [mastra-vector](./docs/vendors/mastra-vector.md) |
 | `@harryy/ai-tools/textract` | `textract-extract-text`, `-get-status`, `-extract-text-batch` | [textract](./docs/vendors/textract.md) |
 | `@harryy/ai-tools/transmute` | `transmute-convert`, `-convert-batch` | [transmute](./docs/vendors/transmute.md) |
 | `@harryy/ai-tools/gotenberg` | `gotenberg-render-pdf`, `-render-screenshot` | [gotenberg](./docs/vendors/gotenberg.md) |

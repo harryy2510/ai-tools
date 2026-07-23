@@ -1,0 +1,72 @@
+/**
+ * Shared vector parse helpers for vendor clients (not published from kit barrel).
+ * Prefer es-toolkit predicates; keep only vector-specific narrowing.
+ */
+
+import { isBoolean, isNil, isNumber, isPlainObject, isString, mapValues, trim } from 'es-toolkit'
+
+import { ToolError } from '../../core/errors'
+import type { VectorMetadata } from './schemas'
+
+export function requireCollection(
+	collection: string | undefined,
+	defaultCollection: string | undefined,
+	label: string
+): string {
+	const name = trim(collection ?? defaultCollection ?? '')
+	if (name === '') {
+		throw new ToolError(`${label} requires collection (or default_collection on auth)`, {
+			code: 'bad_input'
+		})
+	}
+	return name
+}
+
+/** Flat metadata from provider payloads. Non-primitives JSON-stringified. */
+export function parseMetadata(value: unknown): VectorMetadata | undefined {
+	if (!isPlainObject(value)) return undefined
+	return mapValues(value, (raw) => {
+		if (isString(raw) || isNumber(raw) || isBoolean(raw) || raw === null) return raw
+		if (isNil(raw)) return null
+		return JSON.stringify(raw)
+	})
+}
+
+export function parseNumberArray(value: unknown): number[] | undefined {
+	if (!Array.isArray(value)) return undefined
+	if (!value.every((item) => isNumber(item) && Number.isFinite(item))) return undefined
+	return value
+}
+
+export function parsePointId(value: unknown): string | undefined {
+	if (isString(value) && value.length > 0) return value
+	if (isNumber(value) && Number.isFinite(value)) return String(value)
+	return undefined
+}
+
+export function parseUpstreamMessage(data: unknown, fallback: string): string {
+	if (!isPlainObject(data)) return fallback
+	const status = data['status']
+	if (isPlainObject(status) && isString(status['error']) && status['error'].length > 0) {
+		return status['error']
+	}
+	if (isString(data['message']) && data['message'].length > 0) return data['message']
+	if (isString(data['error']) && data['error'].length > 0) return data['error']
+	if (isString(data['detail']) && data['detail'].length > 0) return data['detail']
+	return fallback
+}
+
+export function mapVectorHttpStatus(status: number): ToolError['code'] {
+	if (status === 401 || status === 403) return 'bad_auth'
+	if (status === 404) return 'not_found'
+	if (status === 400 || status === 409 || status === 422) return 'bad_input'
+	if (status === 429) return 'rate_limited'
+	return 'upstream'
+}
+
+export function parseScore(row: Record<string, unknown>): number {
+	if (isNumber(row['score']) && Number.isFinite(row['score'])) return row['score']
+	if (isNumber(row['similarity']) && Number.isFinite(row['similarity'])) return row['similarity']
+	if (isNumber(row['distance']) && Number.isFinite(row['distance'])) return -row['distance']
+	return 0
+}

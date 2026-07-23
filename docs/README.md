@@ -40,6 +40,8 @@ Capability modules we own. Multi-provider seams take `{ provider, … }` on host
 | `@harryy/ai-tools/document-render` | [document-render](./modules/document-render.md) — `gotenberg`, `cloudflare-browser` |
 | `@harryy/ai-tools/file-convert` | [file-convert](./modules/file-convert.md) — `transmute` |
 | `@harryy/ai-tools/web-fetch` | [web-fetch](./modules/web-fetch.md) |
+| `@harryy/ai-tools/vector-store` | [vector-store](./modules/vector-store.md) — providers: `qdrant`, `pinecone`, `supabase`, `mastra` |
+| `@harryy/ai-tools/rag` | [rag](./modules/rag.md) — chunk + host embed route + nested vector-store |
 | `@harryy/ai-tools/email-message` | [email-message](./modules/email-message.md) — pure MIME |
 | `@harryy/ai-tools/content-type` | [content-type](./modules/content-type.md) — pure type ↔ extension |
 
@@ -58,6 +60,10 @@ Capability modules we own. Multi-provider seams take `{ provider, … }` on host
 | `@harryy/ai-tools/s3` | [s3](./vendors/s3.md) |
 | `@harryy/ai-tools/r2` | [r2](./vendors/r2.md) |
 | `@harryy/ai-tools/supabase-storage` | [supabase-storage](./vendors/supabase-storage.md) |
+| `@harryy/ai-tools/qdrant` | [qdrant](./vendors/qdrant.md) |
+| `@harryy/ai-tools/pinecone` | [pinecone](./vendors/pinecone.md) |
+| `@harryy/ai-tools/supabase-vector` | [supabase-vector](./vendors/supabase-vector.md) — pgvector |
+| `@harryy/ai-tools/mastra-vector` | [mastra-vector](./vendors/mastra-vector.md) — `@mastra/pg` PgVector |
 | `@harryy/ai-tools/textract` | [textract](./vendors/textract.md) |
 | `@harryy/ai-tools/transmute` | [transmute](./vendors/transmute.md) |
 | `@harryy/ai-tools/gotenberg` | [gotenberg](./vendors/gotenberg.md) |
@@ -73,6 +79,7 @@ Capability modules we own. Multi-provider seams take `{ provider, … }` on host
 | `vendors/_email/` | resend, cloudflare-email (+ email seam) |
 | `vendors/_storage/` | s3, r2, supabase-storage (+ storage/files seams) |
 | `vendors/_messaging/` | telegram (live message / typing pulse helpers) |
+| `vendors/_vector/` | qdrant, pinecone, supabase-vector (+ vector-store seam) |
 
 ## Specs and reference
 

@@ -124,6 +124,8 @@ src/modules/<capability>/
 | `web-fetch` | host allowlist | Free-form allowlisted HTTP |
 | `email-message` | none | Email message parse/build |
 | `content-type` | none | MIME type ↔ extension |
+| `vector-store` | qdrant, pinecone, supabase, mastra | Upsert / query / delete vectors |
+| `rag` | nested vector_store + embed | Chunk + OpenAI-compatible embed + store/retrieve |
 
 ### Planned platform modules
 
@@ -132,8 +134,8 @@ src/modules/<capability>/
 | `files` | Path-rooted file manage over storage | Nested storage auth + `root_prefix` |
 | `document-render` | HTML/URL → PDF / screenshot | **gotenberg**, **browserless**, cloudflare-browser |
 | `speech` | STT / TTS | whisper-selfhost, elevenlabs, deepgram |
-| `vector-store` | Upsert / query / delete vectors | pgvector-http, qdrant, supabase-vector, pinecone |
-| `rag` | Ingest + retrieve (uses vector-store + embed auth) | host-bound embed route |
+| `vector-store` (more providers) | Upsert / query / delete vectors | pgvector-http, supabase-vector, weaviate, chroma |
+| `rag` (extensions) | Ingest + retrieve | additional embed adapters |
 | `pdf` | Merge, split, page count | gotenberg, stirling-pdf, pdf-lib |
 | `image` | Resize, thumb, light transforms | imgproxy, sharp (node), cloudinary |
 | `browser` | Scrape / structured page ops | browserless, playwright-server |
