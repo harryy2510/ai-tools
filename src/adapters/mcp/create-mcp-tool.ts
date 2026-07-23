@@ -172,7 +172,7 @@ export function registerMcpTools(
 				const base = isFunction(options.context) ? await options.context() : (options.context ?? {})
 				const ctx: ToolContext = {
 					...base,
-					...(extra.signal === undefined ? {} : { signal: extra.signal })
+					...(extra.signal && { signal: extra.signal })
 				}
 				const value = await runTool(tool, args, ctx)
 				return toCallResult(value)

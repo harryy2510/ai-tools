@@ -25,7 +25,7 @@ export function assertEmailSize(
 	maxBytes = MAX_EMAIL_BYTES
 ): void {
 	let bytes = utf8ToBytes(JSON.stringify(payload)).byteLength
-	if (attachmentsBase64 !== undefined) {
+	if (attachmentsBase64) {
 		for (const content of attachmentsBase64) {
 			try {
 				bytes += base64ToBytes(content).byteLength

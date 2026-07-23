@@ -21,7 +21,7 @@ export function createMastraTool(tool: ToolDefinition): MastraTool {
 		inputSchema: tool.inputSchema,
 		outputSchema: tool.outputSchema,
 		execute: async (input, context) => {
-			if (context?.abortSignal === undefined) {
+			if (!context?.abortSignal) {
 				return runTool(tool, input)
 			}
 			return runTool(tool, input, { signal: context.abortSignal })

@@ -22,7 +22,7 @@ export function createTanStackTool(kernelTool: ToolDefinition): TanStackServerTo
 
 	return definition.server(async (args, context) => {
 		const signal = context?.abortSignal
-		if (signal === undefined) {
+		if (!signal) {
 			return runTool(kernelTool, args)
 		}
 		return runTool(kernelTool, args, { signal })

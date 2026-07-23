@@ -24,7 +24,7 @@ export class ToolError extends Error {
 	readonly retryable: boolean
 
 	constructor(message: string, options: ToolErrorOptions) {
-		super(message, options.cause === undefined ? undefined : { cause: options.cause })
+		super(message, options.cause ? { cause: options.cause } : undefined)
 		this.name = 'ToolError'
 		this.code = options.code
 		this.details = options.details

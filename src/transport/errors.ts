@@ -31,7 +31,7 @@ export function throwHttpStatus(operation: string, status: number, retryAfterMs?
 		retryable: status >= 500 || status === 429,
 		details: {
 			status,
-			...(retryAfterMs === undefined ? {} : { retry_after_ms: retryAfterMs })
+			...(retryAfterMs !== undefined && { retry_after_ms: retryAfterMs })
 		}
 	})
 }
@@ -58,7 +58,7 @@ export function assertHttpStatusOk(
 ): void {
 	if (options.noThrow === true) return
 	if (status >= 200 && status < 300) return
-	if (options.allowStatuses !== undefined && options.allowStatuses.includes(status)) return
+	if (options.allowStatuses && options.allowStatuses.includes(status)) return
 	if (status === 404) {
 		throw new ToolError('Not found', { code: 'not_found', details: { status } })
 	}

@@ -17,7 +17,7 @@ export function createAiSdkTool(kernelTool: ToolDefinition): AiSdkTool {
 		description: kernelTool.description,
 		inputSchema: kernelTool.inputSchema,
 		execute: async (input, options) => {
-			if (options.abortSignal === undefined) {
+			if (!options.abortSignal) {
 				return runTool(kernelTool, input)
 			}
 			return runTool(kernelTool, input, { signal: options.abortSignal })

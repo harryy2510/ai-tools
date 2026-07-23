@@ -42,7 +42,7 @@ export function defineProvider<const TId extends string, TAuth extends { provide
 /** Resolve a registered provider by `auth.provider`. */
 export function resolveProvider<T extends ProviderDefinition>(providers: readonly T[], auth: ProviderAuthBase): T {
 	const found = providers.find((provider) => provider.id === auth.provider)
-	if (found === undefined) {
+	if (!found) {
 		throw new ToolError(`Unknown provider: ${auth.provider}`, {
 			code: 'bad_auth',
 			details: { provider: auth.provider }

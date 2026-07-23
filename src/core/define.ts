@@ -43,7 +43,7 @@ export function defineTool<TInput, TOutput>(
 		meta: {
 			runtime: options.runtime ?? 'both',
 			sideEffect: options.sideEffect ?? 'read',
-			...(options.tags === undefined ? {} : { tags: options.tags })
+			...(options.tags && { tags: options.tags })
 		},
 		execute: async (input, ctx) => {
 			const parsed = options.inputSchema.parse(input)
