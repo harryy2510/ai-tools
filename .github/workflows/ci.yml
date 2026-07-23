@@ -62,8 +62,19 @@ jobs:
       - name: Assert package files
         run: |
           set -euo pipefail
+          # Brain
           test -f dist/core/index.js
           test -f dist/core/index.d.ts
-          test -f dist/modules/mime/index.js
-          test -f dist/modules/s3-storage/index.js
-          test -f dist/modules/cloudflare-email/index.js
+          test -f dist/http/index.js
+          # Seams (modules/)
+          test -f dist/modules/storage/index.js
+          test -f dist/modules/email/index.js
+          test -f dist/modules/messaging/index.js
+          test -f dist/modules/email-message/index.js
+          # Vendors (vendors/)
+          test -f dist/vendors/resend/index.js
+          test -f dist/vendors/cloudflare-email/index.js
+          test -f dist/vendors/s3/index.js
+          test -f dist/vendors/telegram/index.js
+          test -f dist/vendors/slack/index.js
+          test -f dist/vendors/teams/index.js
