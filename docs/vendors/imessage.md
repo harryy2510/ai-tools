@@ -30,13 +30,31 @@ Outbound iMessage via a hosted **[photon-rest-proxy](https://github.com/harryy25
 | `imessage-send-text` | `POST /v1/send` |
 | `imessage-edit-text` | `POST /v1/edit` |
 | `imessage-send-chat-action` | `POST /v1/typing` (start) |
-| `imessage-set-reaction` | `POST /v1/react` |
+| `imessage-set-reaction` | `POST /v1/react` (returns **reaction** `message_id`) |
+| `imessage-clear-reaction` | `POST /v1/clear-reaction` (unsend that reaction message) |
 | `imessage-unsend` | `POST /v1/unsend` |
 | `imessage-read` | `POST /v1/read` |
+| `imessage-send-media` | `POST /v1/media` |
+| `imessage-download-file` | `POST /v1/download` |
 
 `chat_id` is the Spectrum **space id** (e.g. `any;-;+15551111111`).
 
-Not on proxy v1 (throw `unsupported`): `clearReaction`, `sendMedia`, `downloadFile`.
+### Reactions
+
+Spectrum models a reaction as its own Message. `setReaction` returns that reaction’s `message_id`. Pass **that** id to `clearReaction` (not the id of the message that was reacted to).
+
+### Media and download
+
+- `sendMedia` sends base64 bytes as a Spectrum `attachment` (optional caption as follow-up text).
+- `downloadFile` needs both `chat_id` (space) and `file_id` (attachment/voice **message** id from inbound).
+
+## Channel parity
+
+| Verb | Telegram | Slack | Teams | iMessage (proxy) |
+| --- | --- | --- | --- | --- |
+| sendMedia | yes | yes | yes | yes |
+| downloadFile | yes | yes | yes | yes |
+| clearReaction | empty reaction list | emoji required | successful no-op | unsend reaction message id |
 
 ## Bind
 
@@ -55,6 +73,13 @@ await client.sendText({
   text: 'hello',
 })
 
+const reaction = await client.setReaction({
+  chat_id: 'any;-;+15551111111',
+  message_id: 'target-msg',
+  emoji: '❤️',
+})
+// later: await client.clearReaction({ chat_id, message_id: reaction.message_id! })
+
 withAuth(imessageModule, { /* same auth */ })
 ```
 
@@ -68,6 +93,8 @@ withAuth(messagingModule, {
   project_secret: '…',
 })
 ```
+
+Messaging `downloadFile` has no `chat_id` field — pass `file_id` as `space_id::message_id` (double colon). Messaging `clearReaction` must receive the **reaction** message id (same Spectrum rule). Prefer vendor tools when you need full iMessage shapes.
 
 ## Live progressive text
 

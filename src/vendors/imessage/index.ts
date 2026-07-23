@@ -2,31 +2,43 @@ export { ImessageClient } from './client'
 export type { ImessageClientOptions } from './client'
 export { isImessageDefiniteRejection, isImessageOutcomeUnknown, ImessageClientError } from './client'
 export {
+	MAX_MEDIA_BYTES,
 	imessageAuthSchema,
+	imessageClearReactionInputSchema,
+	imessageDownloadFileInputSchema,
+	imessageDownloadFileOutputSchema,
 	imessageEditTextInputSchema,
 	imessageMessageOutputSchema,
 	imessageOkOutputSchema,
 	imessageReadInputSchema,
 	imessageSendChatActionInputSchema,
+	imessageSendMediaInputSchema,
 	imessageSendTextInputSchema,
 	imessageSetReactionInputSchema,
 	imessageUnsendInputSchema
 } from './contracts'
 export type {
 	ImessageAuth,
+	ImessageClearReactionInput,
+	ImessageDownloadFileInput,
+	ImessageDownloadFileOutput,
 	ImessageEditTextInput,
 	ImessageMessageOutput,
 	ImessageReadInput,
 	ImessageSendChatActionInput,
+	ImessageSendMediaInput,
 	ImessageSendTextInput,
 	ImessageSetReactionInput,
 	ImessageUnsendInput
 } from './contracts'
 export {
+	imessageClearReactionTool,
+	imessageDownloadFileTool,
 	imessageEditTextTool,
 	imessageModule,
 	imessageReadTool,
 	imessageSendChatActionTool,
+	imessageSendMediaTool,
 	imessageSendTextTool,
 	imessageSetReactionTool,
 	imessageUnsendTool

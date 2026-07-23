@@ -82,6 +82,40 @@ export const imessageOkOutputSchema = z.object({
 	space_id: z.string().optional()
 })
 
+export const MAX_MEDIA_BYTES = 20 * 1024 * 1024
+
+export const imessageClearReactionInputSchema = z.object({
+	chat_id: z.string().min(1).describe('Spectrum space id'),
+	message_id: z
+		.string()
+		.min(1)
+		.describe('Reaction message id returned by setReaction / POST /v1/react (not the target message id)'),
+	phone: z.string().min(1).optional().describe('Optional line phone override')
+})
+
+export const imessageSendMediaInputSchema = z.object({
+	chat_id: z.string().min(1).describe('Spectrum space id'),
+	kind: z.enum(['photo', 'document']).describe('Media kind (presentation; Spectrum sends as attachment)'),
+	body_base64: z.string().min(1).describe('File body as base64'),
+	file_name: z.string().min(1).describe('File name including extension'),
+	caption: z.string().optional().describe('Optional caption sent as plain text after the attachment'),
+	content_type: z.string().optional().describe('Optional MIME type; inferred from file_name when omitted'),
+	phone: z.string().min(1).optional().describe('Optional line phone override')
+})
+
+export const imessageDownloadFileInputSchema = z.object({
+	file_id: z.string().min(1).describe('Spectrum message id of the attachment/voice message (from inbound webhook)'),
+	file_name: z.string().min(1).optional().describe('Preferred file name for the download result'),
+	chat_id: z.string().min(1).optional().describe('Spectrum space id; required when not defaulted elsewhere'),
+	phone: z.string().min(1).optional().describe('Optional line phone override')
+})
+
+export const imessageDownloadFileOutputSchema = z.object({
+	file_name: z.string(),
+	file_size: z.number().optional(),
+	body_base64: z.string().describe('Downloaded file body as base64')
+})
+
 export type ImessageSendTextInput = z.infer<typeof imessageSendTextInputSchema>
 export type ImessageMessageOutput = z.infer<typeof imessageMessageOutputSchema>
 export type ImessageEditTextInput = z.infer<typeof imessageEditTextInputSchema>
@@ -89,3 +123,7 @@ export type ImessageSendChatActionInput = z.infer<typeof imessageSendChatActionI
 export type ImessageSetReactionInput = z.infer<typeof imessageSetReactionInputSchema>
 export type ImessageUnsendInput = z.infer<typeof imessageUnsendInputSchema>
 export type ImessageReadInput = z.infer<typeof imessageReadInputSchema>
+export type ImessageClearReactionInput = z.infer<typeof imessageClearReactionInputSchema>
+export type ImessageSendMediaInput = z.infer<typeof imessageSendMediaInputSchema>
+export type ImessageDownloadFileInput = z.infer<typeof imessageDownloadFileInputSchema>
+export type ImessageDownloadFileOutput = z.infer<typeof imessageDownloadFileOutputSchema>

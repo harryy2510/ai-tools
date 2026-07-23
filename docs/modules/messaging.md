@@ -36,6 +36,14 @@ await client.sendText({ chat_id: 'C…', text: 'hi' })
 Teams connector calls require `service_url` on method inputs (from the inbound activity).  
 iMessage `chat_id` is the Spectrum **space id**; outbound goes through photon-rest-proxy (Workers-safe HTTP).
 
+### Provider gaps / quirks
+
+| Verb | Telegram | Slack | Teams | iMessage |
+| --- | --- | --- | --- | --- |
+| sendMedia | yes | yes | yes | yes (`/v1/media`) |
+| downloadFile | yes | yes | yes | yes — pass `file_id` as `space_id::message_id` |
+| clearReaction | empty list | emoji required | successful no-op | unsend **reaction** message id (from setReaction vendor tool) |
+
 ## Tools
 
 | id | Method |

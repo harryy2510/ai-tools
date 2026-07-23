@@ -2,11 +2,15 @@ import { defineModule, defineTool } from '../../core/define'
 import { ImessageClient } from './client'
 import {
 	imessageAuthSchema,
+	imessageClearReactionInputSchema,
+	imessageDownloadFileInputSchema,
+	imessageDownloadFileOutputSchema,
 	imessageEditTextInputSchema,
 	imessageMessageOutputSchema,
 	imessageOkOutputSchema,
 	imessageReadInputSchema,
 	imessageSendChatActionInputSchema,
+	imessageSendMediaInputSchema,
 	imessageSendTextInputSchema,
 	imessageSetReactionInputSchema,
 	imessageUnsendInputSchema
@@ -52,13 +56,26 @@ export const imessageSendChatActionTool = defineTool({
 export const imessageSetReactionTool = defineTool({
 	id: 'imessage-set-reaction',
 	name: 'imessageSetReaction',
-	description: 'React to an iMessage with an emoji or tapback via the bound proxy.',
+	description:
+		'React to an iMessage with an emoji or tapback via the bound proxy. Returns reaction message_id — store it to clear later.',
 	inputSchema: imessageSetReactionInputSchema,
-	outputSchema: imessageOkOutputSchema,
+	outputSchema: imessageMessageOutputSchema,
 	sideEffect: 'write',
 	runtime: 'both',
+	execute: async (input, ctx) => ImessageClient.fromContext(ctx).setReaction(input)
+})
+
+export const imessageClearReactionTool = defineTool({
+	id: 'imessage-clear-reaction',
+	name: 'imessageClearReaction',
+	description:
+		'Clear an iMessage reaction by unsending the reaction message. message_id must be the id returned by setReaction (not the target message).',
+	inputSchema: imessageClearReactionInputSchema,
+	outputSchema: imessageOkOutputSchema,
+	sideEffect: 'delete',
+	runtime: 'both',
 	execute: async (input, ctx) => {
-		await ImessageClient.fromContext(ctx).setReaction(input)
+		await ImessageClient.fromContext(ctx).clearReaction(input)
 		return { ok: true, space_id: input.chat_id }
 	}
 })
@@ -91,11 +108,34 @@ export const imessageReadTool = defineTool({
 	}
 })
 
+export const imessageSendMediaTool = defineTool({
+	id: 'imessage-send-media',
+	name: 'imessageSendMedia',
+	description: 'Send a photo or document attachment to an iMessage space via the bound proxy (Spectrum attachment).',
+	inputSchema: imessageSendMediaInputSchema,
+	outputSchema: imessageMessageOutputSchema,
+	sideEffect: 'send',
+	runtime: 'both',
+	execute: async (input, ctx) => ImessageClient.fromContext(ctx).sendMedia(input)
+})
+
+export const imessageDownloadFileTool = defineTool({
+	id: 'imessage-download-file',
+	name: 'imessageDownloadFile',
+	description:
+		'Download attachment/voice bytes for a Spectrum message id in a space via the bound proxy. Requires chat_id (space id) and file_id.',
+	inputSchema: imessageDownloadFileInputSchema,
+	outputSchema: imessageDownloadFileOutputSchema,
+	sideEffect: 'none',
+	runtime: 'both',
+	execute: async (input, ctx) => ImessageClient.fromContext(ctx).downloadFile(input)
+})
+
 export const imessageModule = defineModule({
 	id: 'imessage',
 	title: 'iMessage',
 	description:
-		'iMessage outbound via hosted photon-rest-proxy: send and edit text, typing, reactions, unsend, and read. Host binds proxy base URL and Spectrum project credentials. Inbound uses Photon native webhooks on the host.',
+		'iMessage outbound via hosted photon-rest-proxy: send/edit text, media, typing, reactions, clear reaction, unsend, read, download. Host binds proxy base URL and Spectrum project credentials. Inbound uses Photon native webhooks on the host.',
 	runtime: 'both',
 	auth: { type: 'custom', schema: imessageAuthSchema },
 	tools: [
@@ -103,7 +143,10 @@ export const imessageModule = defineModule({
 		imessageEditTextTool,
 		imessageSendChatActionTool,
 		imessageSetReactionTool,
+		imessageClearReactionTool,
 		imessageUnsendTool,
-		imessageReadTool
+		imessageReadTool,
+		imessageSendMediaTool,
+		imessageDownloadFileTool
 	]
 })

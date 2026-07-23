@@ -5,7 +5,14 @@
 import { isPlainObject, isString } from 'es-toolkit'
 
 import { ToolError } from '../../core/errors'
-import type { ImessageMessageOutput } from './contracts'
+import { base64ToBytes } from '../../shared/bytes'
+import type {
+	ImessageDownloadFileInput,
+	ImessageDownloadFileOutput,
+	ImessageMessageOutput,
+	ImessageSendMediaInput
+} from './contracts'
+import { MAX_MEDIA_BYTES } from './contracts'
 
 export type ImessageFailureKind = 'definite_rejection' | 'outcome_unknown'
 
@@ -119,5 +126,52 @@ export function spaceBody(
 		platform: 'imessage',
 		...extra,
 		...(phone && { phone })
+	}
+}
+
+/** Decode and size-check media base64 for sendMedia. */
+export function decodeMediaBody(bodyBase64: string): void {
+	let bytes: Uint8Array
+	try {
+		bytes = base64ToBytes(bodyBase64)
+	} catch (error) {
+		throw new ToolError('Invalid base64 body', { code: 'bad_input', cause: error })
+	}
+	if (bytes.byteLength === 0) {
+		throw new ToolError('Media body must not be empty', { code: 'bad_input' })
+	}
+	if (bytes.byteLength > MAX_MEDIA_BYTES) {
+		throw new ToolError('Media exceeds 20 MiB limit', {
+			code: 'too_large',
+			details: { max_bytes: MAX_MEDIA_BYTES, content_length: bytes.byteLength }
+		})
+	}
+}
+
+/** Build POST /v1/media JSON body (base64 already validated). */
+export function mediaBody(input: ImessageSendMediaInput, phone: string | undefined): Record<string, unknown> {
+	decodeMediaBody(input.body_base64)
+	return spaceBody(input.chat_id, phone, {
+		body_base64: input.body_base64,
+		file_name: input.file_name,
+		...(input.content_type && { mime_type: input.content_type }),
+		...(input.caption && { caption: input.caption })
+	})
+}
+
+export function parseDownloadResult(input: ImessageDownloadFileInput, data: unknown): ImessageDownloadFileOutput {
+	if (!isPlainObject(data) || data['ok'] !== true) {
+		throw new ToolError('iMessage proxy returned an unexpected download payload', { code: 'upstream' })
+	}
+	const bodyBase64 = data['body_base64']
+	if (!isString(bodyBase64) || bodyBase64.length === 0) {
+		throw new ToolError('iMessage proxy download missing body_base64', { code: 'upstream' })
+	}
+	const name = data['file_name']
+	const size = data['file_size']
+	return {
+		file_name: input.file_name ?? (isString(name) && name.length > 0 ? name : input.file_id),
+		...(typeof size === 'number' && Number.isFinite(size) && { file_size: size }),
+		body_base64: bodyBase64
 	}
 }

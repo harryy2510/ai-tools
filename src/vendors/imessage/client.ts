@@ -12,10 +12,14 @@ import { HttpService } from '../../transport/http-service'
 import type { HttpServiceOptions } from '../../transport/http-service'
 import type {
 	ImessageAuth,
+	ImessageClearReactionInput,
+	ImessageDownloadFileInput,
+	ImessageDownloadFileOutput,
 	ImessageEditTextInput,
 	ImessageMessageOutput,
 	ImessageReadInput,
 	ImessageSendChatActionInput,
+	ImessageSendMediaInput,
 	ImessageSendTextInput,
 	ImessageSetReactionInput,
 	ImessageUnsendInput
@@ -26,6 +30,8 @@ import {
 	isImessageDefiniteRejection,
 	isImessageOutcomeUnknown,
 	ImessageClientError,
+	mediaBody,
+	parseDownloadResult,
 	parseMessageResult,
 	parseOkResult,
 	spaceBody
@@ -122,9 +128,12 @@ export class ImessageClient {
 		)
 	}
 
-	/** POST /v1/react */
-	async setReaction(input: ImessageSetReactionInput): Promise<void> {
-		await this.#post(
+	/**
+	 * POST /v1/react.
+	 * Returns the reaction message_id — store it for clearReaction (Spectrum unsends the reaction Message).
+	 */
+	async setReaction(input: ImessageSetReactionInput): Promise<ImessageMessageOutput> {
+		const data = await this.#post(
 			'/v1/react',
 			spaceBody(input.chat_id, this.#phone(input.phone), {
 				message_id: input.message_id,
@@ -132,14 +141,19 @@ export class ImessageClient {
 			}),
 			'iMessage react'
 		)
+		return parseMessageResult(data)
 	}
 
 	/**
-	 * Clear reaction is not exposed by photon-rest-proxy v1.
-	 * Fail closed so callers do not assume success.
+	 * POST /v1/clear-reaction.
+	 * `message_id` must be the reaction message id from setReaction / /v1/react (not the target message).
 	 */
-	async clearReaction(_input: { chat_id: string; message_id: string }): Promise<void> {
-		throw new ToolError('iMessage proxy does not support clearReaction', { code: 'unsupported' })
+	async clearReaction(input: ImessageClearReactionInput): Promise<void> {
+		await this.#post(
+			'/v1/clear-reaction',
+			spaceBody(input.chat_id, this.#phone(input.phone), { message_id: input.message_id }),
+			'iMessage clearReaction'
+		)
 	}
 
 	/** POST /v1/unsend */
@@ -160,13 +174,29 @@ export class ImessageClient {
 		)
 	}
 
-	/** Media upload not on proxy v1. */
-	async sendMedia(_input: unknown): Promise<ImessageMessageOutput> {
-		throw new ToolError('iMessage proxy does not support sendMedia yet', { code: 'unsupported' })
+	/** POST /v1/media — Spectrum attachment(Buffer, { name, mimeType }). */
+	async sendMedia(input: ImessageSendMediaInput): Promise<ImessageMessageOutput> {
+		const data = await this.#post('/v1/media', mediaBody(input, this.#phone(input.phone)), 'iMessage sendMedia')
+		return parseMessageResult(data)
 	}
 
-	async downloadFile(_input: unknown): Promise<never> {
-		throw new ToolError('iMessage proxy does not support downloadFile yet', { code: 'unsupported' })
+	/**
+	 * POST /v1/download.
+	 * Requires `chat_id` (Spectrum space) plus `file_id` (attachment/voice message id from inbound).
+	 */
+	async downloadFile(input: ImessageDownloadFileInput): Promise<ImessageDownloadFileOutput> {
+		const chatId = input.chat_id
+		if (!chatId) {
+			throw new ToolError('iMessage downloadFile requires chat_id (Spectrum space id)', {
+				code: 'bad_input'
+			})
+		}
+		const data = await this.#post(
+			'/v1/download',
+			spaceBody(chatId, this.#phone(input.phone), { file_id: input.file_id }),
+			'iMessage downloadFile'
+		)
+		return parseDownloadResult(input, data)
 	}
 
 	async answerCallback(_input: unknown): Promise<void> {
