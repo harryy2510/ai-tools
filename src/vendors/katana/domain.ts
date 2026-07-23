@@ -5,7 +5,30 @@
 import { isPlainObject, isString } from 'es-toolkit'
 
 import { ToolError } from '../../core/errors'
-import type { KatanaSalesOrder } from './contracts'
+import type {
+	KatanaCreateCustomerInput,
+	KatanaCreateManufacturingOrderInput,
+	KatanaCreateProductInput,
+	KatanaCreatePurchaseOrderInput,
+	KatanaCreateSalesOrderInput,
+	KatanaCreateSupplierInput,
+	KatanaCustomer,
+	KatanaInventory,
+	KatanaManufacturingOrder,
+	KatanaMaterial,
+	KatanaProduct,
+	KatanaProductVariantInput,
+	KatanaPurchaseOrder,
+	KatanaPurchaseOrderRowInput,
+	KatanaSalesOrder,
+	KatanaSalesOrderRowInput,
+	KatanaSupplier,
+	KatanaUpdateCustomerInput,
+	KatanaUpdateManufacturingOrderInput,
+	KatanaUpdateProductInput,
+	KatanaUpdatePurchaseOrderInput,
+	KatanaUpdateSalesOrderInput
+} from './contracts'
 
 export const KATANA_API_BASE = 'https://api.katanamrp.com/v1'
 
@@ -16,45 +39,6 @@ export function pageFromCursor(cursor: string | undefined): number {
 		throw new ToolError('Invalid list cursor', { code: 'bad_input', details: { cursor } })
 	}
 	return n
-}
-
-export function parseSalesOrder(value: unknown): KatanaSalesOrder {
-	if (!isPlainObject(value) || typeof value['id'] !== 'number') {
-		throw new ToolError('Katana returned an invalid sales order', { code: 'upstream' })
-	}
-	const totalRaw = value['total'] ?? value['total_price']
-	const total = typeof totalRaw === 'number' && Number.isFinite(totalRaw) ? totalRaw : undefined
-	return {
-		id: value['id'],
-		...(isString(value['order_no']) && { order_no: value['order_no'] }),
-		...(isString(value['status']) && { status: value['status'] }),
-		...(typeof value['customer_id'] === 'number' && { customer_id: value['customer_id'] }),
-		...(isString(value['order_created_date']) && { order_created_date: value['order_created_date'] }),
-		...(isString(value['currency']) && { currency: value['currency'] }),
-		...(total !== undefined && { total })
-	}
-}
-
-export function parseSalesOrdersEnvelope(data: unknown): {
-	items: KatanaSalesOrder[]
-	totalPages?: number
-} {
-	if (Array.isArray(data)) {
-		return { items: data.map(parseSalesOrder) }
-	}
-	if (!isPlainObject(data)) {
-		throw new ToolError('Katana returned an unexpected sales orders payload', { code: 'upstream' })
-	}
-	const rows = data['data']
-	if (!Array.isArray(rows)) {
-		throw new ToolError('Katana sales orders missing data array', { code: 'upstream' })
-	}
-	const pagination = data['pagination']
-	let totalPages: number | undefined
-	if (isPlainObject(pagination) && typeof pagination['total_pages'] === 'number') {
-		totalPages = pagination['total_pages']
-	}
-	return { items: rows.map(parseSalesOrder), ...(totalPages !== undefined && { totalPages }) }
 }
 
 export function listPageMeta(
@@ -70,4 +54,455 @@ export function listPageMeta(
 		return { next_cursor: String(page + 1), truncated: true }
 	}
 	return { truncated: false }
+}
+
+function optionalString(value: unknown): string | undefined {
+	return isString(value) ? value : undefined
+}
+
+function optionalNumber(value: unknown): number | undefined {
+	return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function optionalBoolean(value: unknown): boolean | undefined {
+	return typeof value === 'boolean' ? value : undefined
+}
+
+export function unwrapResource(data: unknown): unknown {
+	if (isPlainObject(data) && 'data' in data) {
+		return data['data']
+	}
+	return data
+}
+
+export function parseListEnvelope<T>(
+	data: unknown,
+	parseItem: (value: unknown) => T,
+	label: string
+): { items: T[]; totalPages?: number } {
+	if (Array.isArray(data)) {
+		return { items: data.map(parseItem) }
+	}
+	if (!isPlainObject(data)) {
+		throw new ToolError(`Katana returned an unexpected ${label} payload`, { code: 'upstream' })
+	}
+	const rows = data['data']
+	if (!Array.isArray(rows)) {
+		throw new ToolError(`Katana ${label} missing data array`, { code: 'upstream' })
+	}
+	const pagination = data['pagination']
+	let totalPages: number | undefined
+	if (isPlainObject(pagination) && typeof pagination['total_pages'] === 'number') {
+		totalPages = pagination['total_pages']
+	}
+	return { items: rows.map(parseItem), ...(totalPages !== undefined && { totalPages }) }
+}
+
+// ── Resource parsers ────────────────────────────────────────────────────────
+
+export function parseSalesOrder(value: unknown): KatanaSalesOrder {
+	if (!isPlainObject(value) || typeof value['id'] !== 'number') {
+		throw new ToolError('Katana returned an invalid sales order', { code: 'upstream' })
+	}
+	const totalRaw = value['total'] ?? value['total_price']
+	const total = optionalNumber(totalRaw)
+	const orderNo = optionalString(value['order_no'])
+	const status = optionalString(value['status'])
+	const customerId = optionalNumber(value['customer_id'])
+	const orderCreatedDate = optionalString(value['order_created_date'])
+	const deliveryDate = optionalString(value['delivery_date'])
+	const locationId = optionalNumber(value['location_id'])
+	const currency = optionalString(value['currency'])
+	const additionalInfo = optionalString(value['additional_info'])
+	const customerRef = optionalString(value['customer_ref'])
+	return {
+		id: value['id'],
+		...(orderNo && { order_no: orderNo }),
+		...(status && { status }),
+		...(customerId !== undefined && { customer_id: customerId }),
+		...(orderCreatedDate && { order_created_date: orderCreatedDate }),
+		...(deliveryDate && { delivery_date: deliveryDate }),
+		...(locationId !== undefined && { location_id: locationId }),
+		...(currency && { currency }),
+		...(total !== undefined && { total }),
+		...(additionalInfo !== undefined && { additional_info: additionalInfo }),
+		...(customerRef !== undefined && { customer_ref: customerRef })
+	}
+}
+
+export function parseProduct(value: unknown): KatanaProduct {
+	if (!isPlainObject(value) || typeof value['id'] !== 'number') {
+		throw new ToolError('Katana returned an invalid product', { code: 'upstream' })
+	}
+	const name = optionalString(value['name'])
+	const uom = optionalString(value['uom'])
+	const categoryName = optionalString(value['category_name'])
+	const isSellable = optionalBoolean(value['is_sellable'])
+	const isProducible = optionalBoolean(value['is_producible'])
+	const isPurchasable = optionalBoolean(value['is_purchasable'])
+	const type = optionalString(value['type'])
+	const defaultSupplierId = optionalNumber(value['default_supplier_id'])
+	const additionalInfo = optionalString(value['additional_info'])
+	return {
+		id: value['id'],
+		...(name && { name }),
+		...(uom && { uom }),
+		...(categoryName && { category_name: categoryName }),
+		...(isSellable !== undefined && { is_sellable: isSellable }),
+		...(isProducible !== undefined && { is_producible: isProducible }),
+		...(isPurchasable !== undefined && { is_purchasable: isPurchasable }),
+		...(type && { type }),
+		...(defaultSupplierId !== undefined && { default_supplier_id: defaultSupplierId }),
+		...(additionalInfo !== undefined && { additional_info: additionalInfo })
+	}
+}
+
+export function parseMaterial(value: unknown): KatanaMaterial {
+	if (!isPlainObject(value) || typeof value['id'] !== 'number') {
+		throw new ToolError('Katana returned an invalid material', { code: 'upstream' })
+	}
+	const name = optionalString(value['name'])
+	const uom = optionalString(value['uom'])
+	const categoryName = optionalString(value['category_name'])
+	const isSellable = optionalBoolean(value['is_sellable'])
+	const type = optionalString(value['type'])
+	const defaultSupplierId = optionalNumber(value['default_supplier_id'])
+	const additionalInfo = optionalString(value['additional_info'])
+	return {
+		id: value['id'],
+		...(name && { name }),
+		...(uom && { uom }),
+		...(categoryName && { category_name: categoryName }),
+		...(isSellable !== undefined && { is_sellable: isSellable }),
+		...(type && { type }),
+		...(defaultSupplierId !== undefined && { default_supplier_id: defaultSupplierId }),
+		...(additionalInfo !== undefined && { additional_info: additionalInfo })
+	}
+}
+
+export function parseCustomer(value: unknown): KatanaCustomer {
+	if (!isPlainObject(value) || typeof value['id'] !== 'number') {
+		throw new ToolError('Katana returned an invalid customer', { code: 'upstream' })
+	}
+	const name = optionalString(value['name'])
+	const firstName = optionalString(value['first_name'])
+	const lastName = optionalString(value['last_name'])
+	const company = optionalString(value['company'])
+	const email = optionalString(value['email'])
+	const phone = optionalString(value['phone'])
+	const currency = optionalString(value['currency'])
+	const comment = optionalString(value['comment'])
+	const referenceId = optionalString(value['reference_id'])
+	const category = optionalString(value['category'])
+	return {
+		id: value['id'],
+		...(name && { name }),
+		...(firstName !== undefined && { first_name: firstName }),
+		...(lastName !== undefined && { last_name: lastName }),
+		...(company !== undefined && { company }),
+		...(email !== undefined && { email }),
+		...(phone !== undefined && { phone }),
+		...(currency && { currency }),
+		...(comment !== undefined && { comment }),
+		...(referenceId !== undefined && { reference_id: referenceId }),
+		...(category !== undefined && { category })
+	}
+}
+
+export function parseSupplier(value: unknown): KatanaSupplier {
+	if (!isPlainObject(value) || typeof value['id'] !== 'number') {
+		throw new ToolError('Katana returned an invalid supplier', { code: 'upstream' })
+	}
+	const name = optionalString(value['name'])
+	const email = optionalString(value['email'])
+	const phone = optionalString(value['phone'])
+	const currency = optionalString(value['currency'])
+	const comment = optionalString(value['comment'])
+	return {
+		id: value['id'],
+		...(name && { name }),
+		...(email !== undefined && { email }),
+		...(phone !== undefined && { phone }),
+		...(currency && { currency }),
+		...(comment !== undefined && { comment })
+	}
+}
+
+export function parsePurchaseOrder(value: unknown): KatanaPurchaseOrder {
+	if (!isPlainObject(value) || typeof value['id'] !== 'number') {
+		throw new ToolError('Katana returned an invalid purchase order', { code: 'upstream' })
+	}
+	const orderNo = optionalString(value['order_no'])
+	const status = optionalString(value['status'])
+	const supplierId = optionalNumber(value['supplier_id'])
+	const locationId = optionalNumber(value['location_id'])
+	const currency = optionalString(value['currency'])
+	const entityType = optionalString(value['entity_type'])
+	const orderCreatedDate = optionalString(value['order_created_date'])
+	const expectedArrivalDate = optionalString(value['expected_arrival_date'])
+	const total = optionalNumber(value['total'])
+	const additionalInfo = optionalString(value['additional_info'])
+	return {
+		id: value['id'],
+		...(orderNo && { order_no: orderNo }),
+		...(status && { status }),
+		...(supplierId !== undefined && { supplier_id: supplierId }),
+		...(locationId !== undefined && { location_id: locationId }),
+		...(currency && { currency }),
+		...(entityType && { entity_type: entityType }),
+		...(orderCreatedDate && { order_created_date: orderCreatedDate }),
+		...(expectedArrivalDate && { expected_arrival_date: expectedArrivalDate }),
+		...(total !== undefined && { total }),
+		...(additionalInfo !== undefined && { additional_info: additionalInfo })
+	}
+}
+
+export function parseManufacturingOrder(value: unknown): KatanaManufacturingOrder {
+	if (!isPlainObject(value) || typeof value['id'] !== 'number') {
+		throw new ToolError('Katana returned an invalid manufacturing order', { code: 'upstream' })
+	}
+	const orderNo = optionalString(value['order_no'])
+	const status = optionalString(value['status'])
+	const variantId = optionalNumber(value['variant_id'])
+	const locationId = optionalNumber(value['location_id'])
+	const plannedQuantity = optionalNumber(value['planned_quantity'])
+	const actualQuantity = optionalNumber(value['actual_quantity'])
+	const orderCreatedDate = optionalString(value['order_created_date'])
+	const productionDeadlineDate = optionalString(value['production_deadline_date'])
+	const ingredientAvailability = optionalString(value['ingredient_availability'])
+	const additionalInfo = optionalString(value['additional_info'])
+	const salesOrderId = optionalNumber(value['sales_order_id'])
+	return {
+		id: value['id'],
+		...(orderNo && { order_no: orderNo }),
+		...(status && { status }),
+		...(variantId !== undefined && { variant_id: variantId }),
+		...(locationId !== undefined && { location_id: locationId }),
+		...(plannedQuantity !== undefined && { planned_quantity: plannedQuantity }),
+		...(actualQuantity !== undefined && { actual_quantity: actualQuantity }),
+		...(orderCreatedDate && { order_created_date: orderCreatedDate }),
+		...(productionDeadlineDate && { production_deadline_date: productionDeadlineDate }),
+		...(ingredientAvailability && { ingredient_availability: ingredientAvailability }),
+		...(additionalInfo !== undefined && { additional_info: additionalInfo }),
+		...(salesOrderId !== undefined && { sales_order_id: salesOrderId })
+	}
+}
+
+export function parseInventory(value: unknown): KatanaInventory {
+	if (!isPlainObject(value) || typeof value['variant_id'] !== 'number' || typeof value['location_id'] !== 'number') {
+		throw new ToolError('Katana returned an invalid inventory row', { code: 'upstream' })
+	}
+	const quantityInStock = optionalNumber(value['quantity_in_stock'])
+	const quantityCommitted = optionalNumber(value['quantity_committed'])
+	const quantityExpected = optionalNumber(value['quantity_expected'])
+	const quantityMissingOrExcess = optionalNumber(value['quantity_missing_or_excess'])
+	const safetyStockLevel = optionalNumber(value['safety_stock_level'])
+	const averageCost = optionalNumber(value['average_cost'])
+	const valueInStock = optionalNumber(value['value_in_stock'])
+	return {
+		variant_id: value['variant_id'],
+		location_id: value['location_id'],
+		...(quantityInStock !== undefined && { quantity_in_stock: quantityInStock }),
+		...(quantityCommitted !== undefined && { quantity_committed: quantityCommitted }),
+		...(quantityExpected !== undefined && { quantity_expected: quantityExpected }),
+		...(quantityMissingOrExcess !== undefined && {
+			quantity_missing_or_excess: quantityMissingOrExcess
+		}),
+		...(safetyStockLevel !== undefined && { safety_stock_level: safetyStockLevel }),
+		...(averageCost !== undefined && { average_cost: averageCost }),
+		...(valueInStock !== undefined && { value_in_stock: valueInStock })
+	}
+}
+
+// ── Write bodies ────────────────────────────────────────────────────────────
+
+function salesOrderRowBody(row: KatanaSalesOrderRowInput): Record<string, number> {
+	return {
+		quantity: row.quantity,
+		variant_id: row.variant_id,
+		...(row.tax_rate_id !== undefined && { tax_rate_id: row.tax_rate_id }),
+		...(row.location_id !== undefined && { location_id: row.location_id }),
+		...(row.price_per_unit !== undefined && { price_per_unit: row.price_per_unit }),
+		...(row.total_discount !== undefined && { total_discount: row.total_discount })
+	}
+}
+
+export function salesOrderCreateBody(input: KatanaCreateSalesOrderInput): Record<string, unknown> {
+	return {
+		customer_id: input.customer_id,
+		sales_order_rows: input.sales_order_rows.map(salesOrderRowBody),
+		...(input.order_no && { order_no: input.order_no }),
+		...(input.order_created_date && { order_created_date: input.order_created_date }),
+		...(input.delivery_date && { delivery_date: input.delivery_date }),
+		...(input.currency && { currency: input.currency }),
+		...(input.location_id !== undefined && { location_id: input.location_id }),
+		...(input.status && { status: input.status }),
+		...(input.additional_info !== undefined && { additional_info: input.additional_info }),
+		...(input.customer_ref !== undefined && { customer_ref: input.customer_ref })
+	}
+}
+
+export function salesOrderUpdateBody(
+	input: Omit<KatanaUpdateSalesOrderInput, 'sales_order_id'>
+): Record<string, unknown> {
+	return {
+		...(input.order_no && { order_no: input.order_no }),
+		...(input.customer_id !== undefined && { customer_id: input.customer_id }),
+		...(input.order_created_date && { order_created_date: input.order_created_date }),
+		...(input.delivery_date && { delivery_date: input.delivery_date }),
+		...(input.location_id !== undefined && { location_id: input.location_id }),
+		...(input.status && { status: input.status }),
+		...(input.currency && { currency: input.currency }),
+		...(input.additional_info !== undefined && { additional_info: input.additional_info }),
+		...(input.customer_ref !== undefined && { customer_ref: input.customer_ref })
+	}
+}
+
+function productVariantBody(variant: KatanaProductVariantInput): Record<string, string | number> {
+	return {
+		...(variant.sku && { sku: variant.sku }),
+		...(variant.sales_price !== undefined && { sales_price: variant.sales_price }),
+		...(variant.purchase_price !== undefined && { purchase_price: variant.purchase_price })
+	}
+}
+
+export function productCreateBody(input: KatanaCreateProductInput): Record<string, unknown> {
+	return {
+		name: input.name,
+		variants: input.variants.map(productVariantBody),
+		...(input.uom && { uom: input.uom }),
+		...(input.category_name && { category_name: input.category_name }),
+		...(input.is_sellable !== undefined && { is_sellable: input.is_sellable }),
+		...(input.is_producible !== undefined && { is_producible: input.is_producible }),
+		...(input.is_purchasable !== undefined && { is_purchasable: input.is_purchasable }),
+		...(input.is_auto_assembly !== undefined && { is_auto_assembly: input.is_auto_assembly }),
+		...(input.default_supplier_id !== undefined && {
+			default_supplier_id: input.default_supplier_id
+		}),
+		...(input.additional_info !== undefined && { additional_info: input.additional_info }),
+		...(input.batch_tracked !== undefined && { batch_tracked: input.batch_tracked }),
+		...(input.serial_tracked !== undefined && { serial_tracked: input.serial_tracked })
+	}
+}
+
+export function productUpdateBody(input: Omit<KatanaUpdateProductInput, 'product_id'>): Record<string, unknown> {
+	return {
+		...(input.name && { name: input.name }),
+		...(input.uom && { uom: input.uom }),
+		...(input.category_name !== undefined && { category_name: input.category_name }),
+		...(input.is_sellable !== undefined && { is_sellable: input.is_sellable }),
+		...(input.is_producible !== undefined && { is_producible: input.is_producible }),
+		...(input.is_purchasable !== undefined && { is_purchasable: input.is_purchasable }),
+		...(input.is_auto_assembly !== undefined && { is_auto_assembly: input.is_auto_assembly }),
+		...(input.default_supplier_id !== undefined && {
+			default_supplier_id: input.default_supplier_id
+		}),
+		...(input.additional_info !== undefined && { additional_info: input.additional_info }),
+		...(input.batch_tracked !== undefined && { batch_tracked: input.batch_tracked }),
+		...(input.serial_tracked !== undefined && { serial_tracked: input.serial_tracked })
+	}
+}
+
+export function customerWriteBody(
+	input: KatanaCreateCustomerInput | Omit<KatanaUpdateCustomerInput, 'customer_id'>
+): Record<string, unknown> {
+	const name = 'name' in input ? input.name : undefined
+	return {
+		...(name && { name }),
+		...(input.first_name !== undefined && { first_name: input.first_name }),
+		...(input.last_name !== undefined && { last_name: input.last_name }),
+		...(input.company !== undefined && { company: input.company }),
+		...(input.email !== undefined && { email: input.email }),
+		...(input.phone !== undefined && { phone: input.phone }),
+		...(input.currency && { currency: input.currency }),
+		...(input.reference_id !== undefined && { reference_id: input.reference_id }),
+		...(input.category !== undefined && { category: input.category }),
+		...(input.comment !== undefined && { comment: input.comment }),
+		...(input.discount_rate !== undefined && { discount_rate: input.discount_rate })
+	}
+}
+
+export function supplierCreateBody(input: KatanaCreateSupplierInput): Record<string, unknown> {
+	return {
+		name: input.name,
+		...(input.currency && { currency: input.currency }),
+		...(input.email !== undefined && { email: input.email }),
+		...(input.phone !== undefined && { phone: input.phone }),
+		...(input.comment !== undefined && { comment: input.comment })
+	}
+}
+
+function purchaseOrderRowBody(row: KatanaPurchaseOrderRowInput): Record<string, string | number> {
+	return {
+		quantity: row.quantity,
+		variant_id: row.variant_id,
+		price_per_unit: row.price_per_unit,
+		...(row.tax_rate_id !== undefined && { tax_rate_id: row.tax_rate_id }),
+		...(row.purchase_uom && { purchase_uom: row.purchase_uom }),
+		...(row.purchase_uom_conversion_rate !== undefined && {
+			purchase_uom_conversion_rate: row.purchase_uom_conversion_rate
+		}),
+		...(row.arrival_date && { arrival_date: row.arrival_date })
+	}
+}
+
+export function purchaseOrderCreateBody(input: KatanaCreatePurchaseOrderInput): Record<string, unknown> {
+	return {
+		supplier_id: input.supplier_id,
+		location_id: input.location_id,
+		purchase_order_rows: input.purchase_order_rows.map(purchaseOrderRowBody),
+		...(input.order_no && { order_no: input.order_no }),
+		...(input.entity_type && { entity_type: input.entity_type }),
+		...(input.currency && { currency: input.currency }),
+		...(input.status && { status: input.status }),
+		...(input.expected_arrival_date && { expected_arrival_date: input.expected_arrival_date }),
+		...(input.order_created_date && { order_created_date: input.order_created_date }),
+		...(input.additional_info !== undefined && { additional_info: input.additional_info })
+	}
+}
+
+export function purchaseOrderUpdateBody(
+	input: Omit<KatanaUpdatePurchaseOrderInput, 'purchase_order_id'>
+): Record<string, unknown> {
+	return {
+		...(input.order_no && { order_no: input.order_no }),
+		...(input.supplier_id !== undefined && { supplier_id: input.supplier_id }),
+		...(input.location_id !== undefined && { location_id: input.location_id }),
+		...(input.currency && { currency: input.currency }),
+		...(input.status && { status: input.status }),
+		...(input.expected_arrival_date && { expected_arrival_date: input.expected_arrival_date }),
+		...(input.order_created_date && { order_created_date: input.order_created_date }),
+		...(input.additional_info !== undefined && { additional_info: input.additional_info })
+	}
+}
+
+export function manufacturingOrderCreateBody(input: KatanaCreateManufacturingOrderInput): Record<string, unknown> {
+	return {
+		variant_id: input.variant_id,
+		location_id: input.location_id,
+		planned_quantity: input.planned_quantity,
+		...(input.order_no && { order_no: input.order_no }),
+		...(input.order_created_date && { order_created_date: input.order_created_date }),
+		...(input.production_deadline_date && {
+			production_deadline_date: input.production_deadline_date
+		}),
+		...(input.additional_info !== undefined && { additional_info: input.additional_info }),
+		...(input.status && { status: input.status })
+	}
+}
+
+export function manufacturingOrderUpdateBody(
+	input: Omit<KatanaUpdateManufacturingOrderInput, 'manufacturing_order_id'>
+): Record<string, unknown> {
+	return {
+		...(input.order_no && { order_no: input.order_no }),
+		...(input.planned_quantity !== undefined && { planned_quantity: input.planned_quantity }),
+		...(input.actual_quantity !== undefined && { actual_quantity: input.actual_quantity }),
+		...(input.order_created_date && { order_created_date: input.order_created_date }),
+		...(input.production_deadline_date && {
+			production_deadline_date: input.production_deadline_date
+		}),
+		...(input.additional_info !== undefined && { additional_info: input.additional_info }),
+		...(input.status && { status: input.status })
+	}
 }

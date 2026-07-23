@@ -14,21 +14,39 @@ import { HttpService } from '../../transport/http-service'
 import type { HttpServiceOptions } from '../../transport/http-service'
 import type {
 	AmazonSpApiAuth,
+	AmazonSpApiCreateReportInput,
+	AmazonSpApiCreateReportOutput,
 	AmazonSpApiGetOrderInput,
+	AmazonSpApiGetOrderItemsInput,
+	AmazonSpApiGetOrderItemsOutput,
 	AmazonSpApiGetOrderOutput,
+	AmazonSpApiGetReportDocumentInput,
+	AmazonSpApiGetReportDocumentOutput,
+	AmazonSpApiGetReportInput,
+	AmazonSpApiGetReportOutput,
 	AmazonSpApiListInventorySummariesInput,
 	AmazonSpApiListInventorySummariesOutput,
 	AmazonSpApiListOrdersInput,
-	AmazonSpApiListOrdersOutput
+	AmazonSpApiListOrdersOutput,
+	AmazonSpApiListReportsInput,
+	AmazonSpApiListReportsOutput,
+	AmazonSpApiSearchCatalogItemsInput,
+	AmazonSpApiSearchCatalogItemsOutput
 } from './contracts'
 import { amazonSpApiAuthSchema } from './contracts'
 import {
 	LWA_TOKEN_URL,
 	lwaTokenBody,
+	parseCreateReportPayload,
+	parseGetReportPayload,
 	parseInventoryPayload,
+	parseListReportsPayload,
 	parseLwaAccessToken,
+	parseOrderItemsPayload,
 	parseOrderPayload,
 	parseOrdersPayload,
+	parseReportDocumentPayload,
+	parseSearchCatalogItemsPayload,
 	requireMarketplaceIds
 } from './domain'
 
@@ -99,6 +117,17 @@ export class AmazonSpApiClient {
 		})
 	}
 
+	async #spPost(path: string, label: string, body: Record<string, unknown>) {
+		const token = await this.#ensureAccessToken()
+		return this.#api.post(path, body, {
+			label,
+			headers: {
+				'x-amz-access-token': token,
+				'Content-Type': 'application/json'
+			}
+		})
+	}
+
 	/** GET /orders/v0/orders */
 	async listOrders(input: AmazonSpApiListOrdersInput = {}): Promise<AmazonSpApiListOrdersOutput> {
 		const marketplaceIds = requireMarketplaceIds(
@@ -135,6 +164,23 @@ export class AmazonSpApiClient {
 		return { order: parseOrderPayload(data) }
 	}
 
+	/** GET /orders/v0/orders/{orderId}/orderItems */
+	async getOrderItems(input: AmazonSpApiGetOrderItemsInput): Promise<AmazonSpApiGetOrderItemsOutput> {
+		const query = input.cursor ? { NextToken: input.cursor } : undefined
+		const { data } = await this.#spGet(
+			`/orders/v0/orders/${encodeURIComponent(input.amazon_order_id)}/orderItems`,
+			'Amazon SP-API getOrderItems',
+			query
+		)
+		const parsed = parseOrderItemsPayload(data)
+		return {
+			amazon_order_id: parsed.amazon_order_id,
+			items: parsed.items,
+			truncated: Boolean(parsed.nextToken),
+			...(parsed.nextToken && { next_cursor: parsed.nextToken })
+		}
+	}
+
 	/** GET /fba/inventory/v1/summaries */
 	async listInventorySummaries(
 		input: AmazonSpApiListInventorySummariesInput = {}
@@ -163,6 +209,94 @@ export class AmazonSpApiClient {
 		return {
 			items: parsed.items,
 			truncated: Boolean(parsed.nextToken),
+			...(parsed.nextToken && { next_cursor: parsed.nextToken })
+		}
+	}
+
+	/** POST /reports/2021-06-30/reports */
+	async createReport(input: AmazonSpApiCreateReportInput): Promise<AmazonSpApiCreateReportOutput> {
+		const marketplaceIds = requireMarketplaceIds(
+			input.marketplace_ids,
+			this.#auth.marketplace_ids,
+			'Amazon SP-API createReport'
+		)
+		const body: Record<string, unknown> = {
+			reportType: input.report_type,
+			marketplaceIds,
+			...(input.data_start_time && { dataStartTime: input.data_start_time }),
+			...(input.data_end_time && { dataEndTime: input.data_end_time }),
+			...(input.report_options && { reportOptions: input.report_options })
+		}
+		const { data } = await this.#spPost('/reports/2021-06-30/reports', 'Amazon SP-API createReport', body)
+		return parseCreateReportPayload(data)
+	}
+
+	/** GET /reports/2021-06-30/reports/{reportId} */
+	async getReport(input: AmazonSpApiGetReportInput): Promise<AmazonSpApiGetReportOutput> {
+		const { data } = await this.#spGet(
+			`/reports/2021-06-30/reports/${encodeURIComponent(input.report_id)}`,
+			'Amazon SP-API getReport'
+		)
+		return { report: parseGetReportPayload(data) }
+	}
+
+	/** GET /reports/2021-06-30/reports */
+	async listReports(input: AmazonSpApiListReportsInput = {}): Promise<AmazonSpApiListReportsOutput> {
+		const marketplaceIds = input.marketplace_ids ?? this.#auth.marketplace_ids
+		const { data } = await this.#spGet('/reports/2021-06-30/reports', 'Amazon SP-API listReports', {
+			...(input.report_types &&
+				input.report_types.length > 0 && {
+					reportTypes: input.report_types.join(',')
+				}),
+			...(input.processing_statuses &&
+				input.processing_statuses.length > 0 && {
+					processingStatuses: input.processing_statuses.join(',')
+				}),
+			...(marketplaceIds && marketplaceIds.length > 0 && { marketplaceIds: marketplaceIds.join(',') }),
+			...(input.page_size !== undefined && { pageSize: input.page_size }),
+			...(input.created_since && { createdSince: input.created_since }),
+			...(input.created_until && { createdUntil: input.created_until }),
+			...(input.cursor && { nextToken: input.cursor })
+		})
+		const parsed = parseListReportsPayload(data)
+		return {
+			items: parsed.items,
+			truncated: Boolean(parsed.nextToken),
+			...(parsed.nextToken && { next_cursor: parsed.nextToken })
+		}
+	}
+
+	/** GET /reports/2021-06-30/documents/{reportDocumentId} */
+	async getReportDocument(input: AmazonSpApiGetReportDocumentInput): Promise<AmazonSpApiGetReportDocumentOutput> {
+		const { data } = await this.#spGet(
+			`/reports/2021-06-30/documents/${encodeURIComponent(input.report_document_id)}`,
+			'Amazon SP-API getReportDocument'
+		)
+		return parseReportDocumentPayload(data)
+	}
+
+	/** GET /catalog/2022-04-01/items */
+	async searchCatalogItems(input: AmazonSpApiSearchCatalogItemsInput): Promise<AmazonSpApiSearchCatalogItemsOutput> {
+		const marketplaceIds = requireMarketplaceIds(
+			input.marketplace_ids,
+			this.#auth.marketplace_ids,
+			'Amazon SP-API searchCatalogItems'
+		)
+		const { data } = await this.#spGet('/catalog/2022-04-01/items', 'Amazon SP-API searchCatalogItems', {
+			keywords: input.keywords.join(','),
+			marketplaceIds: marketplaceIds.join(','),
+			...(input.included_data &&
+				input.included_data.length > 0 && {
+					includedData: input.included_data.join(',')
+				}),
+			...(input.page_size !== undefined && { pageSize: input.page_size }),
+			...(input.cursor && { pageToken: input.cursor })
+		})
+		const parsed = parseSearchCatalogItemsPayload(data)
+		return {
+			items: parsed.items,
+			truncated: Boolean(parsed.nextToken),
+			...(parsed.numberOfResults !== undefined && { number_of_results: parsed.numberOfResults }),
 			...(parsed.nextToken && { next_cursor: parsed.nextToken })
 		}
 	}

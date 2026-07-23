@@ -26,15 +26,39 @@ const auth = {
 	consumer_secret: 'cs_test'
 } as const
 
+const FULL_TOOL_IDS = [
+	'woocommerce-create-coupon',
+	'woocommerce-create-customer',
+	'woocommerce-create-order',
+	'woocommerce-create-order-note',
+	'woocommerce-create-order-refund',
+	'woocommerce-create-product',
+	'woocommerce-delete-order',
+	'woocommerce-delete-product',
+	'woocommerce-get-coupon',
+	'woocommerce-get-customer',
+	'woocommerce-get-order',
+	'woocommerce-get-product',
+	'woocommerce-get-product-category',
+	'woocommerce-get-product-variation',
+	'woocommerce-list-coupons',
+	'woocommerce-list-customers',
+	'woocommerce-list-order-notes',
+	'woocommerce-list-order-refunds',
+	'woocommerce-list-orders',
+	'woocommerce-list-product-categories',
+	'woocommerce-list-product-variations',
+	'woocommerce-list-products',
+	'woocommerce-update-coupon',
+	'woocommerce-update-customer',
+	'woocommerce-update-order',
+	'woocommerce-update-product'
+] as const
+
 describe('woocommerce', () => {
 	test('module contracts and tool ids', () => {
 		expect(validateModule(woocommerceModule).ok).toBe(true)
-		expect(woocommerceModule.tools.map((t) => t.id).sort()).toEqual([
-			'woocommerce-get-order',
-			'woocommerce-get-product',
-			'woocommerce-list-orders',
-			'woocommerce-list-products'
-		])
+		expect(woocommerceModule.tools.map((t) => t.id).sort()).toEqual([...FULL_TOOL_IDS])
 	})
 
 	test('listOrders posts to wc/v3 with basic auth', async () => {
@@ -65,6 +89,67 @@ describe('woocommerce', () => {
 			expect(result.items).toHaveLength(1)
 			expect(result.items[0]?.id).toBe(12)
 			expect(result.truncated).toBe(false)
+		} finally {
+			restore()
+		}
+	})
+
+	test('createProduct posts body and returns product', async () => {
+		const restore = mockFetch((url, init) => {
+			expect(url).toBe('https://shop.example.com/wp-json/wc/v3/products')
+			expect(init?.method).toBe('POST')
+			const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
+			expect(body).toEqual({ name: 'Widget', type: 'simple', regular_price: '9.99' })
+			return new Response(
+				JSON.stringify({
+					id: 44,
+					name: 'Widget',
+					type: 'simple',
+					status: 'publish',
+					regular_price: '9.99',
+					price: '9.99'
+				}),
+				{ status: 201 }
+			)
+		})
+
+		try {
+			const client = new WoocommerceClient(auth)
+			const result = await client.createProduct({
+				name: 'Widget',
+				type: 'simple',
+				regular_price: '9.99'
+			})
+			expect(result.product.id).toBe(44)
+			expect(result.product.name).toBe('Widget')
+			expect(result.product.price).toBe('9.99')
+		} finally {
+			restore()
+		}
+	})
+
+	test('updateOrder puts to orders/{id}', async () => {
+		const restore = mockFetch((url, init) => {
+			expect(url).toBe('https://shop.example.com/wp-json/wc/v3/orders/12')
+			expect(init?.method).toBe('PUT')
+			const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
+			expect(body).toEqual({ status: 'completed' })
+			return new Response(
+				JSON.stringify({
+					id: 12,
+					number: '12',
+					status: 'completed',
+					currency: 'USD',
+					total: '19.00'
+				}),
+				{ status: 200 }
+			)
+		})
+
+		try {
+			const client = new WoocommerceClient(auth)
+			const result = await client.updateOrder({ order_id: 12, status: 'completed' })
+			expect(result.order.status).toBe('completed')
 		} finally {
 			restore()
 		}

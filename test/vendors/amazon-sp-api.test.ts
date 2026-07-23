@@ -3,20 +3,29 @@ import { describe, expect, test } from 'bun:test'
 import { validateModule } from '../../src/core'
 import { AmazonSpApiClient, amazonSpApiModule } from '../../src/vendors/amazon-sp-api'
 
-function mockFetch(handler: (url: string, headers: Headers, init?: RequestInit) => Response | Promise<Response>) {
+function mockFetch(
+	handler: (
+		url: string,
+		headers: Headers,
+		init?: RequestInit,
+		input?: RequestInfo | URL
+	) => Response | Promise<Response>
+) {
 	const original = globalThis.fetch
 	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
 		const headers = input instanceof Request ? new Headers(input.headers) : new Headers(init?.headers)
-		return handler(url, headers, init)
+		return handler(url, headers, init, input)
 	}) as typeof globalThis.fetch
 	return () => {
 		globalThis.fetch = original
 	}
 }
 
-function inputIsPost(init?: RequestInit): boolean {
-	return (init?.method ?? 'GET').toUpperCase() === 'POST'
+function isPost(init?: RequestInit, input?: RequestInfo | URL): boolean {
+	if (init?.method) return init.method.toUpperCase() === 'POST'
+	if (input instanceof Request) return input.method.toUpperCase() === 'POST'
+	return false
 }
 
 const auth = {
@@ -34,18 +43,24 @@ describe('amazon-sp-api', () => {
 	test('module contracts and tool ids', () => {
 		expect(validateModule(amazonSpApiModule).ok).toBe(true)
 		expect(amazonSpApiModule.tools.map((t) => t.id).sort()).toEqual([
+			'amazon-sp-api-create-report',
 			'amazon-sp-api-get-order',
+			'amazon-sp-api-get-order-items',
+			'amazon-sp-api-get-report',
+			'amazon-sp-api-get-report-document',
 			'amazon-sp-api-list-inventory-summaries',
-			'amazon-sp-api-list-orders'
+			'amazon-sp-api-list-orders',
+			'amazon-sp-api-list-reports',
+			'amazon-sp-api-search-catalog-items'
 		])
 	})
 
 	test('listOrders exchanges LWA token then calls Orders API', async () => {
 		let lwaCalls = 0
-		const restore = mockFetch((url, headers, init) => {
+		const restore = mockFetch((url, headers, init, input) => {
 			if (url.includes('api.amazon.com/auth/o2/token')) {
 				lwaCalls += 1
-				expect(inputIsPost(init)).toBe(true)
+				expect(isPost(init, input)).toBe(true)
 				return new Response(JSON.stringify({ access_token: 'Atza|access', expires_in: 3600 }), {
 					status: 200
 				})
@@ -78,6 +93,30 @@ describe('amazon-sp-api', () => {
 			expect(result.items[0]?.amazon_order_id).toBe('111-222')
 			expect(result.items[0]?.order_total_amount).toBe('10.00')
 			expect(result.truncated).toBe(false)
+		} finally {
+			restore()
+		}
+	})
+
+	test('createReport posts JSON body after LWA', async () => {
+		const restore = mockFetch((url, headers, init, input) => {
+			if (url.includes('api.amazon.com/auth/o2/token')) {
+				return new Response(JSON.stringify({ access_token: 'Atza|access', expires_in: 3600 }), {
+					status: 200
+				})
+			}
+			expect(url).toContain('sellingpartnerapi-na.amazon.com/reports/2021-06-30/reports')
+			expect(isPost(init, input)).toBe(true)
+			expect(headers.get('x-amz-access-token') ?? headers.get('X-Amz-Access-Token')).toBe('Atza|access')
+			return new Response(JSON.stringify({ reportId: 'r-123' }), { status: 200 })
+		})
+
+		try {
+			const client = new AmazonSpApiClient(auth)
+			const result = await client.createReport({
+				report_type: 'GET_FLAT_FILE_OPEN_LISTINGS_DATA'
+			})
+			expect(result.report_id).toBe('r-123')
 		} finally {
 			restore()
 		}

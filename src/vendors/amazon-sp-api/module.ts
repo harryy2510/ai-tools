@@ -2,12 +2,24 @@ import { defineModule, defineTool } from '../../core/define'
 import { AmazonSpApiClient } from './client'
 import {
 	amazonSpApiAuthSchema,
+	amazonSpApiCreateReportInputSchema,
+	amazonSpApiCreateReportOutputSchema,
 	amazonSpApiGetOrderInputSchema,
+	amazonSpApiGetOrderItemsInputSchema,
+	amazonSpApiGetOrderItemsOutputSchema,
 	amazonSpApiGetOrderOutputSchema,
+	amazonSpApiGetReportDocumentInputSchema,
+	amazonSpApiGetReportDocumentOutputSchema,
+	amazonSpApiGetReportInputSchema,
+	amazonSpApiGetReportOutputSchema,
 	amazonSpApiListInventorySummariesInputSchema,
 	amazonSpApiListInventorySummariesOutputSchema,
 	amazonSpApiListOrdersInputSchema,
-	amazonSpApiListOrdersOutputSchema
+	amazonSpApiListOrdersOutputSchema,
+	amazonSpApiListReportsInputSchema,
+	amazonSpApiListReportsOutputSchema,
+	amazonSpApiSearchCatalogItemsInputSchema,
+	amazonSpApiSearchCatalogItemsOutputSchema
 } from './contracts'
 
 export const amazonSpApiListOrdersTool = defineTool({
@@ -33,6 +45,17 @@ export const amazonSpApiGetOrderTool = defineTool({
 	execute: async (input, ctx) => AmazonSpApiClient.fromContext(ctx).getOrder(input)
 })
 
+export const amazonSpApiGetOrderItemsTool = defineTool({
+	id: 'amazon-sp-api-get-order-items',
+	name: 'amazonSpApiGetOrderItems',
+	description: 'List line items for one Amazon SP-API order. Paginate with next_cursor (NextToken).',
+	inputSchema: amazonSpApiGetOrderItemsInputSchema,
+	outputSchema: amazonSpApiGetOrderItemsOutputSchema,
+	sideEffect: 'read',
+	runtime: 'both',
+	execute: async (input, ctx) => AmazonSpApiClient.fromContext(ctx).getOrderItems(input)
+})
+
 export const amazonSpApiListInventorySummariesTool = defineTool({
 	id: 'amazon-sp-api-list-inventory-summaries',
 	name: 'amazonSpApiListInventorySummaries',
@@ -45,12 +68,82 @@ export const amazonSpApiListInventorySummariesTool = defineTool({
 	execute: async (input, ctx) => AmazonSpApiClient.fromContext(ctx).listInventorySummaries(input)
 })
 
+export const amazonSpApiCreateReportTool = defineTool({
+	id: 'amazon-sp-api-create-report',
+	name: 'amazonSpApiCreateReport',
+	description:
+		'Request an Amazon SP-API report for given marketplace(s) and optional date range. Returns report_id for later getReport polling.',
+	inputSchema: amazonSpApiCreateReportInputSchema,
+	outputSchema: amazonSpApiCreateReportOutputSchema,
+	sideEffect: 'write',
+	runtime: 'both',
+	execute: async (input, ctx) => AmazonSpApiClient.fromContext(ctx).createReport(input)
+})
+
+export const amazonSpApiGetReportTool = defineTool({
+	id: 'amazon-sp-api-get-report',
+	name: 'amazonSpApiGetReport',
+	description:
+		'Get one Amazon SP-API report by report_id, including processing_status and report_document_id when DONE.',
+	inputSchema: amazonSpApiGetReportInputSchema,
+	outputSchema: amazonSpApiGetReportOutputSchema,
+	sideEffect: 'read',
+	runtime: 'both',
+	execute: async (input, ctx) => AmazonSpApiClient.fromContext(ctx).getReport(input)
+})
+
+export const amazonSpApiListReportsTool = defineTool({
+	id: 'amazon-sp-api-list-reports',
+	name: 'amazonSpApiListReports',
+	description:
+		'List Amazon SP-API reports with optional type, status, marketplace, and created-time filters. Paginate with next_cursor.',
+	inputSchema: amazonSpApiListReportsInputSchema,
+	outputSchema: amazonSpApiListReportsOutputSchema,
+	sideEffect: 'read',
+	runtime: 'both',
+	execute: async (input, ctx) => AmazonSpApiClient.fromContext(ctx).listReports(input)
+})
+
+export const amazonSpApiGetReportDocumentTool = defineTool({
+	id: 'amazon-sp-api-get-report-document',
+	name: 'amazonSpApiGetReportDocument',
+	description:
+		'Get a downloadable Amazon SP-API report document (document_id, url, optional compression_algorithm). Does not download the file body.',
+	inputSchema: amazonSpApiGetReportDocumentInputSchema,
+	outputSchema: amazonSpApiGetReportDocumentOutputSchema,
+	sideEffect: 'read',
+	runtime: 'both',
+	execute: async (input, ctx) => AmazonSpApiClient.fromContext(ctx).getReportDocument(input)
+})
+
+export const amazonSpApiSearchCatalogItemsTool = defineTool({
+	id: 'amazon-sp-api-search-catalog-items',
+	name: 'amazonSpApiSearchCatalogItems',
+	description:
+		'Search Amazon catalog items by keywords for marketplace(s). Optional included_data and page_size. Paginate with next_cursor (pageToken).',
+	inputSchema: amazonSpApiSearchCatalogItemsInputSchema,
+	outputSchema: amazonSpApiSearchCatalogItemsOutputSchema,
+	sideEffect: 'read',
+	runtime: 'both',
+	execute: async (input, ctx) => AmazonSpApiClient.fromContext(ctx).searchCatalogItems(input)
+})
+
 export const amazonSpApiModule = defineModule({
 	id: 'amazon-sp-api',
 	title: 'Amazon SP-API',
 	description:
-		'Amazon Selling Partner API vendor pack: list/get orders and FBA inventory summaries. Expand with reports and more APIs over time.',
+		'Amazon Selling Partner API vendor pack: orders and order items, FBA inventory summaries, reports (create/get/list/document), and catalog item search.',
 	runtime: 'both',
 	auth: { type: 'custom', schema: amazonSpApiAuthSchema },
-	tools: [amazonSpApiListOrdersTool, amazonSpApiGetOrderTool, amazonSpApiListInventorySummariesTool]
+	tools: [
+		amazonSpApiListOrdersTool,
+		amazonSpApiGetOrderTool,
+		amazonSpApiGetOrderItemsTool,
+		amazonSpApiListInventorySummariesTool,
+		amazonSpApiCreateReportTool,
+		amazonSpApiGetReportTool,
+		amazonSpApiListReportsTool,
+		amazonSpApiGetReportDocumentTool,
+		amazonSpApiSearchCatalogItemsTool
+	]
 })

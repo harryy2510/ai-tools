@@ -16,10 +16,40 @@ function mockFetch(handler: (url: string, init?: RequestInit) => Response | Prom
 
 const auth = { api_key: 'katana_test_key' } as const
 
+const expectedToolIds = [
+	'katana-create-customer',
+	'katana-create-manufacturing-order',
+	'katana-create-product',
+	'katana-create-purchase-order',
+	'katana-create-sales-order',
+	'katana-create-supplier',
+	'katana-delete-sales-order',
+	'katana-get-customer',
+	'katana-get-manufacturing-order',
+	'katana-get-material',
+	'katana-get-product',
+	'katana-get-purchase-order',
+	'katana-get-sales-order',
+	'katana-get-supplier',
+	'katana-list-customers',
+	'katana-list-inventory',
+	'katana-list-manufacturing-orders',
+	'katana-list-materials',
+	'katana-list-products',
+	'katana-list-purchase-orders',
+	'katana-list-sales-orders',
+	'katana-list-suppliers',
+	'katana-update-customer',
+	'katana-update-manufacturing-order',
+	'katana-update-product',
+	'katana-update-purchase-order',
+	'katana-update-sales-order'
+]
+
 describe('katana', () => {
 	test('module contracts and tool ids', () => {
 		expect(validateModule(katanaModule).ok).toBe(true)
-		expect(katanaModule.tools.map((t) => t.id).sort()).toEqual(['katana-get-sales-order', 'katana-list-sales-orders'])
+		expect(katanaModule.tools.map((t) => t.id).sort()).toEqual(expectedToolIds)
 	})
 
 	test('listSalesOrders hits Katana API with bearer auth', async () => {
@@ -47,16 +77,34 @@ describe('katana', () => {
 		}
 	})
 
-	test('getSalesOrder tool', async () => {
-		const bound = withAuth(katanaModule, auth)
-		const tool = bound.tools.find((t) => t.id === 'katana-get-sales-order')
-		if (!tool) throw new Error('missing tool')
-
-		const restore = mockFetch((url) => {
-			expect(url).toContain('/sales_orders/3')
-			return new Response(JSON.stringify({ data: { id: 3, order_no: 'SO-3' } }), { status: 200 })
+	test('listProducts client + getSalesOrder tool', async () => {
+		const restore = mockFetch((url, init) => {
+			if (url.includes('/products') && !url.includes('/products/')) {
+				expect(init?.method).toBe('GET')
+				return new Response(
+					JSON.stringify({
+						data: [{ id: 4, name: 'Widget', uom: 'pcs', is_sellable: true }],
+						pagination: { page: 1, total_pages: 2 }
+					}),
+					{ status: 200 }
+				)
+			}
+			if (url.includes('/sales_orders/3')) {
+				return new Response(JSON.stringify({ data: { id: 3, order_no: 'SO-3' } }), { status: 200 })
+			}
+			return new Response('not found', { status: 404 })
 		})
+
 		try {
+			const client = new KatanaClient(auth)
+			const products = await client.listProducts({})
+			expect(products.items).toEqual([{ id: 4, name: 'Widget', uom: 'pcs', is_sellable: true }])
+			expect(products.truncated).toBe(true)
+			expect(products.next_cursor).toBe('2')
+
+			const bound = withAuth(katanaModule, auth)
+			const tool = bound.tools.find((t) => t.id === 'katana-get-sales-order')
+			if (!tool) throw new Error('missing tool')
 			const result = await runTool(tool, { sales_order_id: 3 })
 			expect(result).toEqual({ sales_order: { id: 3, order_no: 'SO-3' } })
 		} finally {

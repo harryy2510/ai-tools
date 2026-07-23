@@ -2,30 +2,66 @@ export { AmazonSpApiClient } from './client'
 export type { AmazonSpApiClientOptions } from './client'
 export {
 	amazonSpApiAuthSchema,
+	amazonSpApiCatalogItemSchema,
+	amazonSpApiCreateReportInputSchema,
+	amazonSpApiCreateReportOutputSchema,
 	amazonSpApiEndpointSchema,
 	amazonSpApiGetOrderInputSchema,
+	amazonSpApiGetOrderItemsInputSchema,
+	amazonSpApiGetOrderItemsOutputSchema,
 	amazonSpApiGetOrderOutputSchema,
+	amazonSpApiGetReportDocumentInputSchema,
+	amazonSpApiGetReportDocumentOutputSchema,
+	amazonSpApiGetReportInputSchema,
+	amazonSpApiGetReportOutputSchema,
 	amazonSpApiInventorySummarySchema,
 	amazonSpApiListInventorySummariesInputSchema,
 	amazonSpApiListInventorySummariesOutputSchema,
 	amazonSpApiListOrdersInputSchema,
 	amazonSpApiListOrdersOutputSchema,
-	amazonSpApiOrderSchema
+	amazonSpApiListReportsInputSchema,
+	amazonSpApiListReportsOutputSchema,
+	amazonSpApiOrderItemSchema,
+	amazonSpApiOrderSchema,
+	amazonSpApiReportSchema,
+	amazonSpApiSearchCatalogItemsInputSchema,
+	amazonSpApiSearchCatalogItemsOutputSchema
 } from './contracts'
 export type {
 	AmazonSpApiAuth,
+	AmazonSpApiCatalogItem,
+	AmazonSpApiCreateReportInput,
+	AmazonSpApiCreateReportOutput,
 	AmazonSpApiGetOrderInput,
+	AmazonSpApiGetOrderItemsInput,
+	AmazonSpApiGetOrderItemsOutput,
 	AmazonSpApiGetOrderOutput,
+	AmazonSpApiGetReportDocumentInput,
+	AmazonSpApiGetReportDocumentOutput,
+	AmazonSpApiGetReportInput,
+	AmazonSpApiGetReportOutput,
 	AmazonSpApiInventorySummary,
 	AmazonSpApiListInventorySummariesInput,
 	AmazonSpApiListInventorySummariesOutput,
 	AmazonSpApiListOrdersInput,
 	AmazonSpApiListOrdersOutput,
-	AmazonSpApiOrder
+	AmazonSpApiListReportsInput,
+	AmazonSpApiListReportsOutput,
+	AmazonSpApiOrder,
+	AmazonSpApiOrderItem,
+	AmazonSpApiReport,
+	AmazonSpApiSearchCatalogItemsInput,
+	AmazonSpApiSearchCatalogItemsOutput
 } from './contracts'
 export {
+	amazonSpApiCreateReportTool,
+	amazonSpApiGetOrderItemsTool,
 	amazonSpApiGetOrderTool,
+	amazonSpApiGetReportDocumentTool,
+	amazonSpApiGetReportTool,
 	amazonSpApiListInventorySummariesTool,
 	amazonSpApiListOrdersTool,
-	amazonSpApiModule
+	amazonSpApiListReportsTool,
+	amazonSpApiModule,
+	amazonSpApiSearchCatalogItemsTool
 } from './module'

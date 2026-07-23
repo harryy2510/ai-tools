@@ -145,23 +145,29 @@ Slice 3 done when: this capability map is implemented under `src/channels/telegr
 
 ### Initial vendor API map stubs
 
-**woocommerce** (start)
+**woocommerce**
 
-- [ ] list/get orders  
-- [ ] list/get products  
-- [ ] (later) customers, coupons, webhooks admin  
+- [x] orders CRUD + notes + refunds  
+- [x] products CRUD + variations  
+- [x] customers, coupons, product categories  
+- [ ] webhooks admin, shipping zones, reports (later)  
 
-**katana** (start)
+**katana**
 
-- [ ] query sales orders (parity with FSS custom)  
-- [ ] (later) related manufacturing reads as needed  
+- [x] sales orders CRUD  
+- [x] products, materials  
+- [x] customers, suppliers  
+- [x] purchase + manufacturing orders  
+- [x] inventory list  
+- [ ] stock transfers / stocktakes / recipes (later)  
 
-**amazon-sp-api** (start small, map deliberately)
+**amazon-sp-api**
 
-- [ ] orders search/get  
-- [ ] FBA inventory summaries  
-- [ ] reports create/list/get + document  
-- [ ] settlements summary (if product needs)  
+- [x] orders list/get + order items  
+- [x] FBA inventory summaries  
+- [x] reports create/list/get + document  
+- [x] catalog item search  
+- [ ] listings / finances / shipments (later)  
 - [ ] Do **not** block on full SP-API coverage  
 
 ---

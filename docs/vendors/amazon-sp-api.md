@@ -7,7 +7,7 @@
 | **Module id** | `amazon-sp-api` |
 | **Client** | `AmazonSpApiClient` |
 
-First action group: **orders** (list/get) + **FBA inventory summaries**. Reports and more APIs come later — do not block on full SP-API coverage.
+Deliberate surface: **orders** (list/get/items), **FBA inventory summaries**, **reports** (create/get/list/document), **catalog search**.
 
 ## Auth
 
@@ -31,11 +31,17 @@ Flow: LWA refresh → `access_token`, then SP-API calls with **AwsService** (`ex
 
 ## Tools
 
-| id | Client method |
-| --- | --- |
-| `amazon-sp-api-list-orders` | `listOrders` |
-| `amazon-sp-api-get-order` | `getOrder` |
-| `amazon-sp-api-list-inventory-summaries` | `listInventorySummaries` |
+| id | Client method | HTTP |
+| --- | --- | --- |
+| `amazon-sp-api-list-orders` | `listOrders` | `GET /orders/v0/orders` |
+| `amazon-sp-api-get-order` | `getOrder` | `GET /orders/v0/orders/{orderId}` |
+| `amazon-sp-api-get-order-items` | `getOrderItems` | `GET /orders/v0/orders/{orderId}/orderItems` |
+| `amazon-sp-api-list-inventory-summaries` | `listInventorySummaries` | `GET /fba/inventory/v1/summaries` |
+| `amazon-sp-api-create-report` | `createReport` | `POST /reports/2021-06-30/reports` |
+| `amazon-sp-api-get-report` | `getReport` | `GET /reports/2021-06-30/reports/{reportId}` |
+| `amazon-sp-api-list-reports` | `listReports` | `GET /reports/2021-06-30/reports` |
+| `amazon-sp-api-get-report-document` | `getReportDocument` | `GET /reports/2021-06-30/documents/{reportDocumentId}` |
+| `amazon-sp-api-search-catalog-items` | `searchCatalogItems` | `GET /catalog/2022-04-01/items` |
 
 ## Bind
 
