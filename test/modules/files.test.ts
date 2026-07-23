@@ -49,8 +49,8 @@ describe('files module', () => {
 			root_prefix: 'orgs/acme/files/',
 			storage: {
 				provider: 's3',
-				accessKeyId: 'AKIAtest',
-				secretAccessKey: 'secret',
+				access_key_id: 'AKIAtest',
+				secret_access_key: 'secret',
 				region: 'auto',
 				bucket: 'artifacts',
 				endpoint: 'https://example.r2.cloudflarestorage.com'
@@ -98,8 +98,8 @@ describe('files module', () => {
 			root_prefix: 'orgs/acme/files/',
 			storage: {
 				provider: 's3',
-				accessKeyId: 'AKIAtest',
-				secretAccessKey: 'secret',
+				access_key_id: 'AKIAtest',
+				secret_access_key: 'secret',
 				region: 'auto',
 				bucket: 'artifacts',
 				endpoint: 'https://example.r2.cloudflarestorage.com'
@@ -140,8 +140,8 @@ describe('files module', () => {
 			root_prefix: 'orgs/acme/files/',
 			storage: {
 				provider: 's3',
-				accessKeyId: 'AKIAtest',
-				secretAccessKey: 'secret',
+				access_key_id: 'AKIAtest',
+				secret_access_key: 'secret',
 				region: 'auto',
 				bucket: 'artifacts',
 				endpoint: 'https://example.r2.cloudflarestorage.com'
@@ -191,8 +191,8 @@ describe('files module', () => {
 			root_prefix: 'orgs/acme/files/',
 			storage: {
 				provider: 's3',
-				accessKeyId: 'AKIAtest',
-				secretAccessKey: 'secret',
+				access_key_id: 'AKIAtest',
+				secret_access_key: 'secret',
 				region: 'auto',
 				bucket: 'artifacts',
 				endpoint: 'https://example.r2.cloudflarestorage.com'
@@ -243,8 +243,8 @@ describe('files module', () => {
 			root_prefix: 'orgs/acme/files/',
 			storage: {
 				provider: 's3',
-				accessKeyId: 'AKIAtest',
-				secretAccessKey: 'secret',
+				access_key_id: 'AKIAtest',
+				secret_access_key: 'secret',
 				region: 'auto',
 				bucket: 'artifacts',
 				endpoint: 'https://example.r2.cloudflarestorage.com'

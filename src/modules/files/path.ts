@@ -34,7 +34,7 @@ export function resolveUnderRoot(root: string, relativePath: string): string {
 
 /** Prefix for listing (relative folder path, may be empty for root). */
 export function resolveListPrefix(root: string, relativePath: string | undefined): string {
-	if (relativePath === undefined || relativePath.trim().length === 0) return root
+	if (!relativePath || !relativePath.trim()) return root
 	const rel = relativePath.trim().replaceAll('\\', '/').replace(/^\/+/, '').replace(/\/+$/, '')
 	if (rel.includes('..')) {
 		throw new ToolError('Path must not contain ".."', { code: 'bad_input' })

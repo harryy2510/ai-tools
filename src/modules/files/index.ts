@@ -1,3 +1,9 @@
+/**
+ * Public files surface.
+ * Internals: client + path helpers.
+ */
+
+export { FilesClient } from './client'
 export {
 	filesAuthSchema,
 	filesCopyTool,

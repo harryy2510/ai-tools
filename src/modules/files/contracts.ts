@@ -1,5 +1,17 @@
 import { z } from 'zod'
 
+import { storageAuthSchema } from '../storage/contracts'
+
+export const filesAuthSchema = z.object({
+	root_prefix: z
+		.string()
+		.min(1)
+		.describe('Object key prefix for this workspace, for example orgs/acme/files/ (no leading slash)'),
+	storage: storageAuthSchema.describe('Nested object storage binding (s3, r2, or supabase)')
+})
+
+export type FilesAuth = z.infer<typeof filesAuthSchema>
+
 export const fileItemSchema = z.object({
 	path: z.string().describe('Path relative to the bound root_prefix'),
 	kind: z.enum(['file', 'folder']).describe('Object file or common-prefix folder'),
@@ -180,4 +192,14 @@ export type FilesSearchInput = z.infer<typeof filesSearchInputSchema>
 export type FilesSearchOutput = z.infer<typeof filesSearchOutputSchema>
 export type FilesStatInput = z.infer<typeof filesStatInputSchema>
 export type FilesStatOutput = z.infer<typeof filesStatOutputSchema>
+export type FilesGetInput = z.infer<typeof filesGetInputSchema>
+export type FilesPutInput = z.infer<typeof filesPutInputSchema>
+export type FilesDeleteInput = z.infer<typeof filesDeleteInputSchema>
+export type FilesCopyInput = z.infer<typeof filesCopyInputSchema>
+export type FilesMkdirInput = z.infer<typeof filesMkdirInputSchema>
+export type FilesMoveInput = z.infer<typeof filesMoveInputSchema>
+export type FilesMultipartStartInput = z.infer<typeof filesMultipartStartInputSchema>
+export type FilesMultipartUploadPartInput = z.infer<typeof filesMultipartUploadPartInputSchema>
+export type FilesMultipartCompleteInput = z.infer<typeof filesMultipartCompleteInputSchema>
+export type FilesMultipartAbortInput = z.infer<typeof filesMultipartAbortInputSchema>
 export type FileItem = z.infer<typeof fileItemSchema>
