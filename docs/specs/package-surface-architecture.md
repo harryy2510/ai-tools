@@ -122,8 +122,8 @@ src/modules/<capability>/
 | `document-extract` | textract | ArtifactRef text extract |
 | `file-convert` | transmute | Format conversion (not browser print) |
 | `web-fetch` | host allowlist | Free-form allowlisted HTTP |
-| `mime` | none | Email message parse/build |
-| `media-type` | none | MIME type ↔ extension |
+| `email-message` | none | Email message parse/build |
+| `content-type` | none | MIME type ↔ extension |
 
 ### Planned platform modules
 
@@ -382,7 +382,7 @@ Document each provider’s host setup in module docs (host-facing only; not mode
 
 ## Implementation notes (non-normative)
 
-- Lane A: storage, extract, convert, web-fetch, mime, media-type, files, document-render.  
+- Lane A: storage, extract, convert, web-fetch, email-message, content-type, files, document-render.  
 - Lane B: `resend`, `cloudflare-email` (more vendors as product needs).  
 - Chat vendors: `vendors/telegram` (more channels as product needs).  
 - Codegen discovers all three lanes.  

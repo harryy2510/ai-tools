@@ -41,6 +41,29 @@ Do not invent a new layout, naming scheme, or HTTP stack.
 - No `json`/`form`/`methodJson` dual helpers or dynamic `/${method}` routers on ofetch.
 - No parallel HTTP stacks (`TelegramHttp`, raw `fetch` loops, custom retry frameworks) unless the user explicitly orders that design.
 
+### R-no-spread-undefined — NEVER write this pattern
+
+**Forbidden** (exactOptionalPropertyTypes workarounds by spread):
+
+```ts
+// BANNED — never write this again
+...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+...(x === undefined ? {} : { key: x }),
+```
+
+**Required instead:**
+
+```ts
+// Pass optionals normally (types allow `| undefined` where needed)
+new HttpService({ baseURL, headers, label, fetch: options.fetch, signal: options.signal })
+
+// Or assign after base object
+const out: Result = { success: true }
+if (id !== undefined) out.id = id
+```
+
+If TypeScript complains about `undefined` on an optional prop, fix the **type** (`prop?: T | undefined`) or assign with `if`, do **not** invent spread soup.
+
 ### R2 — Two source roots (modules vs vendors)
 
 | Root | Holds | Rule |
@@ -51,7 +74,8 @@ Do not invent a new layout, naming scheme, or HTTP stack.
 - **Seams → modules.** Multi-provider only when 2+ backends share the same verbs (`defineProvider` + auth `{ provider, … }`).
 - **3rd party → vendors.** Including email ESPs **and** chat platforms (Telegram, Slack, …). Not a thin multi-provider “messaging” or “email” seam that shrinks the real API.
 - Do **not** put fat single-vendor APIs under `modules/` as fake multi-provider seams.
-- Cross-channel helpers for vendor chat packs: `src/vendors/channel-transport.ts` (not a product export lane).
+- Vendor **vertical kits** (not packs): `src/vendors/_email/`, later `_document`, `_commerce`, … Underscore prefix = skipped by codegen. Shared by packs in that category only.
+- Cross-channel chat helpers: `src/vendors/channel-transport.ts` (or fold into `vendors/_chat` later).
 
 ### R3 — Exports: flat; tree keeps module vs vendor
 
@@ -88,7 +112,7 @@ defineTool / defineModule  (kernel — only real tool definitions)
 | **Tools** | `defineTool` on `defineModule`; execute → `Client.fromContext(ctx).method(...)` | Agent / model surface |
 | **Adapters** | Generic projectors only | Never re-implement HTTP or per-pack factories |
 | **Pure helpers** | Functions | `createLiveMessage`, webhook verify/parse, pure mime helpers |
-| **Tiny pure packs** | Tools only (class optional) | e.g. `mime`, `media-type` |
+| **Tiny pure packs** | Tools only (class optional) | e.g. `mime`, `content-type` |
 
 **Forbidden:** tools calling ofetch/paths; adapters owning business logic; second tool systems; making tools the only public API when a host client is needed.
 
@@ -170,7 +194,7 @@ Product clients **own** the transport instance (constructor), not free sibling `
 - Kernel (`defineTool` / `defineModule`) is the only tool authoring surface; adapters only project.
 - Class clients for multi-call host DX; tools for agents; both wrap the same implementation.
 - `HttpService` / `AwsService` for all product HTTP (`src/transport/`). See `docs/reference/http-and-aws-services.md`.
-- Layout: `transport/` = HTTP only; `shared/` = cross-module product utils only; `modules/` = seams; `vendors/` = 3rd-party packs (+ `channel-transport.ts`).
+- Layout: `transport/` / `shared/` / `core/` / `adapters/` locked; `modules/` = seams; `vendors/` = packs + `_vertical` kits.
 - Batch: `runBatchItems` in `shared/batch` (`p-map` + optional `p-retry`). Not inside transport.
 - Composio/Nango stay host SaaS OAuth + PHI catalog; this package does not replace them.
 - Prefer `es-toolkit` / `es-toolkit/compat` over hand-rolled typeof/array helpers.

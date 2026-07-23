@@ -30,14 +30,14 @@ Tool **names** use kernel tool `id` values.
 ## Example
 
 ```ts
-import { mimeModule } from '@harryy/ai-tools/mime'
+import { emailMessageModule } from '@harryy/ai-tools/email-message'
 import { createMcpTools, registerMcpTools } from '@harryy/ai-tools/mcp'
 
-const mcp = createMcpTools(mimeModule)
+const mcp = createMcpTools(emailMessageModule)
 // expose mcp.tools to ListTools; route CallTool through mcp.call
 
 // or, with SDK server:
-// registerMcpTools(server, mimeModule)
+// registerMcpTools(server, emailMessageModule)
 ```
 
 Credentialed modules: `withAuth` first.

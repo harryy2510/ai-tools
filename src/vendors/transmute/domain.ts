@@ -5,7 +5,7 @@
 import { isPlainObject, isString, trimStart } from 'es-toolkit'
 
 import { ToolError } from '../../core/errors'
-import { deriveOutputKey, mediaTypeFromPath, resolveFileExtension } from '../../shared/media-type'
+import { deriveOutputKey, mediaTypeFromPath, resolveFileExtension } from '../../shared/content-type'
 import type { TransmuteConvertInput } from './contracts'
 
 export function resolveUploadFilename(input: TransmuteConvertInput): {

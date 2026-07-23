@@ -90,7 +90,7 @@ const buildInput = z
 	})
 
 const buildOutput = z.object({
-	raw: z.string().describe('Serialized MIME message')
+	raw: z.string().describe('Serialized email message')
 })
 
 function contentToBase64(content: unknown): { base64?: string; size?: number } {
@@ -127,7 +127,7 @@ function mapAddrList(list: unknown): Array<{ address: string; name?: string }> {
 function formatMailbox(value: unknown): string {
 	if (isString(value)) return value
 	const mapped = mapAddr(value)
-	if (mapped === undefined) {
+	if (!mapped) {
 		throw new ToolError('Invalid mailbox address', { code: 'bad_input' })
 	}
 	if (isNil(mapped.name) || mapped.name.length === 0) return mapped.address
@@ -143,11 +143,11 @@ function mapDisposition(value: unknown): 'attachment' | 'inline' | undefined {
 	return value === 'attachment' || value === 'inline' ? value : undefined
 }
 
-const parseMimeTool = defineTool({
-	id: 'mime-parse',
-	name: 'parseMime',
+export const parseEmailMessageTool = defineTool({
+	id: 'email-message-parse',
+	name: 'parseEmailMessage',
 	description:
-		'Parse a raw MIME/RFC 822 email into structured headers, text/html bodies, identifiers, and attachment metadata. Use when you need to inspect message content without sending mail.',
+		'Parse a raw RFC 822 / MIME email into structured headers, text/html bodies, identifiers, and attachment metadata. Use when you need to inspect message content without sending mail.',
 	inputSchema: parseInput,
 	outputSchema: parseOutput,
 	sideEffect: 'read',
@@ -169,18 +169,18 @@ const parseMimeTool = defineTool({
 				}
 			}
 			return parseOutput.parse({
-				...(message.subject === undefined ? {} : { subject: message.subject }),
-				...(from === undefined ? {} : { from }),
+				subject: message.subject,
+				from,
 				to: mapAddrList(message.to),
 				cc: mapAddrList(message.cc),
 				bcc: mapAddrList(message.bcc),
 				reply_to: mapAddrList(message.replyTo),
-				...(message.messageId === undefined ? {} : { message_id: message.messageId }),
-				...(message.inReplyTo === undefined ? {} : { in_reply_to: message.inReplyTo }),
-				...(message.references === undefined ? {} : { references: message.references }),
-				...(message.date === undefined ? {} : { date: message.date }),
-				...(message.text === undefined ? {} : { text: message.text }),
-				...(html === undefined ? {} : { html }),
+				message_id: message.messageId,
+				in_reply_to: message.inReplyTo,
+				references: message.references,
+				date: message.date,
+				text: message.text,
+				html,
 				...(headers.length > 0 ? { headers } : {}),
 				attachments: (message.attachments ?? []).map((att) => {
 					const encoded = contentToBase64(att.content)
@@ -188,18 +188,18 @@ const parseMimeTool = defineTool({
 					const filename = isString(att.filename) && att.filename.length > 0 ? att.filename : undefined
 					const contentId = isString(att.contentId) && att.contentId.length > 0 ? att.contentId : undefined
 					return {
-						...(filename === undefined ? {} : { filename }),
-						...(att.mimeType === undefined ? {} : { mimeType: att.mimeType }),
-						...(encoded.size === undefined ? {} : { size: encoded.size }),
-						...(disposition === undefined ? {} : { disposition }),
-						...(contentId === undefined ? {} : { content_id: contentId }),
-						...(encoded.base64 === undefined ? {} : { content_base64: encoded.base64 })
+						filename,
+						mimeType: att.mimeType,
+						size: encoded.size,
+						disposition,
+						content_id: contentId,
+						content_base64: encoded.base64
 					}
 				})
 			})
 		} catch (error) {
 			if (error instanceof ToolError) throw error
-			throw new ToolError('Failed to parse MIME message', {
+			throw new ToolError('Failed to parse email message', {
 				code: 'bad_input',
 				cause: error
 			})
@@ -207,11 +207,11 @@ const parseMimeTool = defineTool({
 	}
 })
 
-const buildMimeTool = defineTool({
-	id: 'mime-build',
-	name: 'buildMime',
+export const buildEmailMessageTool = defineTool({
+	id: 'email-message-build',
+	name: 'buildEmailMessage',
 	description:
-		'Build a raw MIME email from structured sender, recipients, subject, text/html bodies, optional headers, and base64 attachments. Use when you need a serialized message for SMTP or archival. Provide text and/or html.',
+		'Build a raw RFC 822 / MIME email from structured sender, recipients, subject, text/html bodies, optional headers, and base64 attachments. Use when you need a serialized message for SMTP or archival. Provide text and/or html.',
 	inputSchema: buildInput,
 	outputSchema: buildOutput,
 	sideEffect: 'none',
@@ -225,10 +225,10 @@ const buildMimeTool = defineTool({
 			if (cc.length > 0) msg.setCc(cc)
 			const bcc = formatMailboxList(input.bcc)
 			if (bcc.length > 0) msg.setBcc(bcc)
-			if (input.reply_to !== undefined) {
+			if (input.reply_to) {
 				msg.setHeader('Reply-To', formatMailbox(input.reply_to))
 			}
-			if (input.headers !== undefined) {
+			if (input.headers) {
 				for (const [name, value] of Object.entries(input.headers)) {
 					if (name.trim().length === 0) {
 						throw new ToolError('Header names must be non-empty', { code: 'bad_input' })
@@ -237,13 +237,13 @@ const buildMimeTool = defineTool({
 				}
 			}
 			msg.setSubject(input.subject)
-			if (input.text !== undefined) {
+			if (input.text) {
 				msg.addMessage({ contentType: 'text/plain', data: input.text })
 			}
-			if (input.html !== undefined) {
+			if (input.html) {
 				msg.addMessage({ contentType: 'text/html', data: input.html })
 			}
-			if (input.attachments !== undefined) {
+			if (input.attachments) {
 				for (const att of input.attachments) {
 					// Validate base64 early for a stable error code.
 					try {
@@ -255,7 +255,7 @@ const buildMimeTool = defineTool({
 						})
 					}
 					const headers: Record<string, string> = {}
-					if (att.content_id !== undefined) headers['Content-ID'] = att.content_id
+					if (att.content_id) headers['Content-ID'] = att.content_id
 					msg.addAttachment({
 						filename: att.filename,
 						contentType: att.content_type ?? 'application/octet-stream',
@@ -269,7 +269,7 @@ const buildMimeTool = defineTool({
 			return buildOutput.parse({ raw: msg.asRaw() })
 		} catch (error) {
 			if (error instanceof ToolError) throw error
-			throw new ToolError('Failed to build MIME message', {
+			throw new ToolError('Failed to build email message', {
 				code: 'bad_input',
 				cause: error
 			})
@@ -277,13 +277,11 @@ const buildMimeTool = defineTool({
 	}
 })
 
-export const mimeModule = defineModule({
-	id: 'mime',
-	title: 'MIME',
-	description: 'Parse and build RFC 822 / MIME email messages without sending them.',
+export const emailMessageModule = defineModule({
+	id: 'email-message',
+	title: 'Email Message',
+	description: 'Parse and build RFC 822 email messages without sending them.',
 	runtime: 'both',
 	auth: { type: 'none' },
-	tools: [parseMimeTool, buildMimeTool]
+	tools: [parseEmailMessageTool, buildEmailMessageTool]
 })
-
-export { buildMimeTool, parseMimeTool }

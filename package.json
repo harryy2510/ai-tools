@@ -45,9 +45,17 @@
 			"types": "./dist/mcp/index.d.ts",
 			"default": "./dist/mcp/index.js"
 		},
+		"./cloudflare-browser": {
+			"types": "./dist/vendors/cloudflare-browser/index.d.ts",
+			"default": "./dist/vendors/cloudflare-browser/index.js"
+		},
 		"./cloudflare-email": {
 			"types": "./dist/vendors/cloudflare-email/index.d.ts",
 			"default": "./dist/vendors/cloudflare-email/index.js"
+		},
+		"./content-type": {
+			"types": "./dist/modules/content-type/index.d.ts",
+			"default": "./dist/modules/content-type/index.js"
 		},
 		"./document-extract": {
 			"types": "./dist/modules/document-extract/index.d.ts",
@@ -57,6 +65,14 @@
 			"types": "./dist/modules/document-render/index.d.ts",
 			"default": "./dist/modules/document-render/index.js"
 		},
+		"./email": {
+			"types": "./dist/modules/email/index.d.ts",
+			"default": "./dist/modules/email/index.js"
+		},
+		"./email-message": {
+			"types": "./dist/modules/email-message/index.d.ts",
+			"default": "./dist/modules/email-message/index.js"
+		},
 		"./file-convert": {
 			"types": "./dist/modules/file-convert/index.d.ts",
 			"default": "./dist/modules/file-convert/index.js"
@@ -65,25 +81,41 @@
 			"types": "./dist/modules/files/index.d.ts",
 			"default": "./dist/modules/files/index.js"
 		},
-		"./media-type": {
-			"types": "./dist/modules/media-type/index.d.ts",
-			"default": "./dist/modules/media-type/index.js"
+		"./gotenberg": {
+			"types": "./dist/vendors/gotenberg/index.d.ts",
+			"default": "./dist/vendors/gotenberg/index.js"
 		},
-		"./mime": {
-			"types": "./dist/modules/mime/index.d.ts",
-			"default": "./dist/modules/mime/index.js"
+		"./r2": {
+			"types": "./dist/vendors/r2/index.d.ts",
+			"default": "./dist/vendors/r2/index.js"
 		},
 		"./resend": {
 			"types": "./dist/vendors/resend/index.d.ts",
 			"default": "./dist/vendors/resend/index.js"
 		},
+		"./s3": {
+			"types": "./dist/vendors/s3/index.d.ts",
+			"default": "./dist/vendors/s3/index.js"
+		},
 		"./storage": {
 			"types": "./dist/modules/storage/index.d.ts",
 			"default": "./dist/modules/storage/index.js"
 		},
+		"./supabase-storage": {
+			"types": "./dist/vendors/supabase-storage/index.d.ts",
+			"default": "./dist/vendors/supabase-storage/index.js"
+		},
 		"./telegram": {
 			"types": "./dist/vendors/telegram/index.d.ts",
 			"default": "./dist/vendors/telegram/index.js"
+		},
+		"./textract": {
+			"types": "./dist/vendors/textract/index.d.ts",
+			"default": "./dist/vendors/textract/index.js"
+		},
+		"./transmute": {
+			"types": "./dist/vendors/transmute/index.d.ts",
+			"default": "./dist/vendors/transmute/index.js"
 		},
 		"./web-fetch": {
 			"types": "./dist/modules/web-fetch/index.d.ts",
@@ -116,6 +148,7 @@
 	"dependencies": {
 		"aws4fetch": "1.0.20",
 		"es-toolkit": "1.49.0",
+		"fast-xml-parser": "5.10.1",
 		"mime": "4",
 		"mimetext": "3.0.28",
 		"ofetch": "1.5.1",

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { defineModule, defineTool } from '../../core/define'
-import { allExtensionsFromMediaType, extensionFromMediaType, mediaTypeFromPath } from '../../shared/media-type'
+import { allExtensionsFromMediaType, extensionFromMediaType, mediaTypeFromPath } from '../../shared/content-type'
 
 const getTypeInput = z.object({
 	path: z
@@ -11,11 +11,14 @@ const getTypeInput = z.object({
 })
 
 const getTypeOutput = z.object({
-	media_type: z.string().nullable().describe('MIME type, or null when unrecognized')
+	media_type: z.string().nullable().describe('Content type (MIME), or null when unrecognized')
 })
 
 const getExtensionInput = z.object({
-	media_type: z.string().min(1).describe('MIME type; optional charset is ignored, for example text/html; charset=utf-8')
+	media_type: z
+		.string()
+		.min(1)
+		.describe('Content type; optional charset is ignored, for example text/html; charset=utf-8')
 })
 
 const getExtensionOutput = z.object({
@@ -26,11 +29,11 @@ const getAllExtensionsOutput = z.object({
 	extensions: z.array(z.string()).describe('All known extensions for the type (may be empty)')
 })
 
-export const mediaTypeGetTool = defineTool({
-	id: 'media-type-get',
-	name: 'getMediaType',
+export const contentTypeGetTool = defineTool({
+	id: 'content-type-get',
+	name: 'getContentType',
 	description:
-		'Look up the MIME type for a file path, filename, or extension using the mime package (mime-db). Returns null when the extension is unknown.',
+		'Look up the content type for a file path, filename, or extension using the mime package (mime-db). Returns null when the extension is unknown.',
 	inputSchema: getTypeInput,
 	outputSchema: getTypeOutput,
 	sideEffect: 'none',
@@ -41,11 +44,11 @@ export const mediaTypeGetTool = defineTool({
 	}
 })
 
-export const mediaTypeExtensionTool = defineTool({
-	id: 'media-type-extension',
-	name: 'getMediaExtension',
+export const contentTypeExtensionTool = defineTool({
+	id: 'content-type-extension',
+	name: 'getContentTypeExtension',
 	description:
-		'Look up the preferred file extension for a MIME type using the mime package. Charset parameters are ignored. Returns null when unknown.',
+		'Look up the preferred file extension for a content type using the mime package. Charset parameters are ignored. Returns null when unknown.',
 	inputSchema: getExtensionInput,
 	outputSchema: getExtensionOutput,
 	sideEffect: 'none',
@@ -56,11 +59,11 @@ export const mediaTypeExtensionTool = defineTool({
 	}
 })
 
-export const mediaTypeExtensionsTool = defineTool({
-	id: 'media-type-extensions',
-	name: 'getMediaExtensions',
+export const contentTypeExtensionsTool = defineTool({
+	id: 'content-type-extensions',
+	name: 'getContentTypeExtensions',
 	description:
-		'List all known file extensions for a MIME type (for example image/jpeg → jpeg, jpg, jpe). Empty when unknown.',
+		'List all known file extensions for a content type (for example image/jpeg → jpeg, jpg, jpe). Empty when unknown.',
 	inputSchema: getExtensionInput,
 	outputSchema: getAllExtensionsOutput,
 	sideEffect: 'none',
@@ -72,12 +75,12 @@ export const mediaTypeExtensionsTool = defineTool({
 	}
 })
 
-export const mediaTypeModule = defineModule({
-	id: 'media-type',
-	title: 'Media Type',
+export const contentTypeModule = defineModule({
+	id: 'content-type',
+	title: 'Content Type',
 	description:
-		'MIME type ↔ extension lookup via the mime package (mime-db). Distinct from the email MIME parse/build module.',
+		'Content type ↔ extension lookup via the mime package (mime-db). Distinct from email-message parse/build.',
 	runtime: 'both',
 	auth: { type: 'none' },
-	tools: [mediaTypeGetTool, mediaTypeExtensionTool, mediaTypeExtensionsTool]
+	tools: [contentTypeGetTool, contentTypeExtensionTool, contentTypeExtensionsTool]
 })

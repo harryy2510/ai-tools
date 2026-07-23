@@ -31,8 +31,8 @@ Documentation hub for the package. Source of truth for architecture and module c
 | Import | Doc |
 | --- | --- |
 | `@harryy/ai-tools/storage` | [storage](./modules/storage.md) |
-| `@harryy/ai-tools/mime` | [mime](./modules/mime.md) (email parse/build) |
-| `@harryy/ai-tools/media-type` | [media-type](./modules/media-type.md) (MIME type ↔ extension) |
+| `@harryy/ai-tools/email-message` | [email-message](./modules/email-message.md) (email parse/build) |
+| `@harryy/ai-tools/content-type` | [content-type](./modules/content-type.md) (content type ↔ extension) |
 | `@harryy/ai-tools/web-fetch` | [web-fetch](./modules/web-fetch.md) |
 | `@harryy/ai-tools/document-extract` | [document-extract](./modules/document-extract.md) |
 | `@harryy/ai-tools/file-convert` | [file-convert](./modules/file-convert.md) |

@@ -36,7 +36,7 @@ src/modules/<capability>/
 - Discriminated union on `provider`.
 - Host-only: `withAuth(module, { provider: 'resend', apiKey })`.
 - Nested host credentials allowed (e.g. file-convert `storage: { provider: 's3', … }`).
-- Pure modules (`mime`, `media-type`) use `auth: { type: 'none' }`.
+- Pure modules (`mime`, `content-type`) use `auth: { type: 'none' }`.
 
 ## ArtifactRef
 

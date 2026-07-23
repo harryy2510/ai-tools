@@ -1,16 +1,16 @@
 import { describe, expect, test } from 'bun:test'
 
 import { runTool, validateModule } from '../../src/core'
-import { buildMimeTool, mimeModule, parseMimeTool } from '../../src/modules/mime'
+import { buildEmailMessageTool, emailMessageModule, parseEmailMessageTool } from '../../src/modules/email-message'
 import { bytesToBase64, utf8ToBytes } from '../../src/shared/bytes'
 
-describe('mime', () => {
+describe('email-message', () => {
 	test('passes contracts', () => {
-		expect(validateModule(mimeModule).ok).toBe(true)
+		expect(validateModule(emailMessageModule).ok).toBe(true)
 	})
 
 	test('build then parse round-trip with headers and attachment', async () => {
-		const built = await runTool(buildMimeTool, {
+		const built = await runTool(buildEmailMessageTool, {
 			from: { address: 'a@example.com', name: 'Ada' },
 			to: 'b@example.com',
 			cc: 'c@example.com',
@@ -31,7 +31,7 @@ describe('mime', () => {
 		expect(built.raw).toContain('X-Trace')
 		expect(built.raw).toContain('note.txt')
 
-		const parsed = await runTool(parseMimeTool, { raw: built.raw })
+		const parsed = await runTool(parseEmailMessageTool, { raw: built.raw })
 		expect(parsed.subject).toBe('Hello')
 		expect(parsed.from?.address).toBe('a@example.com')
 		expect(parsed.to?.[0]?.address).toBe('b@example.com')
@@ -42,7 +42,7 @@ describe('mime', () => {
 		const att = parsed.attachments.find((a) => a.filename === 'note.txt')
 		expect(att?.mimeType).toContain('text/plain')
 		expect(att?.content_base64).toBeDefined()
-		expect(parseMimeTool.id).toBe('mime-parse')
-		expect(buildMimeTool.id).toBe('mime-build')
+		expect(parseEmailMessageTool.id).toBe('email-message-parse')
+		expect(buildEmailMessageTool.id).toBe('email-message-build')
 	})
 })

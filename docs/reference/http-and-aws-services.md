@@ -41,5 +41,5 @@ await aws.sign(url, { signQuery: true })
 | Dir | Owns |
 | --- | --- |
 | `src/transport/` | HTTP only |
-| `src/shared/` | `artifact`, `batch`, `bytes`, `media-type`, list `pagination` |
+| `src/shared/` | `artifact`, `batch`, `bytes`, `content-type`, list `pagination` |
 | `src/vendors/` | 3rd-party packs; `channel-transport.ts` for chat contracts |

@@ -15,7 +15,7 @@ Reusable **AI tools** with strict Zod schemas and model-facing contracts. Define
 - **Honest runtimes** — `node` | `edge` | `both`.
 - **Stable tool ids** — kebab-case ids safe for agents and MCP names.
 - **Capability modules + provider seam** — generic tools (`email`, `storage`, …); host picks provider via auth union.
-- **Product modules included** — email, storage, document extract, file convert, MIME, media-type, web-fetch.
+- **Product modules included** — email, storage, document extract, file convert, MIME, content-type, web-fetch.
 
 ## Install
 
@@ -50,10 +50,10 @@ export const tools = createMastraTools(bound)
 No-auth module (MIME):
 
 ```ts
-import { mimeModule } from '@harryy/ai-tools/mime'
+import { emailMessageModule } from '@harryy/ai-tools/email-message'
 import { createAiSdkTools } from '@harryy/ai-tools/ai-sdk'
 
-export const tools = createAiSdkTools(mimeModule)
+export const tools = createAiSdkTools(emailMessageModule)
 ```
 
 ## Subpaths
@@ -78,8 +78,8 @@ export const tools = createAiSdkTools(mimeModule)
 | `@harryy/ai-tools/cloudflare-email` | `cloudflare-email-send`, `cloudflare-email-send-batch` (vendor pack) | [docs/modules/cloudflare-email.md](./docs/modules/cloudflare-email.md) |
 | `@harryy/ai-tools/telegram` | Telegram messaging pack | [docs/modules/telegram.md](./docs/modules/telegram.md) |
 | `@harryy/ai-tools/storage` | `storage-*` + batch — providers: `s3`, `r2` (CF REST), `supabase` | [docs/modules/storage.md](./docs/modules/storage.md) |
-| `@harryy/ai-tools/mime` | `mime-parse`, `mime-build` (email messages) | [docs/modules/mime.md](./docs/modules/mime.md) |
-| `@harryy/ai-tools/media-type` | `media-type-get`, `media-type-extension`, `media-type-extensions` | [docs/modules/media-type.md](./docs/modules/media-type.md) |
+| `@harryy/ai-tools/email-message` | `email-message-parse`, `email-message-build` | [docs/modules/email-message.md](./docs/modules/email-message.md) |
+| `@harryy/ai-tools/content-type` | `content-type-get`, `content-type-extension`, `content-type-extensions` | [docs/modules/content-type.md](./docs/modules/content-type.md) |
 | `@harryy/ai-tools/web-fetch` | `web-fetch-get` (read), `web-fetch-request` (write) | [docs/modules/web-fetch.md](./docs/modules/web-fetch.md) |
 | `@harryy/ai-tools/document-extract` | `document-extract-text`, `document-extract-status`, `document-extract-text-batch` | [docs/modules/document-extract.md](./docs/modules/document-extract.md) |
 | `@harryy/ai-tools/file-convert` | `file-convert`, `file-convert-batch` | [docs/modules/file-convert.md](./docs/modules/file-convert.md) |

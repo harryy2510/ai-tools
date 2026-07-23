@@ -32,8 +32,8 @@ There is **no root barrel**. Import by subpath:
 | `@harryy/ai-tools/mcp` | MCP list/call + register |
 | `@harryy/ai-tools/email` | Product module (providers: cloudflare, resend) |
 | `@harryy/ai-tools/storage` | Product module (providers: s3, r2 REST, supabase) |
-| `@harryy/ai-tools/mime` | Product module (email MIME) |
-| `@harryy/ai-tools/media-type` | Product module (type ↔ extension via `mime`) |
+| `@harryy/ai-tools/email-message` | Product module (email MIME) |
+| `@harryy/ai-tools/content-type` | Product module (type ↔ extension via `mime`) |
 
 ## Minimal kernel tool
 

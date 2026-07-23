@@ -2,46 +2,46 @@ import { describe, expect, test } from 'bun:test'
 
 import { runTool, validateModule } from '../../src/core'
 import {
-	mediaTypeExtensionTool,
-	mediaTypeExtensionsTool,
-	mediaTypeGetTool,
-	mediaTypeModule
-} from '../../src/modules/media-type'
+	contentTypeExtensionTool,
+	contentTypeExtensionsTool,
+	contentTypeGetTool,
+	contentTypeModule
+} from '../../src/modules/content-type'
 import {
 	allExtensionsFromMediaType,
 	deriveOutputKey,
 	extensionFromMediaType,
 	mediaTypeFromPath,
 	resolveFileExtension
-} from '../../src/shared/media-type'
+} from '../../src/shared/content-type'
 
-describe('media-type', () => {
+describe('content-type', () => {
 	test('passes contracts', () => {
-		expect(validateModule(mediaTypeModule).ok).toBe(true)
-		expect(mediaTypeGetTool.id).toBe('media-type-get')
-		expect(mediaTypeExtensionTool.id).toBe('media-type-extension')
-		expect(mediaTypeExtensionsTool.id).toBe('media-type-extensions')
-		expect(mediaTypeGetTool.meta.sideEffect).toBe('none')
+		expect(validateModule(contentTypeModule).ok).toBe(true)
+		expect(contentTypeGetTool.id).toBe('content-type-get')
+		expect(contentTypeExtensionTool.id).toBe('content-type-extension')
+		expect(contentTypeExtensionsTool.id).toBe('content-type-extensions')
+		expect(contentTypeGetTool.meta.sideEffect).toBe('none')
 	})
 
 	test('getType tool resolves paths and extensions', async () => {
-		const fromPath = await runTool(mediaTypeGetTool, { path: 'docs/report.pdf' })
+		const fromPath = await runTool(contentTypeGetTool, { path: 'docs/report.pdf' })
 		expect(fromPath.media_type).toBe('application/pdf')
 
-		const fromExt = await runTool(mediaTypeGetTool, { path: 'json' })
+		const fromExt = await runTool(contentTypeGetTool, { path: 'json' })
 		expect(fromExt.media_type).toBe('application/json')
 
-		const unknown = await runTool(mediaTypeGetTool, { path: 'nope.unknownextxyz' })
+		const unknown = await runTool(contentTypeGetTool, { path: 'nope.unknownextxyz' })
 		expect(unknown.media_type).toBeNull()
 	})
 
-	test('getExtension tools resolve MIME types', async () => {
-		const one = await runTool(mediaTypeExtensionTool, {
+	test('getExtension tools resolve content types', async () => {
+		const one = await runTool(contentTypeExtensionTool, {
 			media_type: 'text/html; charset=utf-8'
 		})
 		expect(one.extension).toBe('html')
 
-		const all = await runTool(mediaTypeExtensionsTool, { media_type: 'image/jpeg' })
+		const all = await runTool(contentTypeExtensionsTool, { media_type: 'image/jpeg' })
 		expect(all.extensions).toContain('jpg')
 		expect(all.extensions).toContain('jpeg')
 	})

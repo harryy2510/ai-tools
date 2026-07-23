@@ -33,7 +33,7 @@ This is **not** a second architecture lock. It tracks inventory, migration, open
 | `document-extract` | Done | textract only |
 | `file-convert` | Done | transmute only |
 | `web-fetch` | Done | allowlisted ofetch |
-| `mime` / `media-type` | Done | pure |
+| `mime` / `content-type` | Done | pure |
 | `files` | Done | path root over storage: list/search/stat/get/put/delete/copy/move/mkdir + multipart (S3) |
 | `document-render` | Done | gotenberg + cloudflare-browser |
 | `vector-store` / `rag` | Not started | knowledge tools |
