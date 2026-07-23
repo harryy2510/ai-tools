@@ -1,0 +1,289 @@
+/**
+ * Slack Web API vendor client.
+ * Host: `new SlackClient(auth)`. Agent tools: `fromContext(ctx)`.
+ */
+
+import { ToolError } from '../../core/errors'
+import { requireAuth } from '../../core/provider'
+import type { ToolContext } from '../../core/types'
+import { HttpService } from '../../transport/http-service'
+import type { HttpServiceOptions } from '../../transport/http-service'
+import type {
+	SlackAnswerCallbackInput,
+	SlackAuth,
+	SlackClearReactionInput,
+	SlackDownloadFileInput,
+	SlackDownloadFileOutput,
+	SlackEditTextInput,
+	SlackGetBotOutput,
+	SlackListConversationsInput,
+	SlackListConversationsOutput,
+	SlackMessageOutput,
+	SlackPostEphemeralInput,
+	SlackSendChatActionInput,
+	SlackSendMediaInput,
+	SlackSendTextInput,
+	SlackSetReactionInput
+} from './contracts'
+import { slackAuthSchema } from './contracts'
+import {
+	isHttpsUrl,
+	isSlackDefiniteRejection,
+	isSlackOutcomeUnknown,
+	mediaArrayBuffer,
+	normalizeEmojiName,
+	parseBot,
+	parseConversationsList,
+	parseDownload,
+	parseFileInfo,
+	parseMessageTs,
+	parseOk,
+	parseSlackResult,
+	parseUploadComplete,
+	parseUploadUrl,
+	SlackClientError
+} from './domain'
+
+export type SlackClientOptions = Pick<HttpServiceOptions, 'fetch' | 'signal'>
+
+export class SlackClient {
+	readonly #token: string
+	/** Authenticated Slack Web API (`https://slack.com/api`). */
+	readonly #http: HttpService
+	/** Bare HTTP for pre-signed upload URLs and interactive response_url (no bot Authorization). */
+	readonly #external: HttpService
+
+	constructor(auth: SlackAuth, options: SlackClientOptions = {}) {
+		const parsed = slackAuthSchema.safeParse(auth)
+		if (!parsed.success) {
+			throw new ToolError('Invalid Slack auth credentials', {
+				code: 'bad_auth',
+				details: { issues: parsed.error.issues.map((issue) => issue.message) }
+			})
+		}
+		this.#token = parsed.data.bot_token
+		this.#http = new HttpService({
+			...options,
+			baseURL: 'https://slack.com/api',
+			headers: {
+				Authorization: `Bearer ${parsed.data.bot_token}`,
+				'Content-Type': 'application/json'
+			},
+			label: 'Slack'
+		})
+		this.#external = new HttpService({
+			...options,
+			label: 'Slack'
+		})
+	}
+
+	static fromContext(ctx: ToolContext): SlackClient {
+		const auth = requireAuth(ctx, slackAuthSchema)
+		return new SlackClient(auth, {
+			...(ctx.fetch && { fetch: ctx.fetch }),
+			...(ctx.signal && { signal: ctx.signal })
+		})
+	}
+
+	async #api(method: string, body: Record<string, unknown>, label: string): Promise<Record<string, unknown>> {
+		const res = await this.#http.post(`/${method}`, body, { label, noThrow: true })
+		return parseSlackResult(label, res.status, res.data)
+	}
+
+	/** POST chat.postMessage */
+	async sendText(input: SlackSendTextInput): Promise<SlackMessageOutput> {
+		const body: Record<string, unknown> = {
+			channel: input.chat_id,
+			text: input.text,
+			...(input.reply_to_message_id && { thread_ts: input.reply_to_message_id }),
+			...(input.reply_markup !== undefined && { blocks: input.reply_markup })
+		}
+		return parseMessageTs(await this.#api('chat.postMessage', body, 'Slack chat.postMessage'))
+	}
+
+	/** POST chat.update */
+	async editText(input: SlackEditTextInput): Promise<SlackMessageOutput> {
+		const body: Record<string, unknown> = {
+			channel: input.chat_id,
+			ts: input.message_id,
+			text: input.text,
+			...(input.reply_markup !== undefined && { blocks: input.reply_markup })
+		}
+		return parseMessageTs(await this.#api('chat.update', body, 'Slack chat.update'))
+	}
+
+	/**
+	 * Chat action (typing / upload_*). Slack Web API has no general typing indicator;
+	 * resolves immediately as presentation-only parity with channel transport.
+	 */
+	async sendChatAction(_input: SlackSendChatActionInput): Promise<void> {
+		return
+	}
+
+	/** POST reactions.add */
+	async setReaction(input: SlackSetReactionInput): Promise<void> {
+		parseOk(
+			await this.#api(
+				'reactions.add',
+				{
+					channel: input.chat_id,
+					timestamp: input.message_id,
+					name: normalizeEmojiName(input.emoji)
+				},
+				'Slack reactions.add'
+			)
+		)
+	}
+
+	/** POST reactions.remove — emoji required on Slack. */
+	async clearReaction(input: SlackClearReactionInput): Promise<void> {
+		parseOk(
+			await this.#api(
+				'reactions.remove',
+				{
+					channel: input.chat_id,
+					timestamp: input.message_id,
+					name: normalizeEmojiName(input.emoji)
+				},
+				'Slack reactions.remove'
+			)
+		)
+	}
+
+	/**
+	 * External upload flow:
+	 * files.getUploadURLExternal → PUT bytes → files.completeUploadExternal
+	 */
+	async sendMedia(input: SlackSendMediaInput): Promise<SlackMessageOutput> {
+		const { bytes, body } = mediaArrayBuffer(input)
+		const upload = parseUploadUrl(
+			await this.#api(
+				'files.getUploadURLExternal',
+				{ filename: input.file_name, length: bytes.byteLength },
+				'Slack files.getUploadURLExternal'
+			)
+		)
+
+		const putHeaders: Record<string, string> = {}
+		if (input.content_type) putHeaders['Content-Type'] = input.content_type
+		const put = await this.#external.put(upload.upload_url, body, {
+			label: 'Slack file upload PUT',
+			noThrow: true,
+			...(Object.keys(putHeaders).length > 0 && { headers: putHeaders })
+		})
+		if (!put.ok) {
+			throw new SlackClientError({
+				message: `Slack file upload PUT failed with HTTP ${put.status}`,
+				failureKind:
+					put.status === 400 || put.status === 401 || put.status === 403 || put.status === 404
+						? 'definite_rejection'
+						: 'outcome_unknown',
+				method: 'Slack file upload PUT',
+				status: put.status
+			})
+		}
+
+		return parseUploadComplete(
+			await this.#api(
+				'files.completeUploadExternal',
+				{
+					files: [{ id: upload.file_id, title: input.file_name }],
+					channel_id: input.chat_id,
+					...(input.reply_to_message_id && { thread_ts: input.reply_to_message_id }),
+					...(input.caption && { initial_comment: input.caption })
+				},
+				'Slack files.completeUploadExternal'
+			)
+		)
+	}
+
+	/** POST files.info + GET url_private_download (Bearer). */
+	async downloadFile(input: SlackDownloadFileInput): Promise<SlackDownloadFileOutput> {
+		const file = parseFileInfo(await this.#api('files.info', { file: input.file_id }, 'Slack files.info'))
+		const res = await this.#http.bytes('GET', file.url_private_download, {
+			label: 'Slack downloadFile',
+			noThrow: true,
+			headers: {
+				Authorization: `Bearer ${this.#token}`
+			}
+		})
+		if (!res.ok) {
+			throw new SlackClientError({
+				message: `Slack downloadFile failed with HTTP ${res.status}`,
+				failureKind:
+					res.status === 400 || res.status === 401 || res.status === 403 || res.status === 404
+						? 'definite_rejection'
+						: 'outcome_unknown',
+				method: 'Slack downloadFile',
+				status: res.status
+			})
+		}
+		return parseDownload(input, file, res.bytes)
+	}
+
+	/**
+	 * Answer an interactive payload.
+	 * When callback_query_id is an http(s) response_url, POST ephemeral JSON to it.
+	 * Otherwise no-op success (Slack has no Telegram-style answerCallbackQuery id).
+	 */
+	async answerCallback(input: SlackAnswerCallbackInput): Promise<void> {
+		if (!isHttpsUrl(input.callback_query_id)) {
+			return
+		}
+		const body: Record<string, unknown> = {
+			replace_original: false,
+			response_type: 'ephemeral',
+			...(input.text && { text: input.text })
+		}
+		const res = await this.#external.post(input.callback_query_id, body, {
+			label: 'Slack response_url',
+			noThrow: true,
+			headers: { 'Content-Type': 'application/json' }
+		})
+		if (!res.ok) {
+			throw new SlackClientError({
+				message: `Slack response_url failed with HTTP ${res.status}`,
+				failureKind:
+					res.status === 400 || res.status === 401 || res.status === 403 || res.status === 404
+						? 'definite_rejection'
+						: 'outcome_unknown',
+				method: 'Slack response_url',
+				status: res.status
+			})
+		}
+	}
+
+	/** POST auth.test */
+	async getBot(): Promise<SlackGetBotOutput> {
+		return parseBot(await this.#api('auth.test', {}, 'Slack auth.test'))
+	}
+
+	/** POST chat.postEphemeral */
+	async postEphemeral(input: SlackPostEphemeralInput): Promise<SlackMessageOutput> {
+		const body: Record<string, unknown> = {
+			channel: input.chat_id,
+			user: input.user_id,
+			text: input.text,
+			...(input.reply_markup !== undefined && { blocks: input.reply_markup })
+		}
+		const result = await this.#api('chat.postEphemeral', body, 'Slack chat.postEphemeral')
+		const messageTs = result['message_ts']
+		if (typeof messageTs === 'string' && messageTs.length > 0) {
+			return { message_id: messageTs }
+		}
+		// Some workspaces only return ok without message_ts.
+		return { message_id: 'ephemeral' }
+	}
+
+	/** POST conversations.list */
+	async listConversations(input: SlackListConversationsInput = {}): Promise<SlackListConversationsOutput> {
+		const body: Record<string, unknown> = {
+			...(input.limit !== undefined && { limit: input.limit }),
+			...(input.cursor && { cursor: input.cursor }),
+			...(input.types && { types: input.types })
+		}
+		return parseConversationsList(await this.#api('conversations.list', body, 'Slack conversations.list'))
+	}
+}
+
+export { isSlackDefiniteRejection, isSlackOutcomeUnknown, SlackClientError }

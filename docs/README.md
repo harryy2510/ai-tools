@@ -33,6 +33,7 @@ Capability modules we own. Multi-provider seams take `{ provider, … }` on host
 | Import | Doc |
 | --- | --- |
 | `@harryy/ai-tools/email` | [email](./modules/email.md) — providers: `resend`, `cloudflare` |
+| `@harryy/ai-tools/messaging` | [messaging](./modules/messaging.md) — providers: `telegram`, `slack`, `teams` |
 | `@harryy/ai-tools/storage` | [storage](./modules/storage.md) — providers: `s3`, `r2`, `supabase` |
 | `@harryy/ai-tools/files` | [files](./modules/files.md) — path root over storage |
 | `@harryy/ai-tools/document-extract` | [document-extract](./modules/document-extract.md) — `textract` |
@@ -51,6 +52,8 @@ Capability modules we own. Multi-provider seams take `{ provider, … }` on host
 | `@harryy/ai-tools/resend` | [resend](./vendors/resend.md) |
 | `@harryy/ai-tools/cloudflare-email` | [cloudflare-email](./vendors/cloudflare-email.md) |
 | `@harryy/ai-tools/telegram` | [telegram](./vendors/telegram.md) |
+| `@harryy/ai-tools/slack` | [slack](./vendors/slack.md) |
+| `@harryy/ai-tools/teams` | [teams](./vendors/teams.md) |
 | `@harryy/ai-tools/s3` | [s3](./vendors/s3.md) |
 | `@harryy/ai-tools/r2` | [r2](./vendors/r2.md) |
 | `@harryy/ai-tools/supabase-storage` | [supabase-storage](./vendors/supabase-storage.md) |

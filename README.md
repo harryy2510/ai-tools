@@ -116,6 +116,7 @@ defineTool / defineModule
 | Import | Kind | Tools (ids) | Docs |
 | --- | --- | --- | --- |
 | `@harryy/ai-tools/email` | multi-provider | `email-send`, `email-send-batch` | [email](./docs/modules/email.md) |
+| `@harryy/ai-tools/messaging` | multi-provider | `messaging-send-text`, edit, media, reactions, … | [messaging](./docs/modules/messaging.md) |
 | `@harryy/ai-tools/storage` | multi-provider | `storage-*` (+ batch, multipart, signed URL) | [storage](./docs/modules/storage.md) |
 | `@harryy/ai-tools/files` | path root over storage | `files-*` | [files](./docs/modules/files.md) |
 | `@harryy/ai-tools/document-extract` | multi-provider | `document-extract-text`, `-status`, `-text-batch` | [document-extract](./docs/modules/document-extract.md) |
@@ -132,6 +133,8 @@ defineTool / defineModule
 | `@harryy/ai-tools/resend` | `resend-send`, `resend-send-batch` | [resend](./docs/vendors/resend.md) |
 | `@harryy/ai-tools/cloudflare-email` | `cloudflare-email-send`, `-send-batch` | [cloudflare-email](./docs/vendors/cloudflare-email.md) |
 | `@harryy/ai-tools/telegram` | `telegram-send-text`, `-edit-text`, media, reactions, … | [telegram](./docs/vendors/telegram.md) |
+| `@harryy/ai-tools/slack` | `slack-send-text`, edit, media, reactions, files, … | [slack](./docs/vendors/slack.md) |
+| `@harryy/ai-tools/teams` | `teams-send-text`, edit, media, Bot Framework activities | [teams](./docs/vendors/teams.md) |
 | `@harryy/ai-tools/s3` | `s3-*` (+ signed URL, multipart) | [s3](./docs/vendors/s3.md) |
 | `@harryy/ai-tools/r2` | `r2-*` (Cloudflare REST) | [r2](./docs/vendors/r2.md) |
 | `@harryy/ai-tools/supabase-storage` | `supabase-storage-*` | [supabase-storage](./docs/vendors/supabase-storage.md) |

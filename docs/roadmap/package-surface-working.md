@@ -187,7 +187,8 @@ Slice 3 done when: this capability map is implemented under `src/channels/telegr
 | 5 | `vendors/katana` | Done | sales order list/get |
 | 6 | `vendors/amazon-sp-api` (first action group) | Done | orders + FBA inventory summaries |
 | 7 | `vector-store` + `rag` | Pending | upsert/query + ingest/retrieve |
-| 8 | `channels/slack` | Pending | same checklist as Telegram |
+| 8 | `vendors/slack` + messaging seam | Done | Web API pack + multi-provider messaging |
+| 8b | `vendors/teams` | Done | Bot Framework pack in messaging seam |
 | 9 | `channels/imessage` (Photon) | Pending | aligned with host imessage spec |
 | 10 | Remaining platform (speech, browser, pdf, image, queue, webhook, crypto, calendar, messaging) | Backlog | product-driven |
 

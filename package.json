@@ -93,6 +93,10 @@
 			"types": "./dist/vendors/katana/index.d.ts",
 			"default": "./dist/vendors/katana/index.js"
 		},
+		"./messaging": {
+			"types": "./dist/modules/messaging/index.d.ts",
+			"default": "./dist/modules/messaging/index.js"
+		},
 		"./r2": {
 			"types": "./dist/vendors/r2/index.d.ts",
 			"default": "./dist/vendors/r2/index.js"
@@ -105,6 +109,10 @@
 			"types": "./dist/vendors/s3/index.d.ts",
 			"default": "./dist/vendors/s3/index.js"
 		},
+		"./slack": {
+			"types": "./dist/vendors/slack/index.d.ts",
+			"default": "./dist/vendors/slack/index.js"
+		},
 		"./storage": {
 			"types": "./dist/modules/storage/index.d.ts",
 			"default": "./dist/modules/storage/index.js"
@@ -112,6 +120,10 @@
 		"./supabase-storage": {
 			"types": "./dist/vendors/supabase-storage/index.d.ts",
 			"default": "./dist/vendors/supabase-storage/index.js"
+		},
+		"./teams": {
+			"types": "./dist/vendors/teams/index.d.ts",
+			"default": "./dist/vendors/teams/index.js"
 		},
 		"./telegram": {
 			"types": "./dist/vendors/telegram/index.d.ts",
