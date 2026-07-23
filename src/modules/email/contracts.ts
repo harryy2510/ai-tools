@@ -1,0 +1,60 @@
+import { z } from 'zod'
+
+import { batchResultSchema } from '../../shared/batch'
+import { cloudflareEmailAuthSchema as cloudflareVendorAuthSchema } from '../../vendors/cloudflare-email'
+import {
+	attachmentSchema,
+	MAX_BATCH_EMAILS,
+	MAX_EMAIL_BYTES,
+	namedAddressSchema,
+	resendAuthSchema,
+	resendSendInputSchema
+} from '../../vendors/resend'
+import type { NamedAddress, ResendSendInput } from '../../vendors/resend'
+
+export { attachmentSchema, MAX_BATCH_EMAILS, MAX_EMAIL_BYTES, namedAddressSchema }
+export type { NamedAddress }
+
+/** Per-provider host auth (vendor credentials + discriminator). */
+export const resendEmailAuthSchema = resendAuthSchema.extend({
+	provider: z.literal('resend')
+})
+
+export const cloudflareEmailAuthSchema = cloudflareVendorAuthSchema.extend({
+	provider: z.literal('cloudflare')
+})
+
+export type ResendEmailAuth = z.infer<typeof resendEmailAuthSchema>
+export type CloudflareEmailAuth = z.infer<typeof cloudflareEmailAuthSchema>
+
+export const emailAuthSchema = z.discriminatedUnion('provider', [resendEmailAuthSchema, cloudflareEmailAuthSchema])
+
+export type EmailAuth = z.infer<typeof emailAuthSchema>
+
+/** Same send body both vendors accept — reuse Resend schema. */
+export const emailSendInputSchema = resendSendInputSchema
+export type EmailSendInput = ResendSendInput
+
+/** Unified result; each provider fills what it has. */
+export const emailSendOutputSchema = z.object({
+	success: z.boolean().describe('Whether the provider accepted the request'),
+	id: z.string().optional().describe('Provider message id when available'),
+	accepted: z.array(z.string()).optional().describe('Addresses delivered and/or queued when known'),
+	rejected: z.array(z.string()).optional().describe('Addresses permanently rejected when known')
+})
+
+export const emailSendBatchInputSchema = z.object({
+	messages: z.array(emailSendInputSchema).min(1).max(MAX_BATCH_EMAILS).describe('Messages to send (max 20)')
+})
+
+export const emailSendBatchOutputSchema = batchResultSchema(emailSendOutputSchema)
+
+export type EmailSendOutput = z.infer<typeof emailSendOutputSchema>
+export type EmailSendBatchInput = z.infer<typeof emailSendBatchInputSchema>
+export type EmailSendBatchOutput = z.infer<typeof emailSendBatchOutputSchema>
+
+/** Shared seam surface — both provider classes implement this. */
+export type EmailOps = {
+	send: (input: EmailSendInput) => Promise<EmailSendOutput>
+	sendBatch: (input: EmailSendBatchInput) => Promise<EmailSendBatchOutput>
+}
