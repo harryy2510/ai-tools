@@ -12,6 +12,7 @@ import {
 	telegramModule,
 	verifyTelegramWebhookSecret
 } from '../../src/vendors/telegram'
+import { parseMessage } from '../../src/vendors/telegram/domain'
 
 function asRecord(value: unknown): Record<string, unknown> {
 	if (!isPlainObject(value)) throw new Error('expected object')
@@ -23,6 +24,26 @@ describe('telegram webhook helpers', () => {
 		expect(verifyTelegramWebhookSecret('abc', 'abc')).toBe(true)
 		expect(verifyTelegramWebhookSecret('abc', 'abd')).toBe(false)
 		expect(verifyTelegramWebhookSecret(null, 'abc')).toBe(false)
+	})
+
+	test('parseMessage extracts document file_id', () => {
+		const out = parseMessage({
+			message_id: 9,
+			document: { file_id: 'BQACAg-doc', file_name: 'a.txt' }
+		})
+		expect(out.message_id).toBe('9')
+		expect(out.file_id).toBe('BQACAg-doc')
+	})
+
+	test('parseMessage prefers largest photo file_id', () => {
+		const out = parseMessage({
+			message_id: 10,
+			photo: [
+				{ file_id: 'small', file_size: 10 },
+				{ file_id: 'large', file_size: 99 }
+			]
+		})
+		expect(out.file_id).toBe('large')
 	})
 
 	test('parses private text message', () => {

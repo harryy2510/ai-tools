@@ -30,7 +30,11 @@ export const telegramSendTextInputSchema = z.object({
 })
 
 export const telegramMessageOutputSchema = z.object({
-	message_id: z.string().describe('Telegram message id as string')
+	message_id: z.string().describe('Telegram message id as string'),
+	file_id: z
+		.string()
+		.optional()
+		.describe('Telegram file_id when the message carries a document/photo/audio/video attachment')
 })
 
 export const telegramEditTextInputSchema = z.object({

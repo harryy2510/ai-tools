@@ -22,4 +22,18 @@ run('live vendor cloudflare-browser', () => {
 		expect(out.kind).toBe('pdf')
 		expect(out.result.key).toBeTruthy()
 	})
+
+	test('renderScreenshot html to storage', async () => {
+		const client = new CloudflareBrowserClient({
+			account_id: accountId!,
+			api_token: apiToken!,
+			storage: storage!
+		})
+		const out = await client.renderScreenshot({
+			source: { html: '<html><body><h1>ai-tools cf browser shot</h1></body></html>' },
+			filename: 'cf-browser-it.png'
+		})
+		expect(out.kind).toBe('screenshot')
+		expect(out.result.key).toBeTruthy()
+	})
 })

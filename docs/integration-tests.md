@@ -59,6 +59,34 @@ Migrations under `supabase/migrations/` create `ai_tools_vectors`, `match_vector
 
 ---
 
+## Coverage policy
+
+Live IT aims for **full client-method smoke** when env is set:
+
+| Area | Policy |
+| --- | --- |
+| **WooCommerce, Katana, Amazon SP-API** | **Read-only only** — list/get/search. **No** create/update/delete/refunds/notes writes / `createReport` |
+| All other vendors + seams | Exercise every public client method that can run without inbound webhooks/interactive callbacks |
+| Missing env | `describe.skip` (not a failure) |
+| Optional secondary resources | If list is empty, get-by-id branches no-op |
+
+**Explicitly not live-covered** (need inbound/interactive state):
+
+- Telegram/Slack/Teams `answerCallback` (needs interactive payload / `response_url`)
+- Slack/Teams/iMessage `downloadFile` without a provider `file_id` from an **inbound** attachment (Telegram can round-trip: `sendMedia` → `file_id` → `downloadFile`)
+- Amazon `createReport` (write)
+
+**Telegram webhook set/delete** is live-covered when:
+
+```bash
+AI_TOOLS_TELEGRAM_WEBHOOK_URL=https://…   # must be https
+AI_TOOLS_TELEGRAM_WEBHOOK_SECRET=…        # optional; default ai-tools-it-webhook-secret
+```
+
+The test **always** `deleteWebhook` in `finally` (drops pending updates). Do not point a production bot’s IT env at this unless you accept a temporary webhook swap.
+
+---
+
 ## Commands
 
 ```bash
@@ -69,43 +97,46 @@ bun test test/integration/vendors/resend.live.test.ts
 
 ---
 
-## Vendors (one live file each)
+## Vendors (live files under `test/integration/vendors/`)
 
-| Vendor | Env (prefix `AI_TOOLS_`) | Smoke |
+| Vendor | Env (prefix `AI_TOOLS_`) | Smoke (high level) |
 | --- | --- | --- |
-| resend | `RESEND_API_KEY`, `FROM`, `TO` | send |
-| cloudflare-email | `CF_EMAIL_*` | send |
-| telegram | `TELEGRAM_BOT_TOKEN` (+ chat) | getBot / send |
-| slack | `SLACK_BOT_TOKEN` (+ channel) | getBot / send |
-| teams | `TEAMS_APP_ID`, `APP_PASSWORD` | getBot |
-| imessage | proxy URL + project + chat | sendText |
-| s3 | `S3_*` (MinIO defaults in `.env`) | put/get/delete |
-| r2 | `R2_*` | put/get/delete |
-| supabase-storage | `SUPABASE_URL`, service role, bucket | put/get/delete |
-| gotenberg | `GOTENBERG_BASE_URL` + S3 | renderPdf |
-| cloudflare-browser | CF browser token + S3 | renderPdf |
-| transmute | base URL + token + S3 | convert |
-| textract | AWS + `TEXTRACT_SOURCE_KEY` | extractText |
-| woocommerce / katana / amazon-sp-api | store/API keys | list* |
-| qdrant | `QDRANT_URL` | vector CRUD |
-| pinecone | API key + base URL | vector CRUD |
-| supabase-vector | Supabase URL + service role | vector CRUD |
-| mastra-vector | `MASTRA_DB_URL` (local Supabase DB) | vector CRUD |
+| resend | `RESEND_API_KEY`, `FROM`, `TO` | send + sendBatch |
+| cloudflare-email | `CF_EMAIL_*` | send + sendBatch |
+| telegram | `TELEGRAM_BOT_TOKEN` (+ chat; optional `TELEGRAM_WEBHOOK_URL` / `SECRET`) | getBot, webhook info, set/delete webhook, send/edit/action/react/media/group, downloadFile |
+| slack | `SLACK_BOT_TOKEN` (+ `SLACK_CHANNEL_ID`) | getBot, listConversations, send/edit/action/react/media |
+| teams | `TEAMS_APP_ID`, `APP_PASSWORD` (+ `CHAT_ID`, `SERVICE_URL`) | getBot; optional send/edit/action/react/media |
+| imessage | proxy URL + project + chat | send/edit/typing/react/media/read/unsend |
+| s3 | `S3_*` (MinIO defaults in `.env`) | list/put/get/head/copy/delete/bytes/signed URL/multipart |
+| r2 | `R2_*` | list/put/get/head/copy/delete/bytes |
+| supabase-storage | Supabase URL + service role + bucket | list/put/get/head/copy/delete/bytes |
+| gotenberg | `GOTENBERG_BASE_URL` + S3 | renderPdf + renderScreenshot |
+| cloudflare-browser | CF browser token + S3 | renderPdf + renderScreenshot |
+| transmute | base URL + token + S3 | convert + convertBatch |
+| textract | `TEXTRACT_*` only (no MinIO fallback) | extractText + extractTextBatch + getStatus |
+| **woocommerce** | store + consumer key/secret | **read-only** list/get orders/products/customers/coupons/categories |
+| **katana** | `KATANA_API_KEY` | **read-only** list/get all entity surfaces + inventory |
+| **amazon-sp-api** | LWA + IAM + marketplace (+ optional `AMAZON_CATALOG_KEYWORDS`) | **read-only** orders/items/inventory/reports/catalog |
+| qdrant | `QDRANT_URL` (+ collection) | upsert/query/delete (dim-safe collection helper) |
+| pinecone | API key + base URL (+ `PINECONE_DIMENSION`, default 512) | upsert/query/delete |
+| supabase-vector | Supabase URL + service role | upsert/query/delete |
+| mastra-vector | `MASTRA_DB_URL` | upsert/query/delete |
 
-## Seams
+## Seams (`test/integration/seams/`)
 
 | Seam | Env | Smoke |
 | --- | --- | --- |
 | content-type, mime, email-message | none | pure |
 | web-fetch | network | GET example.com |
-| email | Resend | send |
-| storage / files | S3/MinIO | put/get/delete |
-| messaging | Telegram | send |
-| document-render | Gotenberg + S3 | renderPdf |
+| email | Resend and/or CF email | send + sendBatch per provider |
+| storage | S3 and/or R2 and/or Supabase | full object surface per provider |
+| files | S3 | list/search/stat/put/get/delete/copy/mkdir/move/multipart |
+| messaging | TG / Slack / iMessage / Teams when env set | send (+ edit/react/media where channel allows) |
+| document-render | Gotenberg and/or CF browser + S3 | renderPdf + renderScreenshot |
 | file-convert | Transmute + S3 | convert |
 | document-extract | Textract | extractText |
 | vector-store | any vector backend | provider matrix |
-| rag | embed + vector backend | ingest/retrieve |
+| rag | embed + vector backend | ingest/retrieve/delete (qdrant uses `AI_TOOLS_QDRANT_RAG_COLLECTION` default `ai_tools_rag_it`) |
 
 ---
 

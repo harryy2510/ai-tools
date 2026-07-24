@@ -23,4 +23,28 @@ run('live vendor cloudflare-email', () => {
 		})
 		expect(result).toBeDefined()
 	})
+
+	test('sendBatch two messages', async () => {
+		const client = new CloudflareEmailClient({
+			api_token: apiToken!,
+			account_id: accountId!
+		})
+		const result = await client.sendBatch({
+			messages: [
+				{
+					from: from!,
+					to: to!,
+					subject: `[ai-tools it] cf-email batch a ${Date.now()}`,
+					text: 'batch a'
+				},
+				{
+					from: from!,
+					to: to!,
+					subject: `[ai-tools it] cf-email batch b ${Date.now()}`,
+					text: 'batch b'
+				}
+			]
+		})
+		expect(result).toBeDefined()
+	})
 })

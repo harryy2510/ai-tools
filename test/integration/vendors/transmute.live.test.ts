@@ -33,4 +33,42 @@ run('live vendor transmute', () => {
 		expect(out.result.key).toBeTruthy()
 		await s3.delete({ key: sourceKey }).catch(() => undefined)
 	})
+
+	test('convertBatch two sources', async () => {
+		const s3 = new S3Client(storage!)
+		const keyA = objectKey('transmute-a')
+		const keyB = objectKey('transmute-b')
+		await s3.put({
+			key: keyA,
+			body: '# A',
+			body_encoding: 'utf8',
+			content_type: 'text/markdown'
+		})
+		await s3.put({
+			key: keyB,
+			body: '# B',
+			body_encoding: 'utf8',
+			content_type: 'text/markdown'
+		})
+		const client = new TransmuteClient({
+			transmute_base_url: baseUrl!,
+			transmute_token: token!,
+			storage: storage!
+		})
+		const out = await client.convertBatch({
+			items: [
+				{
+					source: { store: 'object', key: keyA, media_type: 'text/markdown' },
+					output_format: 'pdf'
+				},
+				{
+					source: { store: 'object', key: keyB, media_type: 'text/markdown' },
+					output_format: 'pdf'
+				}
+			]
+		})
+		expect(out.results.length).toBe(2)
+		await s3.delete({ key: keyA }).catch(() => undefined)
+		await s3.delete({ key: keyB }).catch(() => undefined)
+	})
 })

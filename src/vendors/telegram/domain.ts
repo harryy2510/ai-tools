@@ -83,11 +83,40 @@ export function parseResult(label: string, status: number, data: unknown): unkno
 	})
 }
 
+/** Prefer largest photo size; else first of document/audio/video/voice/… with a file_id. */
+export function extractTelegramFileId(message: Record<string, unknown>): string | undefined {
+	const photo = message['photo']
+	if (Array.isArray(photo) && photo.length > 0) {
+		let best: string | undefined
+		let bestSize = -1
+		for (const row of photo) {
+			if (!isPlainObject(row) || !isString(row['file_id'])) continue
+			const size = typeof row['file_size'] === 'number' ? row['file_size'] : 0
+			if (size >= bestSize) {
+				bestSize = size
+				best = row['file_id']
+			}
+		}
+		if (best) return best
+	}
+	for (const key of ['document', 'audio', 'video', 'voice', 'video_note', 'animation', 'sticker'] as const) {
+		const item = message[key]
+		if (isPlainObject(item) && isString(item['file_id']) && item['file_id'].length > 0) {
+			return item['file_id']
+		}
+	}
+	return undefined
+}
+
 export function parseMessage(value: unknown): TelegramMessageOutput {
 	if (!isPlainObject(value) || typeof value['message_id'] !== 'number') {
 		throw new ToolError('Telegram returned an invalid message', { code: 'upstream' })
 	}
-	return { message_id: String(value['message_id']) }
+	const fileId = extractTelegramFileId(value)
+	return {
+		message_id: String(value['message_id']),
+		...(fileId && { file_id: fileId })
+	}
 }
 
 export function parseMessages(value: unknown): TelegramSendMediaGroupOutput {

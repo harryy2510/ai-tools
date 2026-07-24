@@ -19,4 +19,25 @@ run('live vendor resend', () => {
 		})
 		expect(result.id).toBeTruthy()
 	})
+
+	test('sendBatch two messages', async () => {
+		const client = new ResendClient({ api_key: apiKey! })
+		const result = await client.sendBatch({
+			messages: [
+				{
+					from: from!,
+					to: to!,
+					subject: `[ai-tools it] resend batch a ${Date.now()}`,
+					text: 'batch a'
+				},
+				{
+					from: from!,
+					to: to!,
+					subject: `[ai-tools it] resend batch b ${Date.now()}`,
+					text: 'batch b'
+				}
+			]
+		})
+		expect(result).toBeDefined()
+	})
 })
