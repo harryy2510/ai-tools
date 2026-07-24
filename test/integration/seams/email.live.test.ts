@@ -48,35 +48,39 @@ runResend('live seam email (resend)', () => {
 })
 
 runCf('live seam email (cloudflare)', () => {
-	test('send + sendBatch', async () => {
-		const client = EmailClient.fromAuth({
-			provider: 'cloudflare',
-			api_token: cfToken!,
-			account_id: cfAccount!
-		})
-		const out = await client.send({
-			from: cfFrom!,
-			to: cfTo!,
-			subject: `[ai-tools it] email seam cf ${Date.now()}`,
-			text: 'email seam cloudflare'
-		})
-		expect(out).toBeDefined()
-		const batch = await client.sendBatch({
-			messages: [
-				{
-					from: cfFrom!,
-					to: cfTo!,
-					subject: `[ai-tools it] email seam cf batch a ${Date.now()}`,
-					text: 'a'
-				},
-				{
-					from: cfFrom!,
-					to: cfTo!,
-					subject: `[ai-tools it] email seam cf batch b ${Date.now()}`,
-					text: 'b'
-				}
-			]
-		})
-		expect(batch).toBeDefined()
-	})
+	test(
+		'send + sendBatch',
+		async () => {
+			const client = EmailClient.fromAuth({
+				provider: 'cloudflare',
+				api_token: cfToken!,
+				account_id: cfAccount!
+			})
+			const out = await client.send({
+				from: cfFrom!,
+				to: cfTo!,
+				subject: `[ai-tools it] email seam cf ${Date.now()}`,
+				text: 'email seam cloudflare'
+			})
+			expect(out).toBeDefined()
+			const batch = await client.sendBatch({
+				messages: [
+					{
+						from: cfFrom!,
+						to: cfTo!,
+						subject: `[ai-tools it] email seam cf batch a ${Date.now()}`,
+						text: 'a'
+					},
+					{
+						from: cfFrom!,
+						to: cfTo!,
+						subject: `[ai-tools it] email seam cf batch b ${Date.now()}`,
+						text: 'b'
+					}
+				]
+			})
+			expect(batch).toBeDefined()
+		},
+		{ timeout: 60_000 }
+	)
 })

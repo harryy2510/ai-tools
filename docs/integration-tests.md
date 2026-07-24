@@ -76,6 +76,25 @@ Live IT aims for **full client-method smoke** when env is set:
 - Slack/Teams/iMessage `downloadFile` without a provider `file_id` from an **inbound** attachment (Telegram can round-trip: `sendMedia` → `file_id` → `downloadFile`)
 - Amazon `createReport` (write)
 
+### Slack bot scopes (full live IT — hard fail if missing)
+
+After changing scopes, **reinstall the app** into the workspace and refresh the bot token if needed:
+
+```json
+"scopes": {
+  "bot": [
+    "chat:write",
+    "channels:read",
+    "groups:read",
+    "im:history",
+    "mpim:history",
+    "reactions:write",
+    "files:write",
+    "files:read"
+  ]
+}
+```
+
 **Telegram webhook set/delete** is live-covered when:
 
 ```bash
@@ -104,7 +123,7 @@ bun test test/integration/vendors/resend.live.test.ts
 | resend | `RESEND_API_KEY`, `FROM`, `TO` | send + sendBatch |
 | cloudflare-email | `CF_EMAIL_*` | send + sendBatch |
 | telegram | `TELEGRAM_BOT_TOKEN` (+ chat; optional `TELEGRAM_WEBHOOK_URL` / `SECRET`) | getBot, webhook info, set/delete webhook, send/edit/action/react/media/group, downloadFile |
-| slack | `SLACK_BOT_TOKEN` (+ `SLACK_CHANNEL_ID`) | getBot, listConversations, send/edit/action/react/media |
+| slack | `SLACK_BOT_TOKEN` (+ `SLACK_CHANNEL_ID`) | getBot, listConversations, send/edit/action/react/media — **reinstall after scopes** (below) |
 | teams | `TEAMS_APP_ID`, `APP_PASSWORD` (+ `CHAT_ID`, `SERVICE_URL`) | getBot; optional send/edit/action/react/media |
 | imessage | proxy URL + project + chat | send/edit/typing/react/media/read/unsend |
 | s3 | `S3_*` (MinIO defaults in `.env`) | list/put/get/head/copy/delete/bytes/signed URL/multipart |
