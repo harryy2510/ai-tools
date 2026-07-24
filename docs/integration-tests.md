@@ -125,7 +125,7 @@ bun test test/integration/vendors/resend.live.test.ts
 | telegram | `TELEGRAM_BOT_TOKEN` (+ chat; optional `TELEGRAM_WEBHOOK_URL` / `SECRET`) | getBot, webhook info, set/delete webhook, send/edit/action/react/media/group, downloadFile |
 | slack | `SLACK_BOT_TOKEN` (+ `SLACK_CHANNEL_ID`) | getBot, listConversations, send/edit/action/react/media — **reinstall after scopes** (below) |
 | teams | `TEAMS_APP_ID`, `APP_PASSWORD` (+ `CHAT_ID`, `SERVICE_URL`) | getBot; optional send/edit/action/react/media |
-| imessage | proxy URL + project + chat | send/edit/typing/react/media/read/unsend |
+| imessage | proxy URL + project + chat + **`IMESSAGE_INBOUND_MESSAGE_ID`** (user-sent msg for successful `/v1/read`) | send/edit/typing/react/media/unsend; outbound read expects **400**; inbound read must succeed |
 | s3 | `S3_*` (MinIO defaults in `.env`) | list/put/get/head/copy/delete/bytes/signed URL/multipart |
 | r2 | `R2_*` | list/put/get/head/copy/delete/bytes |
 | supabase-storage | Supabase URL + service role + bucket | list/put/get/head/copy/delete/bytes |
