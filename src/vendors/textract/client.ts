@@ -71,14 +71,30 @@ export class TextractClient {
 			throw new ToolError('Textract requires source.store "object"', { code: 'bad_input' })
 		}
 
-		const start = await this.#call('Textract.StartDocumentTextDetection', {
-			DocumentLocation: {
-				S3Object: {
-					Bucket: this.#auth.bucket,
-					Name: input.source.key
+		let start: Record<string, unknown>
+		try {
+			start = await this.#call('Textract.StartDocumentTextDetection', {
+				DocumentLocation: {
+					S3Object: {
+						Bucket: this.#auth.bucket,
+						Name: input.source.key
+					}
 				}
+			})
+		} catch (error) {
+			if (error instanceof ToolError) {
+				throw new ToolError(error.message, {
+					code: error.code,
+					retryable: error.retryable,
+					cause: error.cause,
+					details: {
+						...(isPlainObject(error.details) ? error.details : {}),
+						key: input.source.key
+					}
+				})
 			}
-		})
+			throw error
+		}
 
 		const jobId = start['JobId']
 		if (!isString(jobId) || jobId.length === 0) {
@@ -210,28 +226,61 @@ export class TextractClient {
 	}
 
 	async #call(target: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
-		const { data } = await this.#aws.post('/', JSON.stringify(body), {
+		const res = await this.#aws.post('/', JSON.stringify(body), {
 			headers: {
 				'Content-Type': 'application/x-amz-json-1.1',
 				'X-Amz-Target': target
 			},
-			label: `Textract ${target}`
+			label: `Textract ${target}`,
+			// Surface AWS __type / Message instead of a bare "HTTP 400"
+			noThrow: true
 		})
 		// ofetch does not JSON-parse application/x-amz-json-1.1 (returns Blob/string)
-		let payload: unknown = data
-		if (typeof Blob !== 'undefined' && payload instanceof Blob) {
-			payload = await payload.text()
-		}
-		if (isString(payload)) {
-			try {
-				payload = payload.length === 0 ? {} : JSON.parse(payload)
-			} catch {
-				throw new ToolError('Textract returned non-JSON payload', { code: 'upstream' })
-			}
+		const payload = await parseAmzJsonBody(res.data)
+		if (!res.ok) {
+			throw new ToolError(formatTextractError(target, res.status, payload), {
+				code: res.status === 401 || res.status === 403 ? 'bad_auth' : 'upstream',
+				retryable: res.status >= 500 || res.status === 429,
+				details: {
+					status: res.status,
+					...(isPlainObject(payload) && isString(payload['__type']) && { aws_type: payload['__type'] }),
+					bucket: this.#auth.bucket,
+					region: this.#auth.region
+				}
+			})
 		}
 		if (!isPlainObject(payload)) {
 			throw new ToolError('Textract returned a non-object payload', { code: 'upstream' })
 		}
 		return payload
 	}
+}
+
+async function parseAmzJsonBody(data: unknown): Promise<unknown> {
+	let payload: unknown = data
+	if (typeof Blob !== 'undefined' && payload instanceof Blob) {
+		payload = await payload.text()
+	}
+	if (isString(payload)) {
+		try {
+			return payload.length === 0 ? {} : JSON.parse(payload)
+		} catch {
+			return { Message: payload }
+		}
+	}
+	return payload
+}
+
+function formatTextractError(target: string, status: number, payload: unknown): string {
+	if (isPlainObject(payload)) {
+		const type = isString(payload['__type']) ? payload['__type'].split('#').pop() : undefined
+		const message =
+			(isString(payload['message']) && payload['message']) ||
+			(isString(payload['Message']) && payload['Message']) ||
+			undefined
+		if (type && message) return `Textract ${target}: ${type}: ${message}`
+		if (message) return `Textract ${target}: ${message}`
+		if (type) return `Textract ${target}: ${type} (HTTP ${status})`
+	}
+	return `Textract ${target} failed with HTTP ${status}`
 }

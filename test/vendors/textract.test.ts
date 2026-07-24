@@ -93,6 +93,37 @@ describe('textract', () => {
 		}
 	})
 
+	test('client surfaces AWS error body on StartDocumentTextDetection 400', async () => {
+		const restore = mockFetch((input, init) => {
+			const target = amzTarget(input, init)
+			if (target.includes('StartDocumentTextDetection')) {
+				return new Response(
+					JSON.stringify({
+						__type: 'InvalidS3ObjectException',
+						Message: 'Unable to get object metadata from S3.'
+					}),
+					{ status: 400, headers: { 'content-type': 'application/x-amz-json-1.1' } }
+				)
+			}
+			return new Response('unexpected', { status: 500 })
+		})
+		try {
+			const client = new TextractClient(auth)
+			let caught: unknown
+			try {
+				await client.extractText({ source: { store: 'object', key: 'missing.pdf' } })
+			} catch (error) {
+				caught = error
+			}
+			expect(caught).toMatchObject({
+				message: expect.stringContaining('InvalidS3ObjectException'),
+				details: expect.objectContaining({ status: 400, bucket: 'docs', region: 'us-east-1' })
+			})
+		} finally {
+			restore()
+		}
+	})
+
 	test('tool path via withAuth', async () => {
 		const bound = withAuth(textractModule, auth)
 		const tool = bound.tools.find((t) => t.id === 'textract-extract-text')

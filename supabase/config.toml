@@ -1,0 +1,86 @@
+# Local Supabase for ai-tools integration tests.
+# Non-default ports so this does not clash with a normal `supabase start` or FSS.
+#
+#   supabase start
+#   supabase status   # fill service_role into .env if needed
+#   supabase stop
+
+project_id = "ai-tools-integration"
+
+[api]
+enabled = true
+# Default is 54321 — use 60xxx to avoid clashes
+port = 60121
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[api.tls]
+enabled = false
+
+[db]
+# Default is 54322
+port = 60122
+shadow_port = 60120
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 60129
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+# Default is 54323
+port = 60123
+api_url = "http://127.0.0.1"
+openai_api_key = "env(OPENAI_API_KEY)"
+
+[inbucket]
+enabled = true
+# Default is 54324
+port = 60124
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.image_transformation]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://127.0.0.1:3000"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+inspector_port = 60128
+
+[analytics]
+enabled = true
+# Default is 54327
+port = 60127
+backend = "postgres"

@@ -30,6 +30,13 @@ import type {
 	VectorMatch
 } from './contracts'
 import { qdrantAuthSchema } from './contracts'
+import {
+	isNativeQdrantId,
+	QDRANT_LOGICAL_ID_KEY,
+	resolveLogicalPointId,
+	stripLogicalIdPayload,
+	toQdrantPointId
+} from './domain'
 
 export type QdrantClientOptions = {
 	fetch?: HttpServiceOptions['fetch'] | undefined
@@ -72,8 +79,13 @@ export class QdrantClient {
 	async upsert(input: UpsertVectorsInput): Promise<UpsertVectorsOutput> {
 		const collection = requireCollection(input.collection, this.#defaultCollection, 'Qdrant upsert')
 		const points = input.vectors.map((point) => {
-			const row: Record<string, unknown> = { id: point.id, vector: point.values }
-			if (point.metadata) row['payload'] = point.metadata
+			const wireId = toQdrantPointId(point.id)
+			const payload: Record<string, string | number | boolean | null> = point.metadata ? { ...point.metadata } : {}
+			if (!isNativeQdrantId(point.id)) {
+				payload[QDRANT_LOGICAL_ID_KEY] = point.id
+			}
+			const row: Record<string, unknown> = { id: wireId, vector: point.values }
+			if (Object.keys(payload).length > 0) row['payload'] = payload
 			return row
 		})
 		const res = await this.#http.put(
@@ -94,10 +106,11 @@ export class QdrantClient {
 		const collection = requireCollection(input.collection, this.#defaultCollection, 'Qdrant query')
 		const topK = input.top_k ?? 8
 		const includeMetadata = input.include_metadata !== false
+		// Always pull payload so free-form logical ids can be restored.
 		const body: Record<string, unknown> = {
 			vector: input.vector,
 			limit: topK,
-			with_payload: includeMetadata,
+			with_payload: true,
 			with_vector: input.include_values === true
 		}
 		if (input.filter) body['filter'] = input.filter
@@ -118,12 +131,14 @@ export class QdrantClient {
 		const matches: VectorMatch[] = []
 		for (const row of rows) {
 			if (!isPlainObject(row)) continue
-			const id = parsePointId(row['id'])
-			if (!id) continue
+			const wireId = parsePointId(row['id'])
+			if (!wireId) continue
+			const rawPayload = isPlainObject(row['payload']) ? row['payload'] : undefined
 			const score = isNumber(row['score']) ? row['score'] : 0
+			const id = resolveLogicalPointId(wireId, rawPayload)
 			const match: VectorMatch = { id, score }
 			if (includeMetadata) {
-				const meta = parseMetadata(row['payload'])
+				const meta = stripLogicalIdPayload(parseMetadata(row['payload']))
 				if (meta) match.metadata = meta
 			}
 			if (input.include_values === true) {
@@ -137,9 +152,10 @@ export class QdrantClient {
 
 	async delete(input: DeleteVectorsInput): Promise<DeleteVectorsOutput> {
 		const collection = requireCollection(input.collection, this.#defaultCollection, 'Qdrant delete')
+		const points = input.ids.map((id) => toQdrantPointId(id))
 		const res = await this.#http.post(
 			`/collections/${encodeURIComponent(collection)}/points/delete`,
-			{ points: input.ids },
+			{ points },
 			{ label: 'Qdrant delete', noThrow: true, query: { wait: 'true' } }
 		)
 		if (!res.ok) {

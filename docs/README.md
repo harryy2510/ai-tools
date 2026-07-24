@@ -90,6 +90,7 @@ Capability modules we own. Multi-provider seams take `{ provider, … }` on host
 | [artifacts-extract-convert](./specs/artifacts-extract-convert.md) | ArtifactRef extract / convert / render |
 | [http-and-aws-services](./reference/http-and-aws-services.md) | Transport classes |
 | [package-surface-working](./roadmap/package-surface-working.md) | Delivery board (working) |
+| [integration-tests](./integration-tests.md) | Live vendor + seam tests; Docker + local Supabase ports |
 
 ## Mental model
 

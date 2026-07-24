@@ -1,0 +1,76 @@
+# Local backends for ai-tools integration tests (non-Supabase).
+# Supabase is started separately: `supabase start` (see supabase/config.toml for ports).
+#
+#   bun run integration:up
+#   set -a && source .env && set +a
+#   bun run test:integration
+#
+# Ports bind to 127.0.0.1 only. Not for production.
+
+name: ai-tools-integration
+
+services:
+  # Vector REST — vendors/qdrant + vector-store provider=qdrant
+  qdrant:
+    image: qdrant/qdrant:v1.13.2
+    ports:
+      - '127.0.0.1:6333:6333'
+      - '127.0.0.1:6334:6334'
+    volumes:
+      - ai_tools_qdrant:/qdrant/storage
+    healthcheck:
+      test: ['CMD-SHELL', 'bash -c "exec 3<>/dev/tcp/127.0.0.1/6333"']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  # S3-compatible store — s3 / storage / files / gotenberg output
+  minio:
+    image: minio/minio:RELEASE.2025-01-20T14-49-07Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: aitools
+      MINIO_ROOT_PASSWORD: aitools-secret
+    ports:
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
+    volumes:
+      - ai_tools_minio:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:9000/minio/health/live']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-01-17T23-25-50Z
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      for i in 1 2 3 4 5 6 7 8 9 10; do
+        mc alias set local http://minio:9000 aitools aitools-secret && break;
+        sleep 1;
+      done;
+      mc mb -p local/ai-tools-it || true;
+      exit 0;
+      "
+
+  # HTML/URL → PDF — vendors/gotenberg + document-render
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    command:
+      - gotenberg
+      - --api-timeout=60s
+    ports:
+      - '127.0.0.1:3000:3000'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:3000/health']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  ai_tools_qdrant:
+  ai_tools_minio:
