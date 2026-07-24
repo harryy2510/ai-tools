@@ -210,4 +210,65 @@ describe('slack module', () => {
 			globalThis.fetch = original
 		}
 	})
+
+	test('sendMedia uses form getUploadURLExternal then POST bytes then complete', async () => {
+		const original = globalThis.fetch
+		const steps: string[] = []
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+			const method = init?.method ?? 'GET'
+			if (url.includes('files.getUploadURLExternal')) {
+				steps.push('getUploadURL')
+				expect(method).toBe('POST')
+				const headers = new Headers(init?.headers)
+				expect(headers.get('content-type')).toContain('application/x-www-form-urlencoded')
+				const raw =
+					typeof init?.body === 'string' ? init.body : init?.body instanceof URLSearchParams ? init.body.toString() : ''
+				expect(raw).toContain('filename=')
+				expect(raw).toContain('length=')
+				return new Response(
+					JSON.stringify({
+						ok: true,
+						upload_url: 'https://files.slack.com/upload/v1/TEST',
+						file_id: 'F123'
+					}),
+					{ status: 200, headers: { 'content-type': 'application/json' } }
+				)
+			}
+			if (url.includes('files.slack.com/upload')) {
+				steps.push('upload')
+				expect(method).toBe('POST')
+				return new Response('', { status: 200 })
+			}
+			if (url.includes('files.completeUploadExternal')) {
+				steps.push('complete')
+				const body = typeof init?.body === 'string' ? JSON.parse(init.body) : {}
+				expect(body.channel_id).toBe('C99')
+				expect(body.files?.[0]?.id).toBe('F123')
+				return new Response(
+					JSON.stringify({
+						ok: true,
+						files: [{ id: 'F123', shares: { public: { C99: [{ ts: '99.1' }] } } }]
+					}),
+					{ status: 200, headers: { 'content-type': 'application/json' } }
+				)
+			}
+			return new Response(JSON.stringify({ ok: false, error: 'unexpected' }), { status: 200 })
+		}) as typeof globalThis.fetch
+
+		try {
+			const client = new SlackClient({ bot_token: 'xoxb-t' })
+			const out = await client.sendMedia({
+				chat_id: 'C99',
+				kind: 'document',
+				file_name: 'note.txt',
+				body_base64: Buffer.from('hello slack').toString('base64'),
+				content_type: 'text/plain'
+			})
+			expect(steps).toEqual(['getUploadURL', 'upload', 'complete'])
+			expect(out.message_id).toBe('99.1')
+		} finally {
+			globalThis.fetch = original
+		}
+	})
 })

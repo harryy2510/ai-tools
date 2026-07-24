@@ -90,6 +90,19 @@ export class SlackClient {
 		return parseSlackResult(label, res.status, res.data)
 	}
 
+	/** Form-urlencoded Web API call (used where Slack documents form as primary, e.g. getUploadURLExternal). */
+	async #apiForm(method: string, body: URLSearchParams, label: string): Promise<Record<string, unknown>> {
+		const res = await this.#http.post(`/${method}`, body, {
+			label,
+			noThrow: true,
+			headers: {
+				Authorization: `Bearer ${this.#token}`,
+				'Content-Type': 'application/x-www-form-urlencoded'
+			}
+		})
+		return parseSlackResult(label, res.status, res.data)
+	}
+
 	/** POST chat.postMessage */
 	async sendText(input: SlackSendTextInput): Promise<SlackMessageOutput> {
 		const body: Record<string, unknown> = {
@@ -152,33 +165,37 @@ export class SlackClient {
 
 	/**
 	 * External upload flow:
-	 * files.getUploadURLExternal → PUT bytes → files.completeUploadExternal
+	 * files.getUploadURLExternal → POST bytes to upload_url → files.completeUploadExternal
+	 * @see https://docs.slack.dev/reference/methods/files.getUploadURLExternal
 	 */
 	async sendMedia(input: SlackSendMediaInput): Promise<SlackMessageOutput> {
 		const { bytes, body } = mediaArrayBuffer(input)
+		// Slack accepts JSON, but form-urlencoded is the documented primary content type for this
+		// method and avoids edge cases with numeric `length` on some gateways.
+		const form = new URLSearchParams()
+		form.set('filename', input.file_name)
+		form.set('length', String(bytes.byteLength))
 		const upload = parseUploadUrl(
-			await this.#api(
-				'files.getUploadURLExternal',
-				{ filename: input.file_name, length: bytes.byteLength },
-				'Slack files.getUploadURLExternal'
-			)
+			await this.#apiForm('files.getUploadURLExternal', form, 'Slack files.getUploadURLExternal')
 		)
 
-		const putHeaders: Record<string, string> = {}
-		if (input.content_type) putHeaders['Content-Type'] = input.content_type
-		const put = await this.#external.put(upload.upload_url, body, {
-			label: 'Slack file upload PUT',
+		// Slack expects POST of raw bytes (or multipart) to the upload URL — not JSON API.
+		const putHeaders: Record<string, string> = {
+			'Content-Type': input.content_type ?? 'application/octet-stream'
+		}
+		const put = await this.#external.post(upload.upload_url, body, {
+			label: 'Slack file upload POST',
 			noThrow: true,
-			...(Object.keys(putHeaders).length > 0 && { headers: putHeaders })
+			headers: putHeaders
 		})
 		if (!put.ok) {
 			throw new SlackClientError({
-				message: `Slack file upload PUT failed with HTTP ${put.status}`,
+				message: `Slack file upload POST failed with HTTP ${put.status}`,
 				failureKind:
 					put.status === 400 || put.status === 401 || put.status === 403 || put.status === 404
 						? 'definite_rejection'
 						: 'outcome_unknown',
-				method: 'Slack file upload PUT',
+				method: 'Slack file upload POST',
 				status: put.status
 			})
 		}
