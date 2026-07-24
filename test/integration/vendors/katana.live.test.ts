@@ -1,5 +1,6 @@
 /**
  * Katana live IT — read-only only (no create/update/delete).
+ * Note: Katana has no retrieve-by-id for customers or suppliers (list only).
  */
 import { describe, expect, test } from 'bun:test'
 
@@ -15,7 +16,7 @@ function client() {
 
 run('live vendor katana (read-only)', () => {
 	test(
-		'list + optional get for all read surfaces',
+		'list + get where Katana supports retrieve',
 		async () => {
 			const c = client()
 
@@ -43,21 +44,12 @@ run('live vendor katana (read-only)', () => {
 				expect(got.material.id).toBe(material.id)
 			}
 
+			// List-only surfaces (Katana API has no GET-by-id for these)
 			const customers = await c.listCustomers({ limit: 1 })
 			expect(Array.isArray(customers.items)).toBe(true)
-			const customer = customers.items[0]
-			if (customer) {
-				const got = await c.getCustomer({ customer_id: customer.id })
-				expect(got.customer.id).toBe(customer.id)
-			}
 
 			const suppliers = await c.listSuppliers({ limit: 1 })
 			expect(Array.isArray(suppliers.items)).toBe(true)
-			const supplier = suppliers.items[0]
-			if (supplier) {
-				const got = await c.getSupplier({ supplier_id: supplier.id })
-				expect(got.supplier.id).toBe(supplier.id)
-			}
 
 			const purchaseOrders = await c.listPurchaseOrders({ limit: 1 })
 			expect(Array.isArray(purchaseOrders.items)).toBe(true)
@@ -78,6 +70,6 @@ run('live vendor katana (read-only)', () => {
 			const inventory = await c.listInventory({ limit: 1 })
 			expect(Array.isArray(inventory.items)).toBe(true)
 		},
-		{ timeout: 60_000 }
+		{ timeout: 90_000 }
 	)
 })

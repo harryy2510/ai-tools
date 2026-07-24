@@ -56,20 +56,24 @@ runQ('live seam vector-store qdrant', () => {
 })
 
 runP('live seam vector-store pinecone', () => {
-	test('round-trip', async () => {
-		const values: number[] = []
-		for (let i = 0; i < (Number.isFinite(pineconeDim) && pineconeDim > 0 ? pineconeDim : 512); i += 1)
-			values.push(0.1 + i * 0.01)
-		await assertUpsertQueryDeleteRoundTrip(
-			VectorStoreClient.fromAuth({
-				provider: 'pinecone',
-				api_key: pineconeKey!,
-				base_url: pineconeBase!,
-				...(pineconeNs ? { default_namespace: pineconeNs } : {})
-			}),
-			{ values, settleMs: 1500, ...(pineconeNs ? { namespace: pineconeNs } : {}) }
-		)
-	})
+	test(
+		'round-trip',
+		async () => {
+			const values: number[] = []
+			for (let i = 0; i < (Number.isFinite(pineconeDim) && pineconeDim > 0 ? pineconeDim : 512); i += 1)
+				values.push(0.1 + i * 0.01)
+			await assertUpsertQueryDeleteRoundTrip(
+				VectorStoreClient.fromAuth({
+					provider: 'pinecone',
+					api_key: pineconeKey!,
+					base_url: pineconeBase!,
+					...(pineconeNs ? { default_namespace: pineconeNs } : {})
+				}),
+				{ values, settleMs: 2500, ...(pineconeNs ? { namespace: pineconeNs } : {}) }
+			)
+		},
+		{ timeout: 30_000 }
+	)
 })
 
 runS('live seam vector-store supabase', () => {
